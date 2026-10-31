@@ -45,8 +45,10 @@ class PermissionTests(TestCase):
         self.assertIn("outlet.create", manager.codes)
         self.assertNotIn("role.create", manager.codes)
         self.assertNotIn("subscription.show", manager.codes)
-        self.assertEqual(cashier.codes, frozenset())  # cashier screens (POS…) arrive in later phases
+        # Stored codes switch on as their modules arrive: the medicine list now, POS later.
+        self.assertEqual(cashier.codes, {"item.list"})
         self.assertIn("pos.create", cashier.permissions)
+        self.assertIn("item_setup.create", manager.codes)
 
     def test_menu_follows_permissions(self):
         user = add_staff(self.tenant, "c@x.test", ["outlet.list"])
@@ -60,7 +62,8 @@ class PermissionTests(TestCase):
                 yield item
                 yield from walk(item.children)
         keys = {i.key for s in MENU for i in walk(s.items) if i.audience == "tenant" and i.url_name}
-        built = {k for k in keys if k in {"settings", "outlet", "counter", "subscription", "payment_account", "employee", "role"}}
+        built = {k for k in keys if k in {"settings", "outlet", "counter", "subscription", "payment_account", "employee",
+                                          "role", "item", "item_setup"}}
         self.assertTrue(built <= set(MODULES_BY_KEY))
 
 

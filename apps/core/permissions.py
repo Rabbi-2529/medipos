@@ -34,8 +34,12 @@ class Module:
 SHOP = _("Shop setup")
 PEOPLE = _("People")
 ACCOUNTS = _("Accounts")
+MEDICINES = _("Medicines")
 
 MODULES = (
+    # "item.create" also covers Excel import and adding from the catalog; "item.edit" covers bulk price changes.
+    Module("item", _("Medicines"), MEDICINES, (LIST, CREATE, EDIT, DELETE)),
+    Module("item_setup", _("Medicine setup lists"), MEDICINES, (LIST, CREATE, EDIT, DELETE)),
     Module("settings", _("Business settings"), SHOP, (SHOW, EDIT)),
     Module("outlet", _("Outlets"), SHOP, (LIST, CREATE, EDIT, DELETE)),
     Module("counter", _("Counters"), SHOP, (LIST, CREATE, EDIT, DELETE)),

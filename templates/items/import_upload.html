@@ -1,0 +1,42 @@
+{% extends "layouts/app.html" %}
+{% load i18n billing_tags %}
+{% block title %}{% translate "Import medicines" %}{% endblock %}
+{% block page_title %}{% translate "Import medicines from Excel" %}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle"><a href="{% url 'items:list' %}"><i class="bi bi-chevron-left"></i> {% translate "All medicines" %}</a></p>{% endblock %}
+{% block content %}
+<div class="row g-4">
+  <div class="col-xl-7">
+    <div class="card">
+      <div class="card-body">
+        <ol class="steps">
+          <li><strong>{% translate "Download the template" %}</strong> {% translate "(or export your current list and edit it)." %}
+            <div class="mt-2"><a class="btn btn-sm btn-outline-primary" href="{% url 'items:import_template' %}"><i class="bi bi-file-earmark-arrow-down"></i> {% translate "Template (.xlsx)" %}</a></div>
+          </li>
+          <li><strong>{% translate "Fill one row per medicine." %}</strong> {% translate "Only the name is required. Generics, companies, categories and units are created for you." %}</li>
+          <li><strong>{% translate "Upload it below." %}</strong> {% translate "You'll see a check of every row before anything is saved." %}</li>
+        </ol>
+        <form method="post" enctype="multipart/form-data" novalidate>
+          {% csrf_token %}
+          {% include "partials/_field.html" with field=form.file %}
+          {% include "partials/_field.html" with field=form.update_existing %}
+          <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i> {% translate "Check file" %}</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="col-xl-5">
+    <div class="card">
+      <div class="card-header"><h2 class="card-title">{% translate "Good to know" %}</h2></div>
+      <div class="card-body">
+        <ul class="simple-list">
+          <li><span>{% translate "Medicines on your plan" %}</span><strong>{{ usage.used }} / {{ usage.limit|limit_text }}</strong></li>
+          <li><span>{% translate "File types" %}</span><span>.xlsx, .csv</span></li>
+          <li><span>{% translate "Largest file" %}</span><span>10 MB · 30,000 rows</span></li>
+          <li><span>{% translate "Prices are per" %}</span><span>{% translate "sale unit (piece)" %}</span></li>
+        </ul>
+        <p class="form-text mb-0 mt-2">{% translate "Column names like MRP, Brand, Company or Generic name are recognised too." %}</p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

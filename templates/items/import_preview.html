@@ -1,0 +1,61 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+{% block title %}{% translate "Check import" %}{% endblock %}
+{% block page_title %}{% translate "Check before importing" %}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{{ staged.file }} · {% blocktranslate count rows=staged.total %}{{ rows }} row{% plural %}{{ rows }} rows{% endblocktranslate %}</p>{% endblock %}
+{% block content %}
+<div class="row g-4 mb-4">
+  {% translate "Will be added" as l_add %}{% translate "Will be updated" as l_upd %}{% translate "Rows with problems" as l_err %}
+  {% include "core/_stat.html" with label=l_add value=staged.create|length icon="bi-plus-circle" tone="success" col="col-sm-4" %}
+  {% include "core/_stat.html" with label=l_upd value=staged.update|length icon="bi-arrow-repeat" tone="info" col="col-sm-4" %}
+  {% include "core/_stat.html" with label=l_err value=staged.errors|length icon="bi-exclamation-triangle" tone="danger" col="col-sm-4" %}
+</div>
+
+{% if errors %}
+<div class="card mb-4">
+  <div class="card-header"><h2 class="card-title">{% translate "Rows that will be skipped" %}</h2></div>
+  <div class="card-body">
+    <div class="table-responsive error-table">
+      <table class="table table-sm align-middle mb-0">
+        <thead><tr><th>{% translate "Row" %}</th><th>{% translate "Problem" %}</th></tr></thead>
+        <tbody>{% for number, message in errors %}<tr><td>{{ number|default:"—" }}</td><td>{{ message }}</td></tr>{% endfor %}</tbody>
+      </table>
+    </div>
+    {% if more_errors %}<p class="form-text mb-0">{% blocktranslate %}…and {{ more_errors }} more.{% endblocktranslate %}</p>{% endif %}
+    <p class="form-text mb-0 mt-2">{% translate "Fix them in your file and upload again, or import the good rows now and add the rest later." %}</p>
+  </div>
+</div>
+{% endif %}
+
+{% if sample %}
+<div class="card mb-4">
+  <div class="card-header"><h2 class="card-title">{% translate "First rows to add" %}</h2></div>
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0">
+        <thead><tr><th>{% translate "Row" %}</th><th>{% translate "Name" %}</th><th>{% translate "Strength" %}</th><th>{% translate "Generic" %}</th><th>{% translate "Manufacturer" %}</th><th>{% translate "Unit" %}</th><th class="text-end">{% translate "Purchase" %}</th><th class="text-end">{% translate "Sale" %}</th></tr></thead>
+        <tbody>
+          {% for row in sample %}
+          <tr>
+            <td>{{ row.row_number }}</td>
+            <td class="fw-semibold">{{ row.name }}</td><td>{{ row.strength }}</td><td>{{ row.generic }}</td><td>{{ row.manufacturer }}</td>
+            <td>{{ row.sale_unit|default:"Piece" }}{% if row.conversion and row.conversion > 1 %} ({{ row.purchase_unit }} × {{ row.conversion }}){% endif %}</td>
+            <td class="text-end">{{ row.purchase_price|default:"—" }}</td><td class="text-end">{{ row.sale_price|default:"—" }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<form method="post" class="form-actions">
+  {% csrf_token %}
+  {% if staged.create or staged.update %}
+  <button class="btn btn-primary" type="submit" name="confirm"><i class="bi bi-check2-circle"></i>
+    {% blocktranslate with add=staged.create|length upd=staged.update|length %}Import now ({{ add }} new, {{ upd }} updates){% endblocktranslate %}</button>
+  {% endif %}
+  <button class="btn btn-link" type="submit" name="cancel">{% translate "Cancel and upload another file" %}</button>
+</form>
+{% endblock %}

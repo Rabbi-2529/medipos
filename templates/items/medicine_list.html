@@ -1,0 +1,95 @@
+{% extends "layouts/app.html" %}
+{% load i18n billing_tags %}
+{% block title %}{% translate "Medicines" %}{% endblock %}
+{% block page_title %}{% translate "Medicines" %}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% blocktranslate with used=usage.used limit=usage.limit|limit_text %}{{ used }} of {{ limit }} medicines on your plan.{% endblocktranslate %}</p>{% endblock %}
+{% block page_actions %}
+<a class="btn btn-outline-primary" href="#" data-export><i class="bi bi-download"></i> {% translate "Export" %}</a>
+{% if can.item.create %}
+<div class="dropdown">
+  <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi bi-plus-lg"></i> {% translate "Add" %}</button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><a class="dropdown-item" href="{% url 'items:create' %}"><i class="bi bi-capsule"></i> {% translate "One medicine" %}</a></li>
+    <li><a class="dropdown-item" href="{% url 'items:catalog' %}"><i class="bi bi-journal-medical"></i> {% translate "From the catalog" %}</a></li>
+    <li><a class="dropdown-item" href="{% url 'items:import' %}"><i class="bi bi-file-earmark-spreadsheet"></i> {% translate "From Excel" %}</a></li>
+  </ul>
+</div>
+{% endif %}
+{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <div class="table-filters">
+      <div class="table-filter">
+        <label class="form-label" for="f-category">{% translate "Category" %}</label>
+        <select id="f-category" class="form-select" data-filter="category" data-mp-select data-allow-clear data-placeholder="{% translate 'All' %}" data-ajax-url="{% url 'items:lookup' 'categories' %}"><option></option></select>
+      </div>
+      <div class="table-filter">
+        <label class="form-label" for="f-manufacturer">{% translate "Manufacturer" %}</label>
+        <select id="f-manufacturer" class="form-select" data-filter="manufacturer" data-mp-select data-allow-clear data-placeholder="{% translate 'All' %}" data-ajax-url="{% url 'items:lookup' 'manufacturers' %}"><option></option></select>
+      </div>
+      <div class="table-filter">
+        <label class="form-label" for="f-generic">{% translate "Generic" %}</label>
+        <select id="f-generic" class="form-select" data-filter="generic" data-mp-select data-allow-clear data-placeholder="{% translate 'All' %}" data-ajax-url="{% url 'items:lookup' 'generics' %}"><option></option></select>
+      </div>
+      <div class="table-filter">
+        <label class="form-label" for="f-kind">{% translate "Type" %}</label>
+        <select id="f-kind" class="form-select" data-filter="kind" data-mp-select data-no-search data-allow-clear data-placeholder="{% translate 'All' %}">
+          <option></option>{% for value, label in kinds %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="table-filter">
+        <label class="form-label" for="f-status">{% translate "Status" %}</label>
+        <select id="f-status" class="form-select" data-filter="status" data-mp-select data-no-search>
+          <option value="active">{% translate "Active" %}</option>
+          <option value="inactive">{% translate "Inactive" %}</option>
+          <option value="all">{% translate "All" %}</option>
+        </select>
+      </div>
+    </div>
+    <table id="medicine-table" class="table table-hover align-middle w-100">
+      <thead>
+        <tr>
+          <th>{% translate "Code" %}</th>
+          <th>{% translate "Medicine" %}</th>
+          <th>{% translate "Manufacturer" %}</th>
+          <th>{% translate "Category" %}</th>
+          <th>{% translate "Pack" %}</th>
+          <th class="text-end">{% translate "Purchase" %}</th>
+          <th class="text-end">{% translate "MRP" %}</th>
+          <th>{% translate "Rack" %}</th>
+          <th>{% translate "Status" %}</th>
+          <th><span class="visually-hidden">{% translate "Actions" %}</span></th>
+        </tr>
+      </thead>
+    </table>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+  (function () {
+    function filters() {
+      var out = {};
+      $("[data-filter]").each(function () { var v = $(this).val(); if (v) out[this.dataset.filter] = v; });
+      return out;
+    }
+    var table = MP.dataTable("#medicine-table", {
+      ajax: { url: "{% url 'items:data' %}", data: function (d) { Object.assign(d, filters()); } },
+      columnDefs: [
+        { targets: [4, 9], orderable: false },
+        { targets: [5, 6], className: "text-end text-nowrap" },
+        { targets: 9, className: "text-end" }
+      ],
+      language: { searchPlaceholder: "Name, generic, code or barcode…" }
+    });
+    $("[data-filter]").on("change", function () { table.ajax.reload(); });
+    document.querySelector("[data-export]").addEventListener("click", function (ev) {
+      ev.preventDefault();
+      var params = filters();
+      params.q = table.search();
+      window.location = "{% url 'items:export' %}?" + new URLSearchParams(params).toString();
+    });
+  })();
+</script>
+{% endblock %}

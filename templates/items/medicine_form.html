@@ -1,0 +1,168 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% if medicine and not medicine.is_active %} <span class="state-badge state-suspended">{% translate "Inactive" %}</span>{% endif %}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle"><a href="{% url 'items:list' %}"><i class="bi bi-chevron-left"></i> {% translate "All medicines" %}</a>{% if medicine %} · {% translate "Code" %} <code>{{ medicine.code }}</code>{% endif %}</p>{% endblock %}
+{% block content %}
+<form method="post" enctype="multipart/form-data" novalidate>
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="alert alert-danger py-2">{% for e in form.non_field_errors %}{{ e }}{% endfor %}</div>{% endif %}
+  <div class="row g-4">
+    <div class="col-xl-8">
+      <div class="card mb-4">
+        <div class="card-header"><h2 class="card-title">{% translate "What it is" %}</h2></div>
+        <div class="card-body">
+          <div class="mb-3 kind-switch" role="radiogroup" aria-label="{% translate 'Type' %}">
+            {% for radio in form.kind %}
+            <label class="kind-option">{{ radio.tag }} <span>{{ radio.choice_label }}</span></label>
+            {% endfor %}
+          </div>
+          <div class="row">
+            <div class="col-md-6">{% include "partials/_field.html" with field=form.name %}</div>
+            <div class="col-md-3">{% include "partials/_field.html" with field=form.strength %}</div>
+            <div class="col-md-3" data-medicine-only>{% include "partials/_field.html" with field=form.dosage_form %}</div>
+            <div class="col-md-6" data-medicine-only>{% include "partials/_field.html" with field=form.generic_name %}</div>
+            <div class="col-md-6">{% include "partials/_field.html" with field=form.manufacturer_name %}</div>
+            <div class="col-md-6">{% include "partials/_field.html" with field=form.category_name %}</div>
+            <div class="col-md-6">{% include "partials/_field.html" with field=form.alternative_name %}</div>
+            <div class="col-md-6" data-medicine-only>{% include "partials/_field.html" with field=form.prescription_required %}</div>
+            <div class="col-md-6">{% include "partials/_field.html" with field=form.track_expiry %}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card mb-4">
+        <div class="card-header"><h2 class="card-title">{% translate "Units" %}</h2></div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-4">{% include "partials/_field.html" with field=form.sale_unit %}</div>
+            <div class="col-md-4">{% include "partials/_field.html" with field=form.purchase_unit %}</div>
+            <div class="col-md-4" data-conversion>{% include "partials/_field.html" with field=form.conversion %}</div>
+            <div class="col-md-4">{% include "partials/_field.html" with field=form.strip_size %}</div>
+            <div class="col-md-4">{% include "partials/_field.html" with field=form.alert_quantity %}</div>
+            <div class="col-md-4">{% include "partials/_field.html" with field=form.rack %}</div>
+          </div>
+          <p class="form-text mb-0" data-pack-summary></p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><h2 class="card-title">{% translate "Prices" %} <small class="text-body-secondary fw-normal" data-price-unit></small></h2></div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-3">{% include "partials/_field.html" with field=form.purchase_price %}</div>
+            <div class="col-md-3">
+              <div class="mb-3">
+                <label class="form-label" for="margin">{% translate "Margin %" %}</label>
+                <input type="number" step="0.1" class="form-control" id="margin" data-margin>
+                <div class="form-text">{% translate "Typing a margin sets the sale price." %}</div>
+              </div>
+            </div>
+            <div class="col-md-3">{% include "partials/_field.html" with field=form.sale_price %}</div>
+            <div class="col-md-3">{% include "partials/_field.html" with field=form.wholesale_price %}</div>
+          </div>
+          <p class="form-text mb-0" data-box-prices></p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-4">
+      <div class="card mb-4">
+        <div class="card-header"><h2 class="card-title">{% translate "Codes" %}</h2></div>
+        <div class="card-body">
+          {% include "partials/_field.html" with field=form.code %}
+          {% include "partials/_field.html" with field=form.barcode %}
+          <svg class="barcode-preview d-none" data-barcode-preview></svg>
+        </div>
+      </div>
+      <div class="card mb-4">
+        <div class="card-header"><h2 class="card-title">{% translate "Picture & notes" %}</h2></div>
+        <div class="card-body">
+          {% if medicine.image %}<img class="medicine-thumb mb-3" src="{{ medicine.image.url }}" alt="">{% endif %}
+          {% include "partials/_field.html" with field=form.image %}
+          {% include "partials/_field.html" with field=form.description %}
+        </div>
+      </div>
+      {% if medicine and can.item.delete %}
+      <div class="card">
+        <div class="card-body">
+          {# Buttons submit the separate #toggle-form below: forms can't be nested. #}
+          {% if medicine.is_active %}
+          <button class="btn btn-outline-danger w-100" type="submit" form="toggle-form">{% translate "Deactivate medicine" %}</button>
+          {% else %}
+          <button class="btn btn-outline-success w-100" type="submit" form="toggle-form">{% translate "Activate medicine" %}</button>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  <div class="form-actions">
+    <button class="btn btn-primary" type="submit"><i class="bi bi-check2"></i> {% translate "Save" %}</button>
+    {% if not medicine %}<button class="btn btn-outline-primary" type="submit" name="save_add">{% translate "Save and add another" %}</button>{% endif %}
+    <a class="btn btn-link" href="{% url 'items:list' %}">{% translate "Cancel" %}</a>
+  </div>
+</form>
+{% if medicine and can.item.delete %}
+<form id="toggle-form" method="post" action="{% url 'items:toggle' medicine.pk %}" {% if medicine.is_active %}data-confirm="{% translate 'Hide this medicine from sales and searches?' %}"{% endif %}>{% csrf_token %}</form>
+{% endif %}
+{% endblock %}
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+<script>
+  (function () {
+    var currency = "{{ currency|escapejs }}";
+    var $ = window.jQuery, f = function (name) { return document.querySelector("[name=" + name + "]"); };
+    var purchase = f("purchase_price"), sale = f("sale_price"), wholesale = f("wholesale_price"), margin = document.querySelector("[data-margin]");
+    var conversion = f("conversion");
+    var unitText = function (name) { var o = f(name).selectedOptions[0]; return o ? o.text : ""; };
+    var money = function (v) { return currency + (Math.round(v * 100) / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
+
+    function syncKind() {
+      var general = (document.querySelector("[name=kind]:checked") || {}).value === "general";
+      document.querySelectorAll("[data-medicine-only]").forEach(function (el) { el.classList.toggle("d-none", general); });
+    }
+    function syncUnits() {
+      var same = f("sale_unit").value === f("purchase_unit").value;
+      document.querySelector("[data-conversion]").classList.toggle("d-none", same);
+      if (same) conversion.value = 1;
+      var n = parseInt(conversion.value, 10) || 1;
+      document.querySelector("[data-pack-summary]").textContent = same ? "" :
+        "1 " + unitText("purchase_unit") + " = " + n + " " + unitText("sale_unit");
+      document.querySelector("[data-price-unit]").textContent = "· per " + unitText("sale_unit").toLowerCase();
+      syncBoxPrices();
+    }
+    function syncBoxPrices() {
+      var same = f("sale_unit").value === f("purchase_unit").value, n = parseInt(conversion.value, 10) || 1;
+      var p = parseFloat(purchase.value), s = parseFloat(sale.value);
+      document.querySelector("[data-box-prices]").textContent = same || !(p || s) ? "" :
+        "Per " + unitText("purchase_unit").toLowerCase() + ": purchase " + money((p || 0) * n) + ", MRP " + money((s || 0) * n);
+    }
+    function syncMargin() {
+      var p = parseFloat(purchase.value), s = parseFloat(sale.value);
+      if (p > 0 && s >= 0 && document.activeElement !== margin) margin.value = (((s - p) / p) * 100).toFixed(1);
+      syncBoxPrices();
+    }
+    margin.addEventListener("input", function () {
+      var p = parseFloat(purchase.value), m = parseFloat(margin.value);
+      if (p > 0 && !isNaN(m)) sale.value = (p * (1 + m / 100)).toFixed(2);
+      syncBoxPrices();
+    });
+    [purchase, sale, conversion].forEach(function (el) { el.addEventListener("input", syncMargin); });
+    document.querySelectorAll("[name=kind]").forEach(function (el) { el.addEventListener("change", syncKind); });
+    $(f("sale_unit")).on("change", syncUnits);
+    $(f("purchase_unit")).on("change", syncUnits);
+    conversion.addEventListener("input", syncUnits);
+
+    var barcode = f("barcode"), preview = document.querySelector("[data-barcode-preview]");
+    function drawBarcode() {
+      var value = barcode.value.trim();
+      preview.classList.toggle("d-none", !value);
+      if (value) { try { JsBarcode(preview, value, { height: 40, fontSize: 12, margin: 0 }); } catch (e) { preview.classList.add("d-none"); } }
+    }
+    barcode.addEventListener("input", drawBarcode);
+
+    syncKind(); syncUnits(); syncMargin(); drawBarcode();
+  })();
+</script>
+{% endblock %}

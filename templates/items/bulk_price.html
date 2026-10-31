@@ -1,0 +1,97 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+{% block title %}{% translate "Bulk price update" %}{% endblock %}
+{% block page_title %}{% translate "Bulk price update" %}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% translate "Change many prices at once, e.g. when a company raises its prices by 10%." %}</p>{% endblock %}
+{% block content %}
+<form method="get" class="card mb-4" novalidate>
+  <div class="card-body">
+    <h2 class="form-section-title">{% translate "1. Which medicines" %}</h2>
+    <div class="row">
+      <div class="col-md-3 mb-3">
+        <label class="form-label" for="b-maker">{% translate "Manufacturer" %}</label>
+        <select id="b-maker" name="manufacturer" class="form-select" data-mp-select data-allow-clear data-placeholder="{% translate 'Any' %}" data-ajax-url="{% url 'items:lookup' 'manufacturers' %}">
+          <option></option>{% if params.manufacturer %}<option value="{{ params.manufacturer }}" selected>{{ params.manufacturer }}</option>{% endif %}
+        </select>
+      </div>
+      <div class="col-md-3 mb-3">
+        <label class="form-label" for="b-category">{% translate "Category" %}</label>
+        <select id="b-category" name="category" class="form-select" data-mp-select data-allow-clear data-placeholder="{% translate 'Any' %}" data-ajax-url="{% url 'items:lookup' 'categories' %}">
+          <option></option>{% if params.category %}<option value="{{ params.category }}" selected>{{ params.category }}</option>{% endif %}
+        </select>
+      </div>
+      <div class="col-md-3 mb-3">
+        <label class="form-label" for="b-generic">{% translate "Generic" %}</label>
+        <select id="b-generic" name="generic" class="form-select" data-mp-select data-allow-clear data-placeholder="{% translate 'Any' %}" data-ajax-url="{% url 'items:lookup' 'generics' %}">
+          <option></option>{% if params.generic %}<option value="{{ params.generic }}" selected>{{ params.generic }}</option>{% endif %}
+        </select>
+      </div>
+      <div class="col-md-3 mb-3">
+        <label class="form-label" for="b-q">{% translate "Name contains" %}</label>
+        <input id="b-q" name="q" class="form-control" value="{{ params.q|default:'' }}">
+      </div>
+    </div>
+
+    <h2 class="form-section-title">{% translate "2. What to change" %}</h2>
+    <div class="row align-items-end">
+      <div class="col-md-3 mb-3">
+        <label class="form-label" for="b-field">{% translate "Price" %}</label>
+        <select id="b-field" name="field" class="form-select" data-mp-select data-no-search>
+          {% for value, label in fields.items %}<option value="{{ value }}" {% if params.field == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3 mb-3">
+        <label class="form-label" for="b-method">{% translate "Change" %}</label>
+        <select id="b-method" name="method" class="form-select" data-mp-select data-no-search>
+          {% for value, label in methods.items %}<option value="{{ value }}" {% if params.method == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2 mb-3">
+        <label class="form-label" for="b-percent">%</label>
+        <input id="b-percent" name="percent" type="number" step="0.01" min="0" class="form-control" value="{{ params.percent|default:'' }}" required>
+      </div>
+      <div class="col-md-2 mb-3">
+        <label class="form-label" for="b-round">{% translate "Rounding" %}</label>
+        <select id="b-round" name="rounding" class="form-select" data-mp-select data-no-search>
+          {% for value, label in roundings.items %}<option value="{{ value }}" {% if params.rounding == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2 mb-3"><button class="btn btn-outline-primary w-100" type="submit"><i class="bi bi-eye"></i> {% translate "Preview" %}</button></div>
+    </div>
+  </div>
+</form>
+
+{% if change %}
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <h2 class="card-title">{% blocktranslate count n=count %}{{ n }} medicine will change{% plural %}{{ n }} medicines will change{% endblocktranslate %}</h2>
+    {% if count %}
+    <form method="post" data-confirm="{% blocktranslate %}Update prices of {{ count }} medicines?{% endblocktranslate %}">
+      {% csrf_token %}
+      {% for key, value in params.items %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endfor %}
+      <button class="btn btn-primary" type="submit"><i class="bi bi-check2-circle"></i> {% translate "Apply" %}</button>
+    </form>
+    {% endif %}
+  </div>
+  <div class="card-body">
+    {% if preview %}
+    <table class="table table-sm align-middle mb-0">
+      <thead><tr><th>{% translate "Medicine" %}</th><th class="text-end">{% translate "Now" %}</th><th class="text-end">{% translate "After" %}</th></tr></thead>
+      <tbody>
+        {% for row in preview %}
+        <tr>
+          <td>{{ row.medicine.display_name }}<small class="d-block text-body-secondary">{{ row.medicine.generic.name|default:"" }}</small></td>
+          <td class="text-end">{{ row.old }}</td>
+          <td class="text-end fw-semibold">{% if row.new %}{{ row.new }}{% else %}<span class="text-body-secondary">{% translate "no purchase price" %}</span>{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% if count > preview|length %}<p class="form-text mb-0 mt-2">{% blocktranslate with shown=preview|length %}Showing the first {{ shown }}.{% endblocktranslate %}</p>{% endif %}
+    {% else %}<p class="text-body-secondary mb-0">{% translate "No medicines match these filters." %}</p>{% endif %}
+  </div>
+</div>
+{% elif params.percent %}
+<div class="alert alert-warning">{% translate "Check the percentage. A margin can't be applied to the purchase price itself, and a decrease can't be over 100%." %}</div>
+{% endif %}
+{% endblock %}

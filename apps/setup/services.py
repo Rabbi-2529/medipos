@@ -5,6 +5,7 @@ from django.utils.dateformat import format as date_format
 
 from apps.accounting.models import PaymentAccount
 from apps.core.tenancy import tenant_context
+from apps.items.models import Category, Unit
 from apps.people.defaults import DEFAULT_ROLES
 from apps.people.models import Employee, Role
 
@@ -14,6 +15,10 @@ DEFAULT_PAYMENT_ACCOUNTS = [
     ("Cash", PaymentAccount.Kind.CASH, ""),
     ("bKash", PaymentAccount.Kind.MOBILE, "bKash"),
     ("Nagad", PaymentAccount.Kind.MOBILE, "Nagad"),
+]
+DEFAULT_UNITS = ["Piece", "Strip", "Box", "Bottle", "Tube", "Vial", "Ampoule", "Sachet", "Pack", "Jar"]
+DEFAULT_CATEGORIES = [
+    "Medicine", "Vitamins & supplements", "Baby care", "Personal care", "Medical devices", "Surgical items", "Herbal",
 ]
 
 
@@ -30,6 +35,10 @@ def provision_tenant(tenant):
             })
         for user in tenant.users.all():
             Employee.objects.get_or_create(user=user, defaults={"all_outlets": user.is_owner})
+        for name in DEFAULT_UNITS:
+            Unit.objects.get_or_create(name=name)
+        for name in DEFAULT_CATEGORIES:
+            Category.objects.get_or_create(name=name)
 
 
 def get_business_settings(tenant):
@@ -43,15 +52,20 @@ def invoice_sequence(tenant):
 
 
 @transaction.atomic
-def next_code(tenant, key, prefix="", padding=5):
-    """Take the next document number for `key`, e.g. next_code(t, "invoice") -> "INV00001"."""
+def reserve_codes(tenant, key, count, prefix="", padding=5):
+    """Take `count` consecutive document numbers for `key` in one locked step."""
     sequence, _ = Sequence.all_objects.select_for_update().get_or_create(
         tenant=tenant, key=key, defaults={"prefix": prefix, "padding": padding}
     )
-    value = sequence.next_value
-    sequence.next_value = value + 1
+    start = sequence.next_value
+    sequence.next_value = start + count
     sequence.save(update_fields=["next_value", "updated_at"])
-    return sequence.format(value)
+    return [sequence.format(value) for value in range(start, start + count)]
+
+
+def next_code(tenant, key, prefix="", padding=5):
+    """Take the next document number for `key`, e.g. next_code(t, "invoice") -> "INV00001"."""
+    return reserve_codes(tenant, key, 1, prefix=prefix, padding=padding)[0]
 
 
 def format_money(value, settings):

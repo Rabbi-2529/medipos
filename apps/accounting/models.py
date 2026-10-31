@@ -26,7 +26,8 @@ class PaymentAccount(TenantOwnedModel):
 
     class Meta:
         ordering = ["sort_order", "name"]
-        constraints = [models.UniqueConstraint(fields=["tenant", "name"], name="uniq_payment_account_name_per_tenant")]
+        constraints = [models.UniqueConstraint(fields=["tenant", "name"], name="uniq_payment_account_name_per_tenant",
+                                               violation_error_message=_("A payment account with this name already exists."))]
 
     def __str__(self):
         return self.name

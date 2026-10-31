@@ -1,0 +1,73 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+{% block title %}{% translate "Add from catalog" %}{% endblock %}
+{% block page_title %}{% translate "Add medicines from the catalog" %}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% blocktranslate %}{{ catalog_total }} medicines in the ThingBD catalog · {{ adopted }} already in your list.{% endblocktranslate %}</p>{% endblock %}
+{% block content %}
+<form id="adopt-form" method="post" action="{% url 'items:catalog_adopt' %}">{% csrf_token %}<input type="hidden" name="scope" value="selected"></form>
+<form id="adopt-all-form" method="post" action="{% url 'items:catalog_adopt' %}" data-confirm="{% translate 'Add every medicine that matches your search and filters?' %}">
+  {% csrf_token %}<input type="hidden" name="scope" value="all"><input type="hidden" name="q"><input type="hidden" name="manufacturer"><input type="hidden" name="form">
+</form>
+<div class="card">
+  <div class="card-body">
+    <div class="table-filters align-items-end">
+      <div class="table-filter">
+        <label class="form-label" for="f-maker">{% translate "Manufacturer" %}</label>
+        <input id="f-maker" class="form-control" placeholder="{% translate 'e.g. Square' %}" data-filter="manufacturer">
+      </div>
+      <div class="table-filter">
+        <label class="form-label" for="f-form">{% translate "Dosage form" %}</label>
+        <select id="f-form" class="form-select" data-filter="form" data-mp-select data-no-search data-allow-clear data-placeholder="{% translate 'All' %}">
+          <option></option>{% for value, label in forms %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="ms-auto d-flex gap-2 flex-wrap">
+        <button class="btn btn-primary" type="submit" form="adopt-form"><i class="bi bi-plus-lg"></i> {% translate "Add ticked" %} (<span data-ticked>0</span>)</button>
+        <button class="btn btn-outline-primary" type="submit" form="adopt-all-form">{% translate "Add all matching" %}</button>
+      </div>
+    </div>
+    <table id="catalog-table" class="table table-hover align-middle w-100">
+      <thead>
+        <tr>
+          <th><input class="form-check-input" type="checkbox" data-tick-page aria-label="{% translate 'Tick this page' %}"></th>
+          <th>{% translate "Medicine" %}</th>
+          <th>{% translate "Generic" %}</th>
+          <th>{% translate "Manufacturer" %}</th>
+          <th>{% translate "Pack" %}</th>
+          <th class="text-end">{% translate "MRP / unit" %}</th>
+        </tr>
+      </thead>
+    </table>
+    <p class="form-text mb-0">{% translate "Added medicines start with the catalog MRP (if any), a zero purchase price and the Piece unit. Edit them, or bulk-update prices, before selling." %}</p>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+  (function () {
+    var maker = document.getElementById("f-maker");
+    var table = MP.dataTable("#catalog-table", {
+      ajax: { url: "{% url 'items:catalog_data' %}", data: function (d) { d.manufacturer = maker.value; d.form = $("#f-form").val() || ""; } },
+      columnDefs: [{ targets: [0, 4], orderable: false }, { targets: 5, className: "text-end" }],
+      order: [[1, "asc"]],
+      language: { searchPlaceholder: "Brand or generic…" }
+    });
+    var timer;
+    maker.addEventListener("input", function () { clearTimeout(timer); timer = setTimeout(function () { table.ajax.reload(); }, 350); });
+    $("#f-form").on("change", function () { table.ajax.reload(); });
+
+    function count() { document.querySelector("[data-ticked]").textContent = document.querySelectorAll("input[name=ids]:checked").length; }
+    document.addEventListener("change", function (ev) {
+      if (ev.target.matches("[data-tick-page]")) {
+        document.querySelectorAll("input[name=ids]").forEach(function (b) { b.checked = ev.target.checked; });
+      }
+      if (ev.target.matches("[data-tick-page], input[name=ids]")) count();
+    });
+    table.on("draw", function () { document.querySelector("[data-tick-page]").checked = false; count(); });
+    // "Add all matching" sends the current search and filters.
+    document.getElementById("adopt-all-form").addEventListener("submit", function () {
+      this.q.value = table.search(); this.manufacturer.value = maker.value; this.form.value = $("#f-form").val() || "";
+    }, true);
+  })();
+</script>
+{% endblock %}

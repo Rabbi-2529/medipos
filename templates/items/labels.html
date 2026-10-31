@@ -1,0 +1,106 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+{% block title %}{% translate "Barcode labels" %}{% endblock %}
+{% block page_title %}{% translate "Barcode labels" %}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% translate "Pick medicines, set how many labels each, then print on A4 label paper." %}</p>{% endblock %}
+{% block page_actions %}<button class="btn btn-primary" type="button" data-print disabled><i class="bi bi-printer"></i> {% translate "Print labels" %}</button>{% endblock %}
+{% block content %}
+<div class="row g-4 no-print">
+  <div class="col-xl-8">
+    <div class="card">
+      <div class="card-body">
+        <label class="form-label" for="label-pick">{% translate "Add a medicine" %}</label>
+        <select id="label-pick" class="form-select" data-mp-select data-placeholder="{% translate 'Search by name, generic, code or barcode' %}" data-ajax-url="{% url 'items:lookup' 'medicines' %}"><option></option></select>
+        <table class="table align-middle mt-3 mb-0">
+          <thead><tr><th>{% translate "Medicine" %}</th><th>{% translate "Barcode" %}</th><th style="width:120px">{% translate "Labels" %}</th><th></th></tr></thead>
+          <tbody data-label-rows><tr data-empty><td colspan="4" class="text-body-secondary">{% translate "Nothing picked yet." %}</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="col-xl-4">
+    <div class="card">
+      <div class="card-header"><h2 class="card-title">{% translate "On each label" %}</h2></div>
+      <div class="card-body">
+        <div class="form-check mb-2"><input class="form-check-input" type="checkbox" id="opt-shop" checked data-opt="shop"><label class="form-check-label" for="opt-shop">{% translate "Shop name" %}</label></div>
+        <div class="form-check mb-2"><input class="form-check-input" type="checkbox" id="opt-name" checked data-opt="name"><label class="form-check-label" for="opt-name">{% translate "Medicine name" %}</label></div>
+        <div class="form-check mb-2"><input class="form-check-input" type="checkbox" id="opt-price" checked data-opt="price"><label class="form-check-label" for="opt-price">{% translate "Price (MRP)" %}</label></div>
+        <p class="form-text mb-0">{% translate "Medicines without a barcode use their code. 5 × 13 labels per A4 sheet." %}</p>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="label-sheet" data-sheet></div>
+{% endblock %}
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+<script>
+  (function () {
+    var shop = "{{ shop_name|escapejs }}", currency = "{{ currency|escapejs }}", decimals = {{ decimals }};
+    var rows = document.querySelector("[data-label-rows]"), sheet = document.querySelector("[data-sheet]"), printBtn = document.querySelector("[data-print]");
+    var picked = {};
+
+    $("#label-pick").on("select2:select", function (ev) {
+      var m = ev.params.data;
+      if (!picked[m.id]) { picked[m.id] = { item: m, qty: 1 }; }
+      else { picked[m.id].qty += 1; }
+      $(this).val(null).trigger("change");
+      render();
+    });
+
+    function render() {
+      rows.replaceChildren();
+      var ids = Object.keys(picked);
+      if (!ids.length) {
+        var tr = document.createElement("tr"), td = document.createElement("td");
+        td.colSpan = 4; td.className = "text-body-secondary"; td.textContent = "Nothing picked yet.";
+        tr.appendChild(td); rows.appendChild(tr);
+      }
+      ids.forEach(function (id) {
+        var entry = picked[id], tr = document.createElement("tr");
+        var name = document.createElement("td"); name.textContent = entry.item.text;
+        var code = document.createElement("td"); code.innerHTML = "<code></code>"; code.firstChild.textContent = entry.item.barcode || entry.item.code;
+        var qty = document.createElement("td"), input = document.createElement("input");
+        input.type = "number"; input.min = 1; input.max = 500; input.value = entry.qty; input.className = "form-control form-control-sm";
+        input.addEventListener("input", function () { entry.qty = Math.max(1, Math.min(500, parseInt(input.value, 10) || 1)); drawSheet(); });
+        qty.appendChild(input);
+        var del = document.createElement("td"), btn = document.createElement("button");
+        btn.type = "button"; btn.className = "btn btn-sm btn-link text-danger"; btn.textContent = "Remove";
+        btn.addEventListener("click", function () { delete picked[id]; render(); });
+        del.className = "text-end"; del.appendChild(btn);
+        tr.append(name, code, qty, del); rows.appendChild(tr);
+      });
+      drawSheet();
+    }
+
+    function opt(name) { return document.querySelector('[data-opt="' + name + '"]').checked; }
+
+    function drawSheet() {
+      sheet.replaceChildren();
+      var count = 0;
+      Object.keys(picked).forEach(function (id) {
+        var entry = picked[id], value = entry.item.barcode || entry.item.code;
+        for (var i = 0; i < entry.qty; i++) {
+          var label = document.createElement("div"); label.className = "label";
+          if (opt("shop")) { var s = document.createElement("div"); s.className = "label-shop"; s.textContent = shop; label.appendChild(s); }
+          if (opt("name")) { var n = document.createElement("div"); n.className = "label-name"; n.textContent = entry.item.text; label.appendChild(n); }
+          var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+          label.appendChild(svg);
+          try { JsBarcode(svg, value, { height: 34, width: 1.4, fontSize: 11, margin: 0 }); } catch (e) { svg.remove(); }
+          if (opt("price")) {
+            var p = document.createElement("div"); p.className = "label-price";
+            p.textContent = "MRP " + currency + parseFloat(entry.item.price || 0).toFixed(decimals);
+            label.appendChild(p);
+          }
+          sheet.appendChild(label);
+          count++;
+        }
+      });
+      printBtn.disabled = count === 0;
+    }
+
+    document.querySelectorAll("[data-opt]").forEach(function (el) { el.addEventListener("change", drawSheet); });
+    printBtn.addEventListener("click", function () { window.print(); });
+  })();
+</script>
+{% endblock %}

@@ -1,10 +1,16 @@
 from django.urls import path
 
-from . import views
+from . import catalog_views, views
 
 app_name = "platform"
 
 urlpatterns = [
+    path("catalog/", catalog_views.catalog_list, name="catalog"),
+    path("catalog/data/", catalog_views.catalog_data, name="catalog_data"),
+    path("catalog/import/", catalog_views.catalog_import, name="catalog_import"),
+    path("catalog/template.xlsx", catalog_views.catalog_template, name="catalog_template"),
+    path("catalog/new/", catalog_views.catalog_form, name="catalog_create"),
+    path("catalog/<int:pk>/edit/", catalog_views.catalog_form, name="catalog_edit"),
     path("pharmacies/", views.tenant_list, name="tenants"),
     path("pharmacies/new/", views.tenant_create, name="tenant_create"),
     path("pharmacies/data/", views.tenant_data, name="tenant_data"),

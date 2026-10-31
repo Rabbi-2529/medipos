@@ -52,6 +52,8 @@ apps/outlets/      outlets, counters, current-outlet middleware and switcher
 apps/people/       employees, roles, permission checks (access.py)
 apps/setup/        business settings, document numbering, tenant provisioning
 apps/accounting/   payment accounts (journals and reports in Phase 7)
+apps/items/        medicines, setup lists, import/export, bulk prices, labels
+apps/catalog/      platform-wide medicine catalog (fixtures/sample_catalog.csv = demo sample)
 templates/         layouts, partials, pages
 static/            css/app.css (theme tokens, dark mode), js/app.js
 ```
@@ -66,6 +68,17 @@ static/            css/app.css (theme tokens, dark mode), js/app.js
 - Forms:
   - Use `apps.core.forms.TenantModelForm`. It validates per-tenant unique fields and fixes empty choice lists.
   - In plain `Form`s, set querysets of tenant models in `__init__`, never on the class.
+
+## Medicine catalog
+
+`seed_demo` loads a 28-row sample catalog with no prices, and Lazz Pharma adopts it with made-up demo prices.
+
+For real use:
+1. Sign in as platform admin.
+2. Open **Medicine catalog → Import**.
+3. Upload an .xlsx/.csv with these columns: Brand name, Generic, Strength, Dosage form, Manufacturer, Pack size, Unit price.
+
+Use a list ThingBD has the right to use, such as DGDA's registered-drug list.
 
 ## Permissions
 

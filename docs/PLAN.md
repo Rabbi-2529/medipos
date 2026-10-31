@@ -70,13 +70,43 @@ Custom user (email/phone login), Tenant model, fail-closed tenant scoping and mi
 
 Deferred: "default customer" moves to Phase 5, when customers exist.
 
-### Phase 3 — Medicine master
-- Categories, generics, manufacturers/brands, units with conversion (Box → Strip → Piece), racks.
-- Medicine: name, alternative name, barcode, generic, strength, dosage form, prescription-required flag,
-  expiry tracking, purchase/retail/wholesale price, margin, alert quantity, image.
-- **Shared Bangladeshi medicine catalog** (platform-level): tenants search it and adopt medicines into their own list.
-- Excel bulk import, bulk price update, opening-stock import, and barcode labels.
-- Done when: a tenant imports 20k+ medicines and search by name, generic or barcode is fast.
+### Phase 3 — Medicine master ✅
+- **Setup lists** (`items` app): categories, generics, manufacturers, units and racks, each unique per pharmacy.
+  - One generic screen covers all five, with server-side lists and Select2 search endpoints at `/medicines/lookup/<kind>/`.
+  - New pharmacies get 10 units and 7 categories.
+- **Medicine** model:
+  - Type (medicine or general item), brand, strength, dosage form, generic, manufacturer, category, rack, alternative name.
+  - Code (auto `000001`) and barcode (unique per pharmacy).
+  - Sale unit, purchase unit and conversion (e.g. Box of 100), plus pieces per strip.
+  - Purchase price (4 decimals), MRP and wholesale price per sale unit; low-stock alert level.
+  - Prescription-required flag, batch/expiry tracking flag, image, notes.
+  - A lowercase `search_text` field: every word typed must match.
+- **Medicine form:** generic, manufacturer and category are picked by name (typing a new one creates it). Shows margin, per-box prices and a live barcode.
+- **Import:**
+  - Excel/CSV upload, then a checked preview (row-level errors), then confirm.
+  - Understands common column names (MRP, Brand, Company, Tab/Cap…).
+  - Update-by-code mode; export → edit → re-import round trip; downloadable template.
+  - Plan medicine limit enforced on every path.
+- **Shared catalog** (`catalog.CatalogMedicine`, platform-wide):
+  - The console page has import (upsert by brand + strength + form + maker), list and edit.
+  - Pharmacies "Add from catalog" (ticked items, or all matching a filter). Already-added entries are skipped.
+- **Bulk price update:** filter, then increase/decrease % or set margin %, with rounding that never moves a price the wrong way. Preview before applying.
+- **Barcode labels:** an A4 sheet (5 × 13) with shop name, medicine, barcode (code when no barcode) and MRP.
+- **Benchmark** (SQLite, dev laptop), 20,000 medicines:
+
+  | Step | Time |
+  |---|---|
+  | Checking the Excel file | 7.6 s |
+  | Saving | 4.8 s |
+  | Search | ~20–30 ms |
+  | Catalog import | 7.6 s |
+  | Adopting all 20k | 5.2 s |
+
+- 150 tests.
+
+Moved to Phase 4: **opening-stock import** (needs the stock engine).
+
+**Catalog data:** the repo ships only a 28-row sample (brands, generics and makers, no prices). Load the real list as platform admin under Medicine catalog → Import. Use a source ThingBD may use, such as DGDA's published registered-drug list or a licensed dataset. Don't copy other vendors' databases.
 
 ### Phase 4 — Stock engine, suppliers and purchases
 - Stock ledger and per-batch balances, average and last purchase cost, negative-stock guard.

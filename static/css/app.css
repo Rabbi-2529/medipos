@@ -380,6 +380,41 @@ table.dataTable thead > tr > th.dt-orderable-asc:hover, table.dataTable thead > 
 .checklist .is-done .checklist-label { color: var(--mp-muted); text-decoration: line-through; }
 .checklist a { margin-left: auto; font-size: .8125rem; white-space: nowrap; }
 
+/* Medicines */
+.kind-switch { display: inline-flex; gap: .25rem; padding: .25rem; border-radius: 50rem; background: var(--mp-hover); }
+.kind-option { display: inline-flex; align-items: center; margin: 0; cursor: pointer; }
+.kind-option input { position: absolute; opacity: 0; pointer-events: none; }
+.kind-option span { padding: .35rem 1rem; border-radius: 50rem; font-size: .875rem; font-weight: 500; color: var(--mp-muted); }
+.kind-option input:checked + span { background: var(--mp-surface); color: var(--mp-primary); box-shadow: var(--mp-shadow); }
+.kind-option input:focus-visible + span { outline: 2px solid var(--mp-primary); }
+.barcode-preview { max-width: 100%; height: auto; background: #fff; padding: .4rem; border-radius: 6px; }
+.medicine-thumb { max-width: 100%; max-height: 140px; border-radius: 8px; object-fit: contain; }
+.steps { padding-left: 1.2rem; margin-bottom: 1.5rem; }
+.steps li { margin-bottom: .8rem; }
+.error-table { max-height: 320px; overflow-y: auto; }
+
+/* Label sheet: on screen a preview, on paper A4 with 5 × 13 labels */
+.label-sheet { display: grid; grid-template-columns: repeat(5, 38mm); gap: 2mm; margin-top: 1.5rem; }
+.label-sheet:empty { display: none; }
+.label {
+  width: 38mm; height: 21mm; padding: 1mm; overflow: hidden;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: #fff; color: #000; border: 1px dashed #c8c8d0; border-radius: 2px; text-align: center;
+}
+.label svg { max-width: 100%; height: 10mm; }
+.label-shop { font-size: 6pt; font-weight: 700; line-height: 1.1; }
+.label-name { font-size: 6.5pt; line-height: 1.1; max-height: 2.2em; overflow: hidden; }
+.label-price { font-size: 7pt; font-weight: 700; }
+@media print {
+  @page { size: A4; margin: 8mm; }
+  body { background: #fff !important; }
+  .app-sidebar, .app-topbar, .app-footer, .page-header, .no-print, .app-messages, .subscription-banner { display: none !important; }
+  .app-main { margin: 0 !important; }
+  .app-content { padding: 0 !important; }
+  .label-sheet { margin: 0; }
+  .label { border-color: #eee; break-inside: avoid; }
+}
+
 @media (max-width: 991.98px) {
   .app-sidebar { transform: translateX(-100%); }
   body.sidebar-open .app-sidebar { transform: none; }

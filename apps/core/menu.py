@@ -57,12 +57,16 @@ MENU = (
             MenuItem("platform", _("Pharmacy list"), "platform:tenants", audience=PLATFORM),
         )),
         MenuItem("platform", _("Plans"), "platform:plans", "bi-card-checklist", audience=PLATFORM),
+        MenuItem("platform", _("Medicine catalog"), "platform:catalog", "bi-journal-medical", audience=PLATFORM),
     )),
     MenuSection(_("Medicines & stock"), (
-        MenuItem("item", _("Medicines"), icon="bi-capsule", children=(
-            _item("item", _("Add medicine"), "items:create"),
-            _item("item", _("Medicine list"), "items:list"),
-            _item("item", _("Bulk import"), "items:import"),
+        MenuItem("item", _("Medicines"), icon="bi-capsule", perm=None, children=(
+            MenuItem("item", _("Add medicine"), "items:create", perm="item.create"),
+            MenuItem("item", _("Medicine list"), "items:list"),
+            MenuItem("item", _("Add from catalog"), "items:catalog", perm="item.create"),
+            MenuItem("item", _("Import from Excel"), "items:import", perm="item.create"),
+            MenuItem("item", _("Bulk price update"), "items:bulk_price", perm="item.edit"),
+            MenuItem("item", _("Barcode labels"), "items:labels"),
         )),
         MenuItem("item_setup", _("Medicine setup"), icon="bi-sliders", children=(
             _item("item_setup", _("Categories"), "items:categories"),

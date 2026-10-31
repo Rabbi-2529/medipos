@@ -7,6 +7,7 @@ from django.urls import reverse
 
 from apps.accounts.models import User
 from apps.core.menu import build_menu, flatten_menu
+from apps.items.models import Medicine
 from apps.tenants.models import Tenant
 
 
@@ -51,9 +52,11 @@ class MenuTests(TestCase):
         tenant = Tenant.objects.create(name="T", slug="t")
         owner = User.objects.create_user("u@x.test", "pw", tenant=tenant, is_owner=True)
         labels = [e["label"] for e in flatten_menu(self._menu_for(owner))]
-        # Later menus (medicines, POS, …) stay hidden until their URLs exist.
+        # Later menus (POS, purchases, …) stay hidden until their URLs exist.
         self.assertEqual(labels, [
-            "Dashboard", "Payment accounts", "Employees", "Roles & permissions",
+            "Dashboard", "Add medicine", "Medicine list", "Add from catalog", "Import from Excel", "Bulk price update",
+            "Barcode labels", "Categories", "Generics", "Manufacturers", "Units", "Racks",
+            "Payment accounts", "Employees", "Roles & permissions",
             "Business settings", "Outlet list", "Counters", "Subscription",
         ])
 
@@ -65,7 +68,7 @@ class MenuTests(TestCase):
     def test_platform_admin_gets_platform_section(self):
         admin = User.objects.create_superuser("admin@x.test", "pw")
         labels = [e["label"] for e in flatten_menu(self._menu_for(admin))]
-        self.assertEqual(labels, ["Dashboard", "Add pharmacy", "Pharmacy list", "Plans"])
+        self.assertEqual(labels, ["Dashboard", "Add pharmacy", "Pharmacy list", "Plans", "Medicine catalog"])
 
     def test_locked_pharmacy_only_gets_subscription(self):
         tenant = Tenant.objects.create(name="T", slug="t", status=Tenant.Status.SUSPENDED)
@@ -90,6 +93,9 @@ class SeedDemoTests(TestCase):
         cashier = User.objects.get(email="cashier@lazzpharma.local")
         self.assertEqual(cashier.employee.role.template_key, "cashier")
         owner = User.objects.get(email="owner@lazzpharma.local")
+        lazz = Medicine.all_objects.filter(tenant=owner.tenant)
+        self.assertEqual(lazz.count(), 28)  # sample catalog, adopted once despite two runs
+        self.assertFalse(lazz.filter(sale_price=0).exists())
         self.assertEqual(owner.tenant.slug, "lazz-pharma-demo")
         self.assertTrue(owner.is_owner)
         self.assertTrue(owner.check_password("Seed#Pass2026"))

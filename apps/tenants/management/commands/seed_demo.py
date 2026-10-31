@@ -1,16 +1,26 @@
 import os
+import zlib
 from datetime import timedelta
+from decimal import Decimal
+from pathlib import Path
 
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 
 from apps.accounts.models import User
 from apps.billing.models import Plan
+from apps.catalog.models import CatalogMedicine
+from apps.catalog.services import adopt, import_catalog
 from apps.core.tenancy import tenant_context
+from apps.items.models import Medicine, Unit
 from apps.outlets.models import Counter, Outlet
 from apps.people.models import Employee, Role
 from apps.setup.services import provision_tenant
 from apps.tenants.models import Tenant
+
+SAMPLE_CATALOG = Path(__file__).resolve().parents[3] / "catalog" / "fixtures" / "sample_catalog.csv"
+RX_GENERICS = {"Azithromycin", "Cefixime", "Clonazepam", "Metronidazole"}
 
 # One pharmacy per subscription situation, so every screen has something to show.
 DEMO_TENANTS = [
@@ -94,12 +104,38 @@ class Command(BaseCommand):
             provision_tenant(tenant)
             if spec["slug"] == "lazz-pharma-demo":
                 self._lazz_staff(tenant, password)
+                self._lazz_medicines(tenant)
 
         self.stdout.write(self.style.SUCCESS(
             "Demo ready: admin@medipos.local (platform), owner@lazzpharma.local (paid), "
             "manager@lazzpharma.local + cashier@lazzpharma.local (Lazz staff), "
             "owner@greenlife.local (trial ending), owner@sunrise.local (expired). Password = DEMO_PASSWORD from .env."
         ))
+
+    def _lazz_medicines(self, tenant):
+        """Sample catalog (brands only, no prices) adopted by Lazz with made-up DEMO prices and packs."""
+        if not CatalogMedicine.objects.exists():
+            data = SAMPLE_CATALOG.read_bytes()
+            import_catalog(SimpleUploadedFile(SAMPLE_CATALOG.name, data, content_type="text/csv"))
+        with tenant_context(tenant):
+            adopt(tenant, list(CatalogMedicine.objects.filter(is_active=True)))
+            units = {u.name: u for u in Unit.objects.all()}
+            for medicine in Medicine.objects.filter(sale_price=0).select_related("generic"):
+                # Demo-only prices, derived from the name so re-runs give the same numbers.
+                seed = zlib.crc32(medicine.display_name.encode()) % 1000
+                if medicine.dosage_form in ("tablet", "capsule"):
+                    medicine.purchase_unit, medicine.conversion, medicine.strip_size = units["Box"], 100, 10
+                    medicine.purchase_price = Decimal(50 + seed) / 100  # ৳0.50–10.49 a piece
+                elif medicine.dosage_form == "sachet":
+                    medicine.purchase_unit, medicine.conversion = units["Box"], 20
+                    medicine.purchase_price = Decimal(400 + seed) / 100
+                else:
+                    medicine.sale_unit = medicine.purchase_unit = units["Bottle"]
+                    medicine.purchase_price = Decimal(4000 + seed * 5) / 100
+                medicine.sale_price = (medicine.purchase_price * Decimal("1.18")).quantize(Decimal("0.01"))
+                medicine.alert_quantity = 50 if medicine.conversion > 1 else 5
+                medicine.prescription_required = bool(medicine.generic and medicine.generic.name in RX_GENERICS)
+                medicine.save()
 
     def _lazz_staff(self, tenant, password):
         """Second outlet, a counter, a manager (all outlets) and a cashier (Main branch only)."""

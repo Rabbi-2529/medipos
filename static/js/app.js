@@ -112,14 +112,26 @@
       var $el = jQuery(this);
       if ($el.hasClass("select2-hidden-accessible")) return;
       var $modal = $el.closest(".modal");
-      $el.select2({
+      var options = {
         theme: "bootstrap-5",
         width: "100%",
         placeholder: $el.data("placeholder") || "",
         allowClear: $el.is("[data-allow-clear]"),
         minimumResultsForSearch: $el.is("[data-no-search]") ? Infinity : 0,
-        dropdownParent: $modal.length ? $modal : jQuery(document.body)
-      });
+        dropdownParent: $modal.length ? $modal : jQuery(document.body),
+        tags: $el.is("[data-tags]")  // lets people type a value that isn't in the list yet
+      };
+      // data-ajax-url="…": search the server as you type ({results, pagination} JSON).
+      if ($el.data("ajaxUrl")) {
+        options.ajax = {
+          url: $el.data("ajaxUrl"),
+          dataType: "json",
+          delay: 250,
+          data: function (params) { return { q: params.term || "", page: params.page || 1 }; },
+          cache: true
+        };
+      }
+      $el.select2(options);
     });
   };
 

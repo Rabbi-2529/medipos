@@ -17,8 +17,10 @@ class Outlet(TenantOwnedModel):
     class Meta:
         ordering = ["code"]
         constraints = [
-            models.UniqueConstraint(fields=["tenant", "code"], name="uniq_outlet_code_per_tenant"),
-            models.UniqueConstraint(fields=["tenant", "name"], name="uniq_outlet_name_per_tenant"),
+            models.UniqueConstraint(fields=["tenant", "code"], name="uniq_outlet_code_per_tenant",
+                                    violation_error_message=_("An outlet with this code already exists.")),
+            models.UniqueConstraint(fields=["tenant", "name"], name="uniq_outlet_name_per_tenant",
+                                    violation_error_message=_("An outlet with this name already exists.")),
         ]
 
     def __str__(self):
@@ -35,7 +37,8 @@ class Counter(TenantOwnedModel):
 
     class Meta:
         ordering = ["outlet__code", "name"]
-        constraints = [models.UniqueConstraint(fields=["outlet", "name"], name="uniq_counter_name_per_outlet")]
+        constraints = [models.UniqueConstraint(fields=["outlet", "name"], name="uniq_counter_name_per_outlet",
+                                               violation_error_message=_("This outlet already has a counter with that name."))]
 
     def __str__(self):
         return f"{self.outlet} · {self.name}"

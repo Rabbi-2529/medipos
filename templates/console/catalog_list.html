@@ -1,0 +1,46 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+{% block title %}{% translate "Medicine catalog" %}{% endblock %}
+{% block page_title %}{% translate "Medicine catalog" %}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% blocktranslate %}{{ total }} medicines shared with every pharmacy. They pick from this list instead of typing medicines in.{% endblocktranslate %}</p>{% endblock %}
+{% block page_actions %}<a class="btn btn-primary" href="{% url 'platform:catalog_create' %}"><i class="bi bi-plus-lg"></i> {% translate "Add entry" %}</a>{% endblock %}
+{% block content %}
+<div class="row g-4">
+  <div class="col-xl-8">
+    <div class="card">
+      <div class="card-body">
+        <table id="catalog-table" class="table table-hover align-middle w-100">
+          <thead><tr><th>{% translate "Medicine" %}</th><th>{% translate "Generic" %}</th><th>{% translate "Manufacturer" %}</th><th>{% translate "Pack" %}</th><th class="text-end">{% translate "MRP" %}</th><th>{% translate "Status" %}</th></tr></thead>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="col-xl-4">
+    <div class="card">
+      <div class="card-header"><h2 class="card-title">{% translate "Import a list" %}</h2></div>
+      <div class="card-body">
+        <p class="text-body-secondary small">{% translate "Columns: Brand name, Generic, Strength, Dosage form, Manufacturer, Pack size, Unit price. Rows with the same brand, strength, form and manufacturer update the existing entry." %}</p>
+        <p class="text-body-secondary small">{% translate "Use a list you have the right to use, such as DGDA's published registered-drugs list or one you've licensed." %}</p>
+        <form method="post" action="{% url 'platform:catalog_import' %}" enctype="multipart/form-data">
+          {% csrf_token %}
+          {% include "partials/_field.html" with field=import_form.file %}
+          <div class="d-flex gap-2">
+            <button class="btn btn-primary" type="submit"><i class="bi bi-upload"></i> {% translate "Import" %}</button>
+            <a class="btn btn-outline-primary" href="{% url 'platform:catalog_template' %}"><i class="bi bi-file-earmark-arrow-down"></i> {% translate "Template" %}</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+  MP.dataTable("#catalog-table", {
+    ajax: { url: "{% url 'platform:catalog_data' %}" },
+    order: [[0, "asc"]],
+    columnDefs: [{ targets: 3, orderable: false }, { targets: 4, className: "text-end" }],
+    language: { searchPlaceholder: "Brand, generic or company…" }
+  });
+</script>
+{% endblock %}
