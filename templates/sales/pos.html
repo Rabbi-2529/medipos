@@ -73,6 +73,7 @@
       <div class="pos-actions">
         <button class="btn btn-soft tone-amber" type="button" data-hold><i class="bi bi-pause-circle"></i> {% translate "Hold" %} <kbd>F8</kbd></button>
         <button class="btn btn-soft tone-sky" type="button" data-held><i class="bi bi-collection"></i> {% translate "Held" %} <kbd>F9</kbd></button>
+        {% if config.canQuote %}<button class="btn btn-soft tone-violet" type="button" data-quote><i class="bi bi-file-earmark-text"></i> {% translate "Quote" %}</button>{% endif %}
         <button class="btn btn-soft tone-red" type="button" data-clear><i class="bi bi-x-circle"></i> {% translate "Clear" %}</button>
         <button class="btn btn-lg pos-pay" type="button" data-pay><i class="bi bi-cash-coin"></i> {% translate "Pay" %} <kbd>F4</kbd></button>
       </div>
@@ -138,6 +139,24 @@
 </div>
 
 {# ---- Held carts ---- #}
+{# ---- Quote ---- #}
+<div class="modal fade" id="quoteModal" tabindex="-1" aria-labelledby="quoteTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <form class="modal-content" data-quote-form>
+      <div class="modal-header"><h2 class="modal-title fs-5" id="quoteTitle">{% translate "Save as quotation" %}</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% translate 'Close' %}"></button></div>
+      <div class="modal-body">
+        <p class="small text-body-secondary">{% translate "Prices are quoted; stock is not taken. Sell it later from Quotations." %}</p>
+        <label class="form-label" for="quote-days">{% translate "Valid for (days)" %}</label>
+        <input id="quote-days" class="form-control mb-3" type="number" min="1" max="365" value="7">
+        <label class="form-label" for="quote-note">{% translate "Note" %}</label>
+        <input id="quote-note" class="form-control" maxlength="255">
+        <div class="alert alert-danger mt-3 mb-0 d-none" data-quote-error></div>
+      </div>
+      <div class="modal-footer"><button type="submit" class="btn btn-primary"><i class="bi bi-printer"></i> {% translate "Save and print" %}</button></div>
+    </form>
+  </div>
+</div>
+
 <div class="modal fade" id="heldModal" tabindex="-1" aria-labelledby="heldTitle" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
@@ -169,5 +188,5 @@
 {% endblock %}
 {% block extra_js %}
 {% load static %}
-<script src="{% static 'js/pos.js' %}?v=3"></script>
+<script src="{% static 'js/pos.js' %}?v=5"></script>
 {% endblock %}

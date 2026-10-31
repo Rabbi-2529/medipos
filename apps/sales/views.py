@@ -7,14 +7,16 @@ from django.db.models import Case, Count, DateField, F, IntegerField, Min, Outer
 from django.db.models.functions import Coalesce
 from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse
+from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.utils.html import format_html
 from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy
 from django.views.decorators.http import require_POST
 
 from apps.accounting.models import PaymentAccount
 from apps.core.datatables import datatable_json
+from apps.core.shop_views import ShopCreateView, ShopUpdateView
 from apps.customers.models import Customer
 from apps.customers.services import sale_due
 from apps.items.choices import DosageForm
@@ -22,13 +24,14 @@ from apps.items.models import Category, Medicine
 from apps.items.services import search_medicines
 from apps.outlets.models import Counter
 from apps.people.access import has_perm, shop_permission_required
-from apps.setup.services import format_money, get_business_settings
+from apps.setup.services import format_money, format_shop_date, get_business_settings
 from apps.stock.models import BatchStock
 
-from .models import CashRegister, HeldCart, Sale, SaleLine, SaleReturn
+from .forms import PromotionForm
+from .models import CashRegister, HeldCart, Promotion, Quotation, Sale, SaleLine, SaleReturn
 from .services import (
-    SaleError, batch_choices, close_register, complete_sale, create_return, hold_cart, open_register, recall_cart,
-    refund_factor, register_summary, returnable, start_register, unit_options,
+    SaleError, batch_choices, best_promotion, close_register, complete_sale, create_quotation, create_return, hold_cart,
+    open_register, recall_cart, refund_factor, register_summary, returnable, running_promotions, start_register, unit_options,
 )
 
 
@@ -58,6 +61,11 @@ def pos(request):
         })
     settings = get_business_settings(request.tenant)
     accounts = list(PaymentAccount.objects.filter(is_active=True).values("id", "name", "kind"))
+    quotation = None
+    if str(request.GET.get("quotation", "")).isdigit() and has_perm(request.user, "quotation.list"):
+        found = Quotation.objects.filter(pk=request.GET["quotation"], status=Quotation.Status.OPEN).first()
+        if found is not None:
+            quotation = {"id": found.pk, "number": found.number, "cart": _quotation_cart(found, request.outlet)}
     return render(request, "sales/pos.html", {
         "register": register,
         "config": {
@@ -68,8 +76,11 @@ def pos(request):
                 "search": reverse("sales:pos_search"), "batches": reverse("sales:pos_batches"), "checkout": reverse("sales:pos_checkout"),
                 "hold": reverse("sales:pos_hold"), "held": reverse("sales:pos_held"), "recall": reverse("sales:pos_recall"),
                 "customers": reverse("customers:lookup"), "newCustomer": reverse("customers:quick_create"),
+                "quote": reverse("sales:pos_quote"),
             },
             "canAddCustomer": has_perm(request.user, "customer.create"),
+            "canQuote": has_perm(request.user, "quotation.create"),
+            "quotation": quotation,
         },
         "shelves": pos_shelves(),
         "texts": pos_texts(),
@@ -106,6 +117,32 @@ def pos_shelves():
     return forms + [{"key": str(c.pk), "name": c.name, "tone": "indigo", "icon": "bi-tag"} for c in categories]
 
 
+def _quotation_cart(quotation, outlet):
+    """A quotation as a POS cart, priced and stocked as of now. Quoted line discounts are kept as the cashier's own."""
+    from apps.customers.views import _lookup_row
+
+    lines = list(quotation.lines.all())
+    medicines = _pos_medicines(outlet).in_bulk([line.medicine_id for line in lines])
+    promotions = running_promotions()
+    cart_lines = []
+    for line in lines:
+        medicine = medicines.get(line.medicine_id)
+        if medicine is None:
+            continue
+        row = _pos_row(medicine, promotions)
+        unit = next((u for u in row["units"] if u["label"] == line.unit_label), None) or row["units"][0]
+        qty = line.unit_qty if unit["label"] == line.unit_label else line.quantity
+        cart_lines.append({
+            "medicine": medicine.pk, "name": row["name"], "rx": row["rx"], "price": row["price"], "wholesale": row["wholesale"],
+            "units": row["units"], "stock": row["stock"], "unit": unit["key"], "qty": qty, "batch": None, "batchLabel": "",
+            "promo": row["promo"], "discount": str(line.discount) if line.discount else "", "autoDiscount": False if line.discount else None,
+        })
+    return {
+        "lines": cart_lines, "priceType": quotation.price_type, "discount": str(quotation.discount) if quotation.discount else "",
+        "discountMode": "amount", "customer": {**_lookup_row(quotation.customer), "text": str(quotation.customer)} if quotation.customer else None,
+    }
+
+
 def pos_texts():
     """Words the POS script shows, translated here so the page speaks the user's language."""
     return {
@@ -123,6 +160,7 @@ def pos_texts():
         "roundedFrom": _("%(exact)s rounded to %(total)s"),
         "emptyCategory": _("No medicines here yet."), "noSalesYet": _("No sales yet. These are the medicines you have most of."),
         "showingFirst": _("Showing the first %(n)s. Search to find the rest."),
+        "promo": _("Offer"), "quoteSaved": _("Quotation %(number)s saved."), "fromQuote": _("Loaded from quotation %(number)s"),
     }
 
 
@@ -141,9 +179,12 @@ def _pos_medicines(outlet):
     )
 
 
-def _pos_row(m):
+def _pos_row(m, promotions=()):
     tone, icon = FORM_STYLES.get(m.dosage_form, OTHER_STYLE)
+    promotion = best_promotion(m, promotions, m.sale_price) if promotions else None
     return {
+        "promo": {"id": promotion.pk, "name": promotion.name, "kind": promotion.kind, "value": str(promotion.value),
+                  "minQty": promotion.min_quantity} if promotion else None,
         "id": m.pk, "tone": tone, "icon": icon, "name": m.display_name, "generic": m.generic.name if m.generic else "",
         "maker": m.manufacturer.name if m.manufacturer else "", "code": m.code, "rx": m.prescription_required,
         "price": str(m.sale_price), "wholesale": str(m.wholesale_price) if m.wholesale_price is not None else None,
@@ -179,12 +220,13 @@ def pos_search(request):
     """Typed text searches; with nothing typed, ?category=top|all|<id> browses (see _browse)."""
     term = request.GET.get("q", "").strip()
     queryset = _pos_medicines(request.outlet)
+    promotions = running_promotions()
     if not term:
         rows, has_sales, more = _browse(request.outlet, queryset, request.GET.get("category", "top"))
-        return JsonResponse({"exact": False, "results": [_pos_row(m) for m in rows], "hasSales": has_sales, "more": more})
+        return JsonResponse({"exact": False, "results": [_pos_row(m, promotions) for m in rows], "hasSales": has_sales, "more": more})
     exact = list(queryset.filter(Q(barcode=term) | Q(code__iexact=term))[:1])
     rows = exact or list(search_medicines(queryset, term).order_by("-stock", "name")[:20])
-    return JsonResponse({"exact": bool(exact), "results": [_pos_row(m) for m in rows]})
+    return JsonResponse({"exact": bool(exact), "results": [_pos_row(m, promotions) for m in rows]})
 
 
 @shop_permission_required("pos.create")
@@ -208,7 +250,7 @@ def pos_checkout(request):
             tenant=request.tenant, outlet=request.outlet, register=register, user=request.user, lines=data.get("lines") or [],
             payments=data.get("payments") or [], customer=customer, price_type=data.get("priceType") or Sale.PriceType.RETAIL,
             cart_discount=data.get("discount") or 0, cash_tendered=data.get("cashTendered"), rx_checked=bool(data.get("rxChecked")),
-            note=str(data.get("note") or ""),
+            note=str(data.get("note") or ""), quotation_id=int(data["quotation"]) if str(data.get("quotation") or "").isdigit() else None,
         )
     except SaleError as error:
         return JsonResponse({"error": str(error)}, status=400)
@@ -221,6 +263,26 @@ def pos_checkout(request):
         "due": format_money(sale.due, settings) if sale.due > 0 else "", "change": format_money(sale.change, settings) if sale.change > 0 else "",
         "receiptUrl": reverse("sales:receipt", args=[sale.pk]),
     })
+
+
+@shop_permission_required("quotation.create")
+@require_POST
+def pos_quote(request):
+    """Save the POS cart as a quotation (nothing leaves stock)."""
+    data = _json_body(request)
+    customer = None
+    if str(data.get("customer") or "").isdigit():
+        customer = Customer.objects.filter(pk=data["customer"], is_active=True).first()
+    try:
+        quotation = create_quotation(
+            tenant=request.tenant, outlet=request.outlet, user=request.user, lines=data.get("lines") or [], customer=customer,
+            price_type=data.get("priceType") or Sale.PriceType.RETAIL, cart_discount=data.get("discount") or 0,
+            valid_days=data.get("validDays") if str(data.get("validDays") or "").isdigit() else 7, note=str(data.get("note") or ""),
+        )
+    except SaleError as error:
+        return JsonResponse({"error": str(error)}, status=400)
+    return JsonResponse({"id": quotation.pk, "number": quotation.number, "printUrl": reverse("sales:quotation_print", args=[quotation.pk]),
+                         "url": reverse("sales:quotation", args=[quotation.pk])})
 
 
 @shop_permission_required("pos.create")
@@ -353,7 +415,7 @@ def sale_data(request):
 
 
 def _sale_context(sale):
-    lines = list(sale.lines.select_related("medicine").prefetch_related("allocations__batch"))
+    lines = list(sale.lines.select_related("medicine", "promotion").prefetch_related("allocations__batch"))
     return {
         "sale": sale, "lines": lines,
         "payments": sale.payments.select_related("account"),
@@ -430,3 +492,139 @@ def return_data(request):
     return datatable_json(request, queryset.order_by("-date", "-id"),
                           order_columns=["number", "date", "sale__number", "customer__name", None, "total", "refund_amount"], row=row,
                           search=lambda qs, t: qs.filter(Q(number__icontains=t) | Q(sale__number__icontains=t)))
+
+
+# ---- Quotations ------------------------------------------------------------------------
+
+def _quotations(request):
+    return Quotation.objects.filter(outlet_id__in=[o.pk for o in request.allowed_outlets])
+
+
+def _quote_badge(quotation, today):
+    state = quotation.state(today)
+    tone = {"open": "trial", "sold": "active", "expired": "suspended"}[state]
+    label = {"open": _("Open"), "sold": _("Sold"), "expired": _("Expired")}[state]
+    return format_html('<span class="state-badge state-{}">{}</span>', tone, label)
+
+
+@shop_permission_required("quotation.list")
+def quotation_list(request):
+    return render(request, "sales/quotation_list.html")
+
+
+@shop_permission_required("quotation.list")
+def quotation_data(request):
+    settings = get_business_settings(request.tenant)
+    today = timezone.localdate()
+    queryset = _quotations(request).select_related("customer", "outlet", "sale")
+    status = request.GET.get("status")
+    if status == "open":
+        queryset = queryset.filter(status=Quotation.Status.OPEN, valid_until__gte=today)
+    elif status == "expired":
+        queryset = queryset.filter(status=Quotation.Status.OPEN, valid_until__lt=today)
+    elif status == "sold":
+        queryset = queryset.filter(status=Quotation.Status.SOLD)
+
+    def row(qt):
+        return [
+            format_html('<a class="fw-semibold" href="{}"><code>{}</code></a>', reverse("sales:quotation", args=[qt.pk]), qt.number),
+            format_shop_date(qt.date, settings),
+            qt.customer.name if qt.customer else _("Walk-in"),
+            qt.outlet.name,
+            format_shop_date(qt.valid_until, settings),
+            _quote_badge(qt, today),
+            format_money(qt.total, settings),
+        ]
+
+    return datatable_json(request, queryset.order_by("-date", "-id"),
+                          order_columns=["number", "date", "customer__name", "outlet__name", "valid_until", "status", "total"], row=row,
+                          search=lambda qs, t: qs.filter(Q(number__icontains=t) | Q(customer__name__icontains=t) | Q(customer__phone__icontains=t)))
+
+
+@shop_permission_required("quotation.list")
+def quotation_detail(request, pk):
+    quotation = get_object_or_404(_quotations(request).select_related("customer", "outlet", "sale", "created_by"), pk=pk)
+    today = timezone.localdate()
+    return render(request, "sales/quotation_detail.html", {
+        "quotation": quotation, "lines": quotation.lines.select_related("medicine"), "state": quotation.state(today),
+        "badge": _quote_badge(quotation, today),
+        "can_sell": quotation.status == Quotation.Status.OPEN and has_perm(request.user, "pos.create")
+                    and any(o.pk == quotation.outlet_id for o in request.allowed_outlets),
+    })
+
+
+@shop_permission_required("quotation.list")
+def quotation_print(request, pk):
+    quotation = get_object_or_404(_quotations(request).select_related("customer", "outlet", "created_by"), pk=pk)
+    return render(request, "sales/quotation_print.html", {
+        "quotation": quotation, "lines": quotation.lines.select_related("medicine"),
+        "shop": get_business_settings(request.tenant), "tenant": request.tenant, "auto_print": request.GET.get("print") == "1",
+    })
+
+
+@shop_permission_required("quotation.delete")
+@require_POST
+def quotation_delete(request, pk):
+    quotation = get_object_or_404(_quotations(request), pk=pk, status=Quotation.Status.OPEN)
+    number = quotation.number
+    quotation.delete()
+    messages.success(request, _("Quotation %(number)s deleted.") % {"number": number})
+    return redirect("sales:quotations")
+
+
+# ---- Promotions -------------------------------------------------------------------------
+
+@shop_permission_required("promotion.list")
+def promotion_list(request):
+    today = timezone.localdate()
+    promotions = list(Promotion.objects.select_related("category").prefetch_related("medicines"))
+    labels = dict(DosageForm.choices)
+    for promotion in promotions:
+        promotion.state = promotion.status(today)
+        promotion.target = {
+            Promotion.Scope.ALL: _("Every medicine"),
+            Promotion.Scope.CATEGORY: promotion.category.name if promotion.category else "—",
+            Promotion.Scope.FORM: labels.get(promotion.dosage_form, promotion.dosage_form),
+            Promotion.Scope.MEDICINES: ", ".join(m.display_name for m in list(promotion.medicines.all())[:3])
+            + (" …" if promotion.medicines.count() > 3 else ""),
+        }[promotion.scope]
+    return render(request, "sales/promotion_list.html", {"promotions": promotions})
+
+
+class PromotionCreateView(ShopCreateView):
+    permission = "promotion.create"
+    form_class = PromotionForm
+    template_name = "sales/promotion_form.html"
+    title = gettext_lazy("New promotion")
+    success_url = reverse_lazy("sales:promotions")
+
+
+class PromotionUpdateView(ShopUpdateView):
+    permission = "promotion.edit"
+    form_class = PromotionForm
+    template_name = "sales/promotion_form.html"
+    title = gettext_lazy("Edit promotion")
+    success_url = reverse_lazy("sales:promotions")
+
+    def get_queryset(self):
+        return Promotion.objects.all()
+
+
+@shop_permission_required("promotion.edit")
+@require_POST
+def promotion_toggle(request, pk):
+    promotion = get_object_or_404(Promotion.objects.all(), pk=pk)
+    promotion.is_active = not promotion.is_active
+    promotion.save(update_fields=["is_active", "updated_at"])
+    messages.success(request, (_("%(name)s switched on.") if promotion.is_active else _("%(name)s switched off.")) % {"name": promotion.name})
+    return redirect("sales:promotions")
+
+
+@shop_permission_required("promotion.delete")
+@require_POST
+def promotion_delete(request, pk):
+    promotion = get_object_or_404(Promotion.objects.all(), pk=pk)
+    name = promotion.name
+    promotion.delete()
+    messages.success(request, _("%(name)s deleted. Past sales keep their discounts.") % {"name": name})
+    return redirect("sales:promotions")

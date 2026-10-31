@@ -7,7 +7,7 @@
   var $ = window.jQuery;
   var csrf = (document.querySelector("meta[name=csrf-token]") || {}).content;
 
-  var state = { lines: [], customer: null, priceType: "retail", discount: "", discountMode: "amount" };
+  var state = { lines: [], customer: null, priceType: "retail", discount: "", discountMode: "amount", quotationId: null };
   var results = [], activeResult = 0, searchTimer = null, searchSeq = 0;
   // Before anything is typed the grid shows a category ("top" = best sellers); arrow keys there only pick once used.
   var browse = { category: "top", hasSales: true, more: false, navigated: false };
@@ -37,6 +37,22 @@
   function unitPrice(line) { return state.priceType === "wholesale" && line.wholesale != null ? num(line.wholesale) : num(line.price); }
   function gross(line) { return round2(unitPrice(line) * unitOf(line).factor * line.qty); }
   function lineTotal(line) { return Math.max(0, gross(line) - num(line.discount)); }
+  // A running promotion fills the line discount by itself until the cashier types their own.
+  function promoDiscount(line) {
+    var p = line.promo;
+    if (!p) return 0;
+    var units = unitOf(line).factor * line.qty;
+    if (units < p.minQty) return 0;
+    var g = gross(line);
+    var off = p.kind === "percent" ? g * num(p.value) / 100 : num(p.value) * units;
+    return round2(Math.min(off, g));
+  }
+  function applyPromos() {
+    state.lines.forEach(function (l) {
+      if (l.promo && l.autoDiscount !== false) { var d = promoDiscount(l); l.discount = d ? String(d) : ""; }
+    });
+  }
+  function promoText(p) { return p.kind === "percent" ? "−" + Number(p.value) + "%" : "−" + money(p.value); }
   function unitsOf(medicineId) {
     return state.lines.reduce(function (sum, l) { return l.medicine === medicineId ? sum + unitOf(l).factor * l.qty : sum; }, 0);
   }
@@ -52,6 +68,13 @@
     var exact = round2(taxable + vat);
     var total = cfg.roundTotal ? Math.round(exact) : exact;
     return { subtotal: subtotal, lineDiscount: lineDiscount, discount: discount, vat: vat, rounding: round2(total - exact), total: total };
+  }
+
+  function cartLines() {
+    return state.lines.map(function (l) {
+      return { medicine: l.medicine, unit: l.unit, qty: l.qty, discount: num(l.discount), batch: l.batch,
+               promotion: l.promo && l.autoDiscount !== false && num(l.discount) ? l.promo.id : null };
+    });
   }
 
   // ---- search and browse --------------------------------------------------------
@@ -91,6 +114,7 @@
       var head = el("div", "pos-result-head");
       var icon = el("span", "pos-result-icon"); icon.appendChild(el("i", "bi " + m.icon));
       head.append(icon, el("span", "fw-semibold pos-result-name", m.name));
+      if (m.promo) { var tag = el("span", "pos-offer", promoText(m.promo)); tag.title = m.promo.name; head.appendChild(tag); }
       if (m.rx) head.appendChild(el("span", "badge text-bg-danger", "Rx"));
       card.appendChild(head);
       card.appendChild(el("small", "text-body-secondary d-block", [m.generic, m.maker].filter(Boolean).join(" · ")));
@@ -154,7 +178,7 @@
     if (existing) { existing.qty += 1; }
     else {
       state.lines.push({ medicine: m.id, name: m.name, rx: m.rx, price: m.price, wholesale: m.wholesale, units: m.units,
-                         stock: m.stock, unit: "piece", qty: 1, discount: "", batch: null, batchLabel: "" });
+                         stock: m.stock, unit: "piece", qty: 1, discount: "", batch: null, batchLabel: "", promo: m.promo || null });
     }
     render();
   }
@@ -162,6 +186,7 @@
   var cartBody = q("[data-cart]");
 
   function render() {
+    applyPromos();
     cartBody.replaceChildren();
     q("[data-cart-empty]").classList.toggle("d-none", state.lines.length > 0);
     state.lines.forEach(function (line, i) {
@@ -171,6 +196,9 @@
       var title = el("div", "fw-semibold pos-line-name", line.name);
       if (line.rx) { title.appendChild(document.createTextNode(" ")); title.appendChild(el("span", "badge text-bg-danger", "Rx")); }
       name.appendChild(title);
+      if (line.promo && line.autoDiscount !== false && num(line.discount)) {
+        name.appendChild(el("small", "pos-line-offer", T.promo + ": " + line.promo.name));
+      }
       var batchLink = el("button", "btn btn-link btn-sm p-0 pos-batch-link", line.batch ? T.batch + " " + line.batchLabel : T.chooseBatch);
       batchLink.type = "button";
       batchLink.addEventListener("click", function () { chooseBatch(line); });
@@ -212,7 +240,10 @@
       var discCell = el("td");
       var disc = el("input", "form-control form-control-sm"); disc.type = "number"; disc.min = 0; disc.step = "0.01"; disc.value = line.discount;
       disc.setAttribute("aria-label", T.lineDiscount);
-      disc.addEventListener("input", function () { line.discount = disc.value; updateTotals(); q("[data-line-total='" + i + "']").textContent = money(lineTotal(line)); });
+      disc.addEventListener("input", function () {
+        line.discount = disc.value; line.autoDiscount = false;  // the cashier's own discount replaces the offer
+        updateTotals(); q("[data-line-total='" + i + "']").firstChild.textContent = money(lineTotal(line));
+      });
       discCell.appendChild(disc);
       tr.appendChild(discCell);
 
@@ -381,7 +412,8 @@
     completing = true;
     var t = totals();
     api(cfg.urls.checkout, {
-      lines: state.lines.map(function (l) { return { medicine: l.medicine, unit: l.unit, qty: l.qty, discount: num(l.discount), batch: l.batch }; }),
+      lines: cartLines(),
+      quotation: state.quotationId,
       payments: payments.filter(function (p) { return num(p.amount) > 0; }).map(function (p) { return { account: p.account, amount: num(p.amount) }; }),
       customer: state.customer ? state.customer.id : null,
       priceType: state.priceType,
@@ -409,7 +441,7 @@
   document.getElementById("doneModal").addEventListener("hidden.bs.modal", function () { search.focus(); });
 
   function reset() {
-    state.lines = []; state.discount = ""; state.discountMode = "amount";
+    state.lines = []; state.discount = ""; state.discountMode = "amount"; state.quotationId = null;
     discountInput.value = ""; discountMode.value = "amount";
     $customer.val(null).trigger("change"); setCustomer(null);
     search.value = "";
@@ -423,6 +455,46 @@
     var label = state.customer ? state.customer.name : "";
     api(cfg.urls.hold, { label: label, cart: JSON.parse(JSON.stringify(state)) }).then(function () { toast(T.held); reset(); })
       .catch(function (err) { toast(err.message); });
+  }
+
+  function loadCart(cart) {
+    state.lines = cart.lines || []; state.priceType = cart.priceType || "retail";
+    state.discount = cart.discount || ""; state.discountMode = cart.discountMode || "amount";
+    state.quotationId = cart.quotationId || null;
+    discountInput.value = state.discount; discountMode.value = state.discountMode;
+    document.querySelector("[name=price_type][value='" + state.priceType + "']").checked = true;
+    if (cart.customer) { $customer.append(new Option(cart.customer.text, cart.customer.id, true, true)).trigger("change"); setCustomer(cart.customer); }
+    else { $customer.val(null).trigger("change"); setCustomer(null); }
+    render();
+  }
+
+  // ---- quotations ----------------------------------------------------------------
+  var quoteBtn = q("[data-quote]");
+  if (quoteBtn) {
+    quoteBtn.addEventListener("click", function () {
+      if (!state.lines.length) { toast(T.cartEmpty); return; }
+      q("[data-quote-error]").classList.add("d-none");
+      modal("quoteModal").show();
+    });
+    q("[data-quote-form]").addEventListener("submit", function (ev) {
+      ev.preventDefault();
+      var t = totals();
+      // Open the print window now, while it's still a click: browsers block windows opened after a network wait.
+      var printWindow = window.open("", "_blank");
+      api(cfg.urls.quote, {
+        lines: cartLines(), customer: state.customer ? state.customer.id : null, priceType: state.priceType, discount: t.discount,
+        validDays: q("#quote-days").value, note: q("#quote-note").value
+      }).then(function (data) {
+        modal("quoteModal").hide();
+        toast(fmt(T.quoteSaved, { number: data.number }));
+        if (printWindow) printWindow.location = data.printUrl + "?print=1";
+        q("#quote-note").value = "";
+        reset();
+      }).catch(function (err) {
+        if (printWindow) printWindow.close();
+        var box = q("[data-quote-error]"); box.textContent = err.message; box.classList.remove("d-none");
+      });
+    });
   }
 
   function showHeld() {
@@ -439,15 +511,8 @@
         item.appendChild(el("i", "bi bi-arrow-return-left"));
         item.addEventListener("click", function () {
           api(cfg.urls.recall, { id: h.id }).then(function (data) {
-            var cart = data.cart;
-            state.lines = cart.lines || []; state.priceType = cart.priceType || "retail";
-            state.discount = cart.discount || ""; state.discountMode = cart.discountMode || "amount";
-            discountInput.value = state.discount; discountMode.value = state.discountMode;
-            document.querySelector("[name=price_type][value='" + state.priceType + "']").checked = true;
-            if (cart.customer) { $customer.append(new Option(cart.customer.text, cart.customer.id, true, true)).trigger("change"); setCustomer(cart.customer); }
-            else { $customer.val(null).trigger("change"); setCustomer(null); }
+            loadCart(data.cart);
             modal("heldModal").hide();
-            render();
           }).catch(function (err) { toast(err.message); });
         });
         list.appendChild(item);
@@ -469,4 +534,8 @@
 
   render();
   showBrowse();
+  if (cfg.quotation) {  // opened from a quotation's "Sell in POS"
+    loadCart(Object.assign({}, cfg.quotation.cart, { quotationId: cfg.quotation.id }));
+    toast(fmt(T.fromQuote, { number: cfg.quotation.number }));
+  }
 })();

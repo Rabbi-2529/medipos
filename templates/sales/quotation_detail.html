@@ -1,0 +1,65 @@
+{% extends "layouts/app.html" %}
+{% load i18n shop %}
+{% block title %}{{ quotation.number }}{% endblock %}
+{% block page_title %}{% translate "Quotation" %} {{ quotation.number }} {{ badge }}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle"><a href="{% url 'sales:quotations' %}"><i class="bi bi-chevron-left"></i> {% translate "All quotations" %}</a></p>{% endblock %}
+{% block page_actions %}
+<div class="d-flex gap-2 flex-wrap">
+  {% if can_sell %}<a class="btn btn-success" href="{% url 'sales:pos' %}?quotation={{ quotation.pk }}"><i class="bi bi-cart-check"></i> {% translate "Sell in POS" %}</a>{% endif %}
+  <a class="btn btn-outline-primary" href="{% url 'sales:quotation_print' quotation.pk %}" target="_blank"><i class="bi bi-printer"></i> {% translate "Print" %}</a>
+  {% if quotation.status == "open" and can.quotation.delete %}
+  <form method="post" action="{% url 'sales:quotation_delete' quotation.pk %}" data-confirm="{% translate 'Delete this quotation?' %}">
+    {% csrf_token %}<button class="btn btn-outline-danger" type="submit"><i class="bi bi-trash3"></i> {% translate "Delete" %}</button>
+  </form>
+  {% endif %}
+</div>
+{% endblock %}
+{% block content %}
+{% if quotation.sale %}<div class="alert alert-success"><i class="bi bi-check-circle"></i> {% translate "Sold as" %} <a class="alert-link" href="{% url 'sales:detail' quotation.sale_id %}">{{ quotation.sale.number }}</a>.</div>{% elif state == "expired" %}<div class="alert alert-warning"><i class="bi bi-clock-history"></i> {% translate "This quotation has expired. You can still sell it; the POS uses today's prices." %}</div>{% endif %}
+<div class="row g-4 mb-4">
+  <div class="col-lg-8">
+    <div class="card h-100"><div class="card-body">
+      <dl class="detail-list detail-grid mb-0">
+        <dt>{% translate "Customer" %}</dt><dd>{% if quotation.customer %}<a href="{% url 'customers:detail' quotation.customer_id %}">{{ quotation.customer.name }}</a>{% else %}{% translate "Walk-in" %}{% endif %}</dd>
+        <dt>{% translate "Outlet" %}</dt><dd>{{ quotation.outlet.name }}</dd>
+        <dt>{% translate "Date" %}</dt><dd>{% shop_date quotation.date %}</dd>
+        <dt>{% translate "Valid until" %}</dt><dd>{% shop_date quotation.valid_until %}</dd>
+        <dt>{% translate "Price" %}</dt><dd>{{ quotation.get_price_type_display }}</dd>
+        <dt>{% translate "By" %}</dt><dd>{{ quotation.created_by|default:"—" }}</dd>
+        {% if quotation.note %}<dt>{% translate "Note" %}</dt><dd>{{ quotation.note }}</dd>{% endif %}
+      </dl>
+    </div></div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card h-100"><div class="card-body">
+      <dl class="totals mb-0">
+        <dt>{% translate "Subtotal" %}</dt><dd>{% money quotation.subtotal %}</dd>
+        {% if quotation.total_discount %}<dt>{% translate "Discount" %}</dt><dd>− {% money quotation.total_discount %}</dd>{% endif %}
+        {% if quotation.vat_amount %}<dt>{% translate "VAT" %}</dt><dd>{% money quotation.vat_amount %}</dd>{% endif %}
+        {% if quotation.rounding %}<dt>{% translate "Rounding" %}</dt><dd>{% money quotation.rounding %}</dd>{% endif %}
+        <dt class="totals-grand">{% translate "Total" %}</dt><dd class="totals-grand">{% money quotation.total %}</dd>
+      </dl>
+    </div></div>
+  </div>
+</div>
+<div class="card">
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table align-middle mb-0">
+        <thead><tr><th>{% translate "Medicine" %}</th><th class="text-end">{% translate "Quantity" %}</th><th class="text-end">{% translate "Price" %}</th><th class="text-end">{% translate "Discount" %}</th><th class="text-end">{% translate "Total" %}</th></tr></thead>
+        <tbody>
+          {% for line in lines %}
+          <tr>
+            <td class="fw-semibold">{{ line.medicine.display_name }}</td>
+            <td class="text-end">{{ line.unit_qty }} {{ line.unit_label }}{% if line.unit_factor > 1 %} <small class="text-body-secondary">({{ line.quantity }})</small>{% endif %}</td>
+            <td class="text-end">{% money line.unit_price %}</td>
+            <td class="text-end">{% if line.discount %}{% money line.discount %}{% else %}—{% endif %}</td>
+            <td class="text-end fw-semibold">{% money line.line_total %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

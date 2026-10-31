@@ -67,6 +67,20 @@
 {% if not allowed_outlets %}
 <div class="alert alert-warning d-flex gap-2 align-items-center"><i class="bi bi-shop"></i> {% translate "You haven't been given access to any outlet yet. Ask the owner to add you to one." %}</div>
 {% endif %}
+{% if incoming_transfers %}
+<div class="alert alert-warning d-flex flex-wrap gap-2 align-items-center">
+  <i class="bi bi-truck"></i> {% blocktranslate count n=incoming_transfers %}{{ n }} stock transfer is on its way to you.{% plural %}{{ n }} stock transfers are on their way to you.{% endblocktranslate %}
+  <a class="alert-link ms-auto" href="{% url 'inventory:transfers' %}">{% translate "Receive" %} <i class="bi bi-arrow-right"></i></a>
+</div>
+{% endif %}
+{% if stock_alerts %}
+<div class="row g-3 mb-4">
+  <div class="col-6 col-xl-3"><a class="card expiry-tile tone-amber w-100" href="{% url 'stock:low' %}"><span class="expiry-tile-label"><i class="bi bi-graph-down-arrow"></i> {% translate "Running low" %}</span><span class="expiry-tile-value">{{ stock_alerts.low }}</span><small>{% translate "medicines at or below their alert" %}</small></a></div>
+  <div class="col-6 col-xl-3"><a class="card expiry-tile tone-red w-100" href="{% url 'stock:low' %}"><span class="expiry-tile-label"><i class="bi bi-x-octagon"></i> {% translate "Out of stock" %}</span><span class="expiry-tile-value">{{ stock_alerts.out }}</span><small>{% translate "medicines with an alert set" %}</small></a></div>
+  <div class="col-6 col-xl-3"><a class="card expiry-tile tone-orange w-100" href="{% url 'stock:expiring' %}?days=90"><span class="expiry-tile-label"><i class="bi bi-hourglass-split"></i> {% translate "Expiring in 90 days" %}</span><span class="expiry-tile-value">{{ stock_alerts.expiring }}</span><small>{% translate "batches" %}</small></a></div>
+  <div class="col-6 col-xl-3"><a class="card expiry-tile tone-rose w-100" href="{% url 'stock:expiring' %}?days=0"><span class="expiry-tile-label"><i class="bi bi-hourglass-bottom"></i> {% translate "Expired, still on the shelf" %}</span><span class="expiry-tile-value">{{ stock_alerts.expired }}</span><small>{% translate "batches to write off or return" %}</small></a></div>
+</div>
+{% endif %}
 <div class="row g-4">
   {% if checklist %}
   <div class="col-lg-6">

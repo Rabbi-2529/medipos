@@ -1,0 +1,82 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+{% block title %}{% translate "Expiring soon" %}{% endblock %}
+{% block page_title %}{% translate "Expiring & expired stock" %}{% endblock %}
+{% block page_actions %}
+<a class="btn btn-outline-primary" href="{% url 'stock:expiring_export' %}" data-export><i class="bi bi-file-earmark-excel"></i> {% translate "Export" %}</a>
+{% if can.damage.create %}
+<form method="post" action="{% url 'inventory:damage_expired' %}" data-write-off-all data-confirm="{% translate 'Write off every expired unit at this outlet? Their cost is counted as a loss.' %}">
+  {% csrf_token %}<input type="hidden" name="outlet" value="">
+  <button class="btn btn-danger" type="submit" disabled title="{% translate 'Pick one outlet first' %}"><i class="bi bi-trash3"></i> {% translate "Write off all expired" %}</button>
+</form>
+{% endif %}
+{% endblock %}
+{% block content %}
+<div class="row g-3 mb-4 expiry-tiles">
+  <div class="col-6 col-xl-3"><button type="button" class="card expiry-tile tone-red w-100" data-days="0"><span class="expiry-tile-label"><i class="bi bi-x-octagon"></i> {% translate "Already expired" %}</span><span class="expiry-tile-value" data-tile="expired">…</span><small data-tile-note></small></button></div>
+  <div class="col-6 col-xl-3"><button type="button" class="card expiry-tile tone-orange w-100" data-days="30"><span class="expiry-tile-label"><i class="bi bi-hourglass-bottom"></i> {% translate "Within 30 days" %}</span><span class="expiry-tile-value" data-tile="d30">…</span></button></div>
+  <div class="col-6 col-xl-3"><button type="button" class="card expiry-tile tone-amber w-100" data-days="60"><span class="expiry-tile-label"><i class="bi bi-hourglass-split"></i> {% translate "31–60 days" %}</span><span class="expiry-tile-value" data-tile="d60">…</span></button></div>
+  <div class="col-6 col-xl-3"><button type="button" class="card expiry-tile tone-teal w-100" data-days="90"><span class="expiry-tile-label"><i class="bi bi-hourglass-top"></i> {% translate "61–90 days" %}</span><span class="expiry-tile-value" data-tile="d90">…</span></button></div>
+</div>
+<div class="card">
+  <div class="card-body">
+    <div class="table-filters">
+      <div class="table-filter">
+        <label class="form-label" for="f-outlet">{% translate "Outlet" %}</label>
+        <select id="f-outlet" class="form-select" data-mp-select data-no-search>
+          {% if outlets|length > 1 %}<option value="">{% translate "All my outlets" %}</option>{% endif %}
+          {% for o in outlets %}<option value="{{ o.pk }}" {% if o.pk == current %}selected{% endif %}>{{ o.name }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="table-filter">
+        <label class="form-label" for="f-days">{% translate "Show" %}</label>
+        <select id="f-days" class="form-select" data-mp-select data-no-search>
+          <option value="0" {% if days == 0 %}selected{% endif %}>{% translate "Expired only" %}</option>
+          <option value="30" {% if days == 30 %}selected{% endif %}>{% translate "Expired + next 30 days" %}</option>
+          <option value="60" {% if days == 60 %}selected{% endif %}>{% translate "Expired + next 60 days" %}</option>
+          <option value="90" {% if days == 90 %}selected{% endif %}>{% translate "Expired + next 90 days" %}</option>
+          <option value="180" {% if days == 180 %}selected{% endif %}>{% translate "Expired + next 6 months" %}</option>
+        </select>
+      </div>
+    </div>
+    <table id="expiry-table" class="table table-hover align-middle w-100">
+      <thead><tr><th>{% translate "Medicine" %}</th><th>{% translate "Batch" %}</th><th>{% translate "Expiry" %}</th><th>{% translate "Outlet" %}</th><th>{% translate "Quantity" %}</th><th class="text-end">{% translate "Value (cost)" %}</th><th>{% translate "Supplier" %}</th><th></th></tr></thead>
+    </table>
+    <p class="form-text mb-0">{% translate "Expired batches can't be sold at the POS. Write them off, or return them to the supplier who sold them." %}</p>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+  (function () {
+    var writeOff = document.querySelector("[data-write-off-all]");
+    var note = document.querySelector("[data-tile-note]");
+    var noneText = "{% filter escapejs %}{% translate "nothing to clear" %}{% endfilter %}";
+    var batchesText = "{% filter escapejs %}{% translate "%(n)s batches" %}{% endfilter %}";
+    function params() { return { outlet: $("#f-outlet").val() || "", days: $("#f-days").val() || "90" }; }
+    var table = MP.dataTable("#expiry-table", {
+      ajax: { url: "{% url 'stock:expiring_data' %}", data: function (d) { Object.assign(d, params()); } },
+      order: [[2, "asc"]],
+      columnDefs: [{ targets: [5], className: "text-end text-nowrap" }, { targets: [5, 7], orderable: false }, { targets: [7], className: "text-end" }],
+      language: { searchPlaceholder: "{% filter escapejs %}{% translate "Medicine or batch…" %}{% endfilter %}" }
+    });
+    table.on("xhr", function (_e, _s, json) {
+      if (!json || !json.summary) return;
+      ["expired", "d30", "d60", "d90"].forEach(function (k) { document.querySelector("[data-tile=" + k + "]").textContent = json.summary[k]; });
+      note.textContent = json.summary.expiredCount ? batchesText.replace("%(n)s", json.summary.expiredCount) : noneText;
+      if (writeOff) {
+        var outlet = $("#f-outlet").val();
+        writeOff.querySelector("[name=outlet]").value = outlet || "";
+        writeOff.querySelector("button").disabled = !outlet || !json.summary.expiredCount;
+      }
+    });
+    $("#f-outlet, #f-days").on("change", function () { table.ajax.reload(); });
+    document.querySelectorAll("[data-days]").forEach(function (tile) {
+      tile.addEventListener("click", function () { $("#f-days").val(tile.dataset.days).trigger("change"); });
+    });
+    document.querySelector("[data-export]").addEventListener("click", function (ev) {
+      ev.preventDefault(); window.location = this.href + "?" + new URLSearchParams(params()).toString();
+    });
+  })();
+</script>
+{% endblock %}

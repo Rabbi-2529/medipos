@@ -1,0 +1,54 @@
+{% extends "layouts/app.html" %}
+{% load i18n shop %}
+{% block title %}{% translate "Promotions" %}{% endblock %}
+{% block page_title %}{% translate "Promotions" %}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% translate "Running promotions are put on matching POS lines by themselves. The cashier can still change a line's discount." %}</p>{% endblock %}
+{% block page_actions %}{% if can.promotion.create %}<a class="btn btn-primary" href="{% url 'sales:promotion_create' %}"><i class="bi bi-plus-lg"></i> {% translate "New promotion" %}</a>{% endif %}{% endblock %}
+{% block content %}
+{% if promotions %}
+<div class="row g-4">
+  {% for p in promotions %}
+  <div class="col-md-6 col-xl-4">
+    <div class="card promo-card h-100 tone-{% if p.state == 'running' %}teal{% elif p.state == 'scheduled' %}sky{% elif p.state == 'ended' %}slate{% else %}slate{% endif %}{% if p.state != 'running' %} is-idle{% endif %}">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start gap-2">
+          <div class="promo-value">{% if p.kind == "percent" %}{{ p.value|floatformat:"-2" }}%{% else %}{% money p.value %}{% endif %}<small>{% if p.kind == "percent" %}{% translate "off" %}{% else %}{% translate "off each unit" %}{% endif %}</small></div>
+          <span class="state-badge state-{% if p.state == 'running' %}active{% elif p.state == 'scheduled' %}trial{% else %}suspended{% endif %}">
+            {% if p.state == "running" %}{% translate "Running" %}{% elif p.state == "scheduled" %}{% translate "Scheduled" %}{% elif p.state == "ended" %}{% translate "Ended" %}{% else %}{% translate "Off" %}{% endif %}
+          </span>
+        </div>
+        <h3 class="promo-name">{{ p.name }}</h3>
+        <ul class="promo-facts">
+          <li><i class="bi bi-bullseye"></i> {{ p.target }}</li>
+          {% if p.min_quantity > 1 %}<li><i class="bi bi-stack"></i> {% blocktranslate with n=p.min_quantity %}From {{ n }} units on a line{% endblocktranslate %}</li>{% endif %}
+          <li><i class="bi bi-calendar-range"></i>
+            {% if p.starts_on or p.ends_on %}{% if p.starts_on %}{% shop_date p.starts_on %}{% else %}{% translate "Now" %}{% endif %} → {% if p.ends_on %}{% shop_date p.ends_on %}{% else %}{% translate "no end date" %}{% endif %}{% else %}{% translate "No end date" %}{% endif %}
+          </li>
+        </ul>
+        <div class="d-flex gap-2 flex-wrap">
+          {% if can.promotion.edit %}
+          <a class="btn btn-sm btn-outline-primary" href="{% url 'sales:promotion_edit' p.pk %}"><i class="bi bi-pencil"></i> {% translate "Edit" %}</a>
+          <form method="post" action="{% url 'sales:promotion_toggle' p.pk %}">{% csrf_token %}
+            <button class="btn btn-sm btn-outline-secondary" type="submit">{% if p.is_active %}<i class="bi bi-pause-circle"></i> {% translate "Switch off" %}{% else %}<i class="bi bi-play-circle"></i> {% translate "Switch on" %}{% endif %}</button>
+          </form>
+          {% endif %}
+          {% if can.promotion.delete %}
+          <form method="post" action="{% url 'sales:promotion_delete' p.pk %}" data-confirm="{% translate 'Delete this promotion? Sales already made keep their discounts.' %}">{% csrf_token %}
+            <button class="btn btn-sm btn-link text-danger" type="submit">{% translate "Delete" %}</button>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card"><div class="card-body text-center py-5">
+  <i class="bi bi-megaphone display-6 text-body-secondary"></i>
+  <p class="mt-3 mb-1 fw-semibold">{% translate "No promotions yet" %}</p>
+  <p class="text-body-secondary">{% translate "For example: 10% off all syrups this month, or ৳0.50 off each Napa tablet." %}</p>
+  {% if can.promotion.create %}<a class="btn btn-primary" href="{% url 'sales:promotion_create' %}">{% translate "New promotion" %}</a>{% endif %}
+</div></div>
+{% endif %}
+{% endblock %}

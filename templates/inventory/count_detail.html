@@ -1,0 +1,34 @@
+{% extends "layouts/app.html" %}
+{% load i18n shop %}
+{% block title %}{{ count.number }}{% endblock %}
+{% block page_title %}{% translate "Stock count" %} {{ count.number }}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle no-print"><a href="{% url 'inventory:counts' %}"><i class="bi bi-chevron-left"></i> {% translate "Stock counts" %}</a> · {{ count.outlet.name }} · {% shop_date count.date %}{% if count.created_by %} · {{ count.created_by }}{% endif %}{% if count.note %} · {{ count.note }}{% endif %}</p>{% endblock %}
+{% block page_actions %}<button class="btn btn-outline-secondary no-print" type="button" onclick="window.print()"><i class="bi bi-printer"></i> {% translate "Print" %}</button>{% endblock %}
+{% block content %}
+<div class="row g-4 mb-4">
+  <div class="col-sm-4"><div class="card stat-tile tone-teal h-100"><div class="card-body"><div class="stat-label">{% translate "Found (more than the system had)" %}</div><div class="stat-figure">+{% money count.gain_cost %}</div></div></div></div>
+  <div class="col-sm-4"><div class="card stat-tile tone-red h-100"><div class="card-body"><div class="stat-label">{% translate "Missing" %}</div><div class="stat-figure">−{% money count.loss_cost %}</div></div></div></div>
+  <div class="col-sm-4"><div class="card stat-tile tone-violet h-100"><div class="card-body"><div class="stat-label">{% translate "Net, at cost" %}</div><div class="stat-figure">{% money count.net_cost %}</div></div></div></div>
+</div>
+<div class="card">
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table align-middle mb-0">
+        <thead><tr><th>{% translate "Medicine" %}</th><th>{% translate "Batch" %}</th><th>{% translate "Expiry" %}</th><th class="text-center">{% translate "In system" %}</th><th class="text-center">{% translate "Counted" %}</th><th class="text-center">{% translate "Difference" %}</th></tr></thead>
+        <tbody>
+          {% for line in lines %}
+          <tr>
+            <td class="fw-semibold">{{ line.medicine.display_name }}</td>
+            <td>{{ line.batch.batch_no|default:"—" }}</td>
+            <td>{% if line.batch.expiry_date %}{% shop_date line.batch.expiry_date %}{% else %}—{% endif %}</td>
+            <td class="text-center">{{ line.system_quantity }}</td>
+            <td class="text-center">{{ line.counted_quantity }}</td>
+            <td class="text-center fw-semibold {% if line.difference > 0 %}text-success{% elif line.difference < 0 %}text-danger{% else %}text-body-secondary{% endif %}">{% if line.difference > 0 %}+{% endif %}{{ line.difference }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

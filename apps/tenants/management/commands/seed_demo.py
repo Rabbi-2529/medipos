@@ -16,16 +16,18 @@ from apps.catalog.models import CatalogMedicine
 from apps.catalog.services import adopt, import_catalog
 from apps.core.tenancy import tenant_context
 from apps.customers.models import Customer
+from apps.inventory.models import Transfer, WriteOff
+from apps.inventory.services import create_write_off, dispatch_transfer, receive_transfer, save_stock_count
 from apps.items.models import Medicine, Unit
 from apps.outlets.models import Counter, Outlet
 from apps.people.models import Employee, Role
 from apps.purchases.models import Purchase
 from apps.purchases.services import clean_lines, receive, save_draft
-from apps.sales.models import Sale
-from apps.sales.services import complete_sale, create_return, start_register
+from apps.sales.models import Promotion, Quotation, Sale
+from apps.sales.services import complete_sale, create_quotation, create_return, start_register
 from apps.setup.services import provision_tenant
-from apps.stock.models import StockMovement
-from apps.stock.services import get_or_create_batch, post_movement
+from apps.stock.models import BatchStock, StockMovement
+from apps.stock.services import batch_on_hand, get_or_create_batch, post_movement
 from apps.suppliers.models import Supplier
 from apps.suppliers.services import record_payment, set_opening_balance
 from apps.tenants.models import Tenant
@@ -118,6 +120,7 @@ class Command(BaseCommand):
                 self._lazz_medicines(tenant)
                 self._lazz_stock(tenant)
                 self._lazz_sales(tenant)
+                self._lazz_inventory(tenant)
 
         self.stdout.write(self.style.SUCCESS(
             "Demo ready: admin@medipos.local (platform), owner@lazzpharma.local (paid), "
@@ -212,6 +215,55 @@ class Command(BaseCommand):
             # Rahim brings back 4 Fexo: credited to his account (nothing paid out).
             create_return(on_due, {fexo.pk: 4}, date=timezone.localdate(), reason="Doctor changed the prescription",
                           register=register, user=owner)
+
+    def _lazz_inventory(self, tenant):
+        """Expired and low stock, transfers to Gulshan (one on the way), a write-off, a stock count, promotions, quotations."""
+        with tenant_context(tenant), transaction.atomic():
+            if Transfer.objects.exists():
+                return
+            owner, main, gulshan = tenant.owner, Outlet.objects.get(code="0001"), Outlet.objects.get(code="0002")
+            today = timezone.localdate()
+
+            def med(name, *forms):
+                return Medicine.objects.filter(name=name, dosage_form__in=forms or ["tablet", "capsule"]).first()
+
+            def first_batch(medicine):
+                return BatchStock.objects.filter(outlet=main, medicine=medicine, quantity__gt=0).select_related("batch").first().batch
+
+            napa, seclo, fexo, ceevit, monas = med("Napa"), med("Seclo"), med("Fexo"), med("Ceevit"), med("Monas")
+            # Two batches that ran out of date on the shelf, for the expired-stock screen.
+            for medicine, days, qty in ((monas, 20, 30), (fexo, 5, 12)):
+                batch = get_or_create_batch(medicine, f"EXP{days:02d}", today - timedelta(days=days), medicine.purchase_price)
+                post_movement(outlet=main, batch=batch, quantity=qty, kind=StockMovement.Kind.OPENING, ref=("opening", None, "Opening stock"), user=owner)
+            # Two medicines below their alert at Main.
+            Medicine.objects.filter(pk__in=[seclo.pk, ceevit.pk]).update(alert_quantity=500)
+
+            received = dispatch_transfer(tenant=tenant, from_outlet=main, to_outlet=gulshan, user=owner, note="Weekly top-up",
+                                         lines=[(first_batch(fexo), 100), (first_batch(napa), 100)])
+            receive_transfer(received, user=owner)
+            dispatch_transfer(tenant=tenant, from_outlet=main, to_outlet=gulshan, user=owner, note="Urgent: Seclo ran out",
+                              lines=[(first_batch(seclo), 50)])
+            create_write_off(tenant=tenant, outlet=main, date=today, reason=WriteOff.Reason.DAMAGED, user=owner,
+                             note="Strips torn in the drawer", lines=[(first_batch(napa), 10)])
+            ceevit_batch = first_batch(ceevit)
+            save_stock_count(tenant=tenant, outlet=main, date=today, user=owner, note="Monthly count, rack A",
+                             lines=[(ceevit_batch, batch_on_hand(main, ceevit_batch) - 3)])
+
+            Promotion.objects.create(name="Syrup week", kind=Promotion.Kind.PERCENT, value=Decimal("10"),
+                                              scope=Promotion.Scope.FORM, dosage_form="suspension", ends_on=today + timedelta(days=6))
+            bulk = Promotion.objects.create(name="Napa by the strip", kind=Promotion.Kind.AMOUNT, value=Decimal("0.20"),
+                                            scope=Promotion.Scope.MEDICINES, min_quantity=10)
+            bulk.medicines.add(napa)
+            Promotion.objects.create(name="Winter sachets", kind=Promotion.Kind.PERCENT, value=Decimal("5"),
+                                     scope=Promotion.Scope.FORM, dosage_form="sachet", starts_on=today + timedelta(days=7))
+
+            fatema = Customer.objects.get(phone="01822334455")
+            cart = [{"medicine": napa.pk, "unit": "strip", "qty": 3}, {"medicine": ceevit.pk, "unit": "piece", "qty": 20}]
+            create_quotation(tenant=tenant, outlet=main, user=owner, lines=cart, customer=fatema, valid_days=7,
+                             note="Monthly medicines for her mother")
+            old = create_quotation(tenant=tenant, outlet=main, user=owner, lines=[{"medicine": seclo.pk, "unit": "strip", "qty": 2}],
+                                   valid_days=3)
+            Quotation.objects.filter(pk=old.pk).update(date=today - timedelta(days=10), valid_until=today - timedelta(days=7))
 
     def _lazz_staff(self, tenant, password):
         """Second outlet, a counter, a manager (all outlets) and a cashier (Main branch only)."""

@@ -117,6 +117,7 @@
     function cell(child) { var td = document.createElement("td"); if (child) td.appendChild(child); return td; }
 
     function render() {
+      MP.destroyDatePickers(tbody);
       tbody.replaceChildren();
       empty.classList.toggle("d-none", rows.length > 0);
       rows.forEach(function (r, i) {
@@ -128,7 +129,7 @@
         name.append(strong, meta);
         tr.appendChild(name);
         tr.appendChild(cell(input(r, "batch_no", { placeholder: "Batch", maxlength: 40, "aria-label": "Batch" })));
-        var expiry = input(r, "expiry", { type: "month", "aria-label": "Expiry" });
+        var expiry = input(r, "expiry", { type: "month", "aria-label": "Expiry", min: new Date().toISOString().slice(0, 7) });  // must be a future month
         if (!r.track_expiry) { expiry.disabled = true; expiry.placeholder = "—"; }
         tr.appendChild(cell(expiry));
         var packs = input(r, "packs", { type: "number", min: 0, step: 1, "aria-label": "Quantity" });
@@ -145,6 +146,7 @@
         tr.appendChild(cell(remove));
         tbody.appendChild(tr);
       });
+      MP.initDatePickers(tbody);
       update();
     }
 

@@ -1,0 +1,25 @@
+{% extends "layouts/app.html" %}
+{% load i18n static %}
+{% block title %}{% translate "Write off stock" %}{% endblock %}
+{% block page_title %}{% translate "Write off stock" %}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle"><a href="{% url 'inventory:damages' %}"><i class="bi bi-chevron-left"></i> {% translate "Damage & expired" %}</a> · {% translate "Damaged, expired or lost units leave stock; their cost is counted as a loss." %}</p>{% endblock %}
+{% block content %}
+<form method="post" novalidate>
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="alert alert-danger">{% for e in form.non_field_errors %}<div>{{ e }}</div>{% endfor %}</div>{% endif %}
+  <div class="card mb-4">
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-3">{% include "partials/_field.html" with field=form.outlet %}</div>
+        <div class="col-md-3">{% include "partials/_field.html" with field=form.date %}</div>
+        <div class="col-md-3">{% include "partials/_field.html" with field=form.reason %}</div>
+        <div class="col-md-3">{% include "partials/_field.html" with field=form.note %}</div>
+      </div>
+    </div>
+  </div>
+  {% include "inventory/_lines_editor.html" %}
+  <button class="btn btn-danger" type="submit"><i class="bi bi-trash3"></i> {% translate "Write off" %}</button>
+  <a class="btn btn-link" href="{% url 'inventory:damages' %}">{% translate "Cancel" %}</a>
+</form>
+{% endblock %}
+{% block extra_js %}<script src="{% static 'js/stock_lines.js' %}?v=2"></script>{% endblock %}

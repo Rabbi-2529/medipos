@@ -1,0 +1,46 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+{% block title %}{% translate "Damage & expired" %}{% endblock %}
+{% block page_title %}{% translate "Damage & expired write-offs" %}{% endblock %}
+{% block page_actions %}
+<a class="btn btn-outline-danger" href="{% url 'stock:expiring' %}?days=0"><i class="bi bi-hourglass-bottom"></i> {% translate "Expired stock" %}</a>
+{% if can.damage.create %}<a class="btn btn-primary" href="{% url 'inventory:damage_create' %}"><i class="bi bi-plus-lg"></i> {% translate "Write off stock" %}</a>{% endif %}
+{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <div class="table-filters">
+      {% if outlets|length > 1 %}
+      <div class="table-filter">
+        <label class="form-label" for="f-outlet">{% translate "Outlet" %}</label>
+        <select id="f-outlet" class="form-select" data-mp-select data-no-search data-allow-clear data-placeholder="{% translate 'All my outlets' %}">
+          <option></option>{% for o in outlets %}<option value="{{ o.pk }}">{{ o.name }}</option>{% endfor %}
+        </select>
+      </div>
+      {% endif %}
+      <div class="table-filter">
+        <label class="form-label" for="f-reason">{% translate "Reason" %}</label>
+        <select id="f-reason" class="form-select" data-mp-select data-no-search data-allow-clear data-placeholder="{% translate 'All' %}">
+          <option></option>{% for value, label in reasons %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+        </select>
+      </div>
+    </div>
+    <table id="damage-table" class="table table-hover align-middle w-100">
+      <thead><tr><th>{% translate "No." %}</th><th>{% translate "Date" %}</th><th>{% translate "Outlet" %}</th><th>{% translate "Reason" %}</th><th>{% translate "Note" %}</th><th>{% translate "By" %}</th><th class="text-end">{% translate "Loss at cost" %}</th></tr></thead>
+    </table>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+  (function () {
+    var table = MP.dataTable("#damage-table", {
+      ajax: { url: "{% url 'inventory:damage_data' %}", data: function (d) { d.outlet = $("#f-outlet").val() || ""; d.reason = $("#f-reason").val() || ""; } },
+      order: [[1, "desc"]],
+      columnDefs: [{ targets: [6], className: "text-end text-nowrap" }],
+      language: { searchPlaceholder: "{% filter escapejs %}{% translate "Number or note…" %}{% endfilter %}" }
+    });
+    $("#f-outlet, #f-reason").on("change", function () { table.ajax.reload(); });
+  })();
+</script>
+{% endblock %}

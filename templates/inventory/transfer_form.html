@@ -1,0 +1,24 @@
+{% extends "layouts/app.html" %}
+{% load i18n static %}
+{% block title %}{% translate "Send stock" %}{% endblock %}
+{% block page_title %}{% translate "Send stock to another outlet" %}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle"><a href="{% url 'inventory:transfers' %}"><i class="bi bi-chevron-left"></i> {% translate "Transfers" %}</a> · {% translate "The stock leaves now and arrives when the other outlet receives it." %}</p>{% endblock %}
+{% block content %}
+<form method="post" novalidate>
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="alert alert-danger">{% for e in form.non_field_errors %}<div>{{ e }}</div>{% endfor %}</div>{% endif %}
+  <div class="card mb-4">
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-4">{% include "partials/_field.html" with field=form.outlet %}</div>
+        <div class="col-md-4">{% include "partials/_field.html" with field=form.to_outlet %}</div>
+        <div class="col-md-4">{% include "partials/_field.html" with field=form.note %}</div>
+      </div>
+    </div>
+  </div>
+  {% include "inventory/_lines_editor.html" %}
+  <button class="btn btn-primary" type="submit"><i class="bi bi-send"></i> {% translate "Send stock" %}</button>
+  <a class="btn btn-link" href="{% url 'inventory:transfers' %}">{% translate "Cancel" %}</a>
+</form>
+{% endblock %}
+{% block extra_js %}<script src="{% static 'js/stock_lines.js' %}?v=2"></script>{% endblock %}

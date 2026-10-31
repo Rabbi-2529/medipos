@@ -1,5 +1,6 @@
 """Selling: cash registers, completing a sale (FEFO stock out), held carts and sale returns."""
 from collections import defaultdict
+from datetime import timedelta
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 
 from django.db import transaction
@@ -16,7 +17,9 @@ from apps.setup.services import get_business_settings, next_code
 from apps.stock.models import BatchStock, StockMovement
 from apps.stock.services import StockError, post_movement
 
-from .models import CashRegister, HeldCart, Sale, SaleLine, SaleLineBatch, SalePayment, SaleReturn, SaleReturnLine
+from .models import (
+    CashRegister, HeldCart, Promotion, Quotation, QuotationLine, Sale, SaleLine, SaleLineBatch, SalePayment, SaleReturn, SaleReturnLine,
+)
 
 ZERO = Decimal("0")
 CENT = Decimal("0.01")
@@ -160,9 +163,43 @@ def check_stock(outlet, cart, today=None):
                 "name": medicine.display_name, "have": have})
 
 
-def clean_cart(raw_lines, price_type):
+# ---- Promotions ----------------------------------------------------------------------
+
+def running_promotions(day=None):
+    """Promotions on today, each with the ids of its chosen medicines loaded once."""
+    day = day or timezone.localdate()
+    promotions = [p for p in Promotion.objects.filter(is_active=True).prefetch_related("medicines") if p.runs_on(day)]
+    for promotion in promotions:
+        promotion.medicine_ids = {m.pk for m in promotion.medicines.all()}
+    return promotions
+
+
+def promotion_applies(promotion, medicine):
+    scope = promotion.scope
+    return (scope == Promotion.Scope.ALL
+            or (scope == Promotion.Scope.CATEGORY and medicine.category_id == promotion.category_id)
+            or (scope == Promotion.Scope.FORM and medicine.dosage_form == promotion.dosage_form)
+            or (scope == Promotion.Scope.MEDICINES and medicine.pk in promotion.medicine_ids))
+
+
+def best_promotion(medicine, promotions, price):
+    """The promotion saving the most per unit on this medicine (at its minimum quantity), or None."""
+    best, best_saving = None, ZERO
+    for promotion in promotions:
+        if not promotion_applies(promotion, medicine):
+            continue
+        units = max(promotion.min_quantity, 1)
+        saving = promotion.discount(price, units) / units
+        if saving > best_saving:
+            best, best_saving = promotion, saving
+    return best
+
+
+def clean_cart(raw_lines, price_type, promotions=None):
+    """Check and price the POS lines. A line may name the promotion the POS applied; it is kept only if it really applies."""
     if not raw_lines:
         raise SaleError(_("The cart is empty."))
+    promotions = {p.pk: p for p in (running_promotions() if promotions is None else promotions)}
     ids = {str(line.get("medicine")) for line in raw_lines}
     medicines = {str(m.pk): m for m in Medicine.objects.filter(pk__in=[i for i in ids if i.isdigit()], is_active=True)
                  .select_related("sale_unit", "purchase_unit")}
@@ -189,10 +226,13 @@ def clean_cart(raw_lines, price_type):
         if discount > gross:
             raise SaleError(_("%(name)s: the discount is more than the price.") % {"name": medicine.display_name})
         batch_id = raw.get("batch")
+        promotion = promotions.get(int(raw["promotion"])) if str(raw.get("promotion") or "").isdigit() else None
+        if promotion is not None and not promotion_applies(promotion, medicine):
+            promotion = None
         lines.append({
             "medicine": medicine, "unit_label": str(label), "unit_factor": factor, "unit_qty": unit_qty, "quantity": quantity,
             "unit_price": price, "gross": gross, "discount": discount, "line_total": gross - discount,
-            "batch_id": int(batch_id) if str(batch_id or "").isdigit() else None,
+            "batch_id": int(batch_id) if str(batch_id or "").isdigit() else None, "promotion": promotion,
         })
     return lines
 
@@ -216,7 +256,7 @@ def totals(lines, *, cart_discount, settings):
 
 @transaction.atomic
 def complete_sale(*, tenant, outlet, user, lines, payments, register=None, customer=None, price_type=Sale.PriceType.RETAIL,
-                  cart_discount=0, cash_tendered=None, rx_checked=False, note="", now=None):
+                  cart_discount=0, cash_tendered=None, rx_checked=False, note="", now=None, quotation_id=None):
     """Validate the cart, take stock (FEFO), record payments and the customer's due. All or nothing."""
     now = now or timezone.now()
     today = timezone.localdate(now)
@@ -262,7 +302,7 @@ def complete_sale(*, tenant, outlet, user, lines, payments, register=None, custo
         line = SaleLine.objects.create(
             sale=sale, medicine=item["medicine"], unit_label=item["unit_label"], unit_factor=item["unit_factor"],
             unit_qty=item["unit_qty"], quantity=item["quantity"], unit_price=item["unit_price"],
-            discount=item["discount"], line_total=item["line_total"],
+            discount=item["discount"], line_total=item["line_total"], promotion=item["promotion"],
         )
         line_cost = ZERO
         for batch, take in allocate(outlet, item["medicine"], item["quantity"], batch_id=item["batch_id"], today=today):
@@ -284,7 +324,35 @@ def complete_sale(*, tenant, outlet, user, lines, payments, register=None, custo
         customer_entry(customer, date=today, kind=CustomerLedgerEntry.Kind.SALE, debit=sale.total, ref=ref)
         if paid > 0:
             customer_entry(customer, date=today, kind=CustomerLedgerEntry.Kind.PAYMENT, credit=paid, ref=ref)
+    if quotation_id:
+        Quotation.objects.filter(pk=quotation_id, status=Quotation.Status.OPEN).update(status=Quotation.Status.SOLD, sale=sale)
     return sale
+
+
+# ---- Quotations ----------------------------------------------------------------------
+
+@transaction.atomic
+def create_quotation(*, tenant, outlet, user, lines, customer=None, price_type=Sale.PriceType.RETAIL, cart_discount=0,
+                     valid_days=7, note=""):
+    """Price the POS cart as a quote. Nothing leaves stock; it can be sold later from the POS."""
+    if price_type not in Sale.PriceType.values:
+        price_type = Sale.PriceType.RETAIL
+    items = clean_cart(lines, price_type)
+    amounts = totals(items, cart_discount=cart_discount, settings=get_business_settings(tenant))
+    today = timezone.localdate()
+    valid_days = min(max(int(valid_days or 7), 1), 365)
+    quotation = Quotation.objects.create(
+        number=next_code(tenant, "quotation", prefix="QT-", padding=5), outlet=outlet, customer=customer, date=today,
+        valid_until=today + timedelta(days=valid_days), price_type=price_type, note=note[:255], created_by=user,
+        **amounts,
+    )
+    for item in items:
+        QuotationLine.objects.create(
+            quotation=quotation, medicine=item["medicine"], unit_label=item["unit_label"], unit_factor=item["unit_factor"],
+            unit_qty=item["unit_qty"], quantity=item["quantity"], unit_price=item["unit_price"],
+            discount=item["discount"], line_total=item["line_total"],
+        )
+    return quotation
 
 
 # ---- Held carts ----------------------------------------------------------------------

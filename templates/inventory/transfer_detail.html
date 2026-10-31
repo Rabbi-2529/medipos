@@ -1,0 +1,55 @@
+{% extends "layouts/app.html" %}
+{% load i18n shop %}
+{% block title %}{{ transfer.number }}{% endblock %}
+{% block page_title %}{% translate "Transfer" %} {{ transfer.number }}
+  <span class="state-badge state-{% if transfer.status == 'in_transit' %}grace{% elif transfer.status == 'received' %}active{% else %}suspended{% endif %}">{{ transfer.get_status_display }}</span>
+{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle no-print"><a href="{% url 'inventory:transfers' %}"><i class="bi bi-chevron-left"></i> {% translate "Transfers" %}</a></p>{% endblock %}
+{% block page_actions %}
+<div class="no-print d-flex gap-2 flex-wrap">
+  {% if can_receive %}
+  <form method="post" action="{% url 'inventory:transfer_receive' transfer.pk %}" data-confirm="{% translate 'Receive everything on this transfer? The stock is added to your outlet.' %}">
+    {% csrf_token %}<button class="btn btn-success" type="submit"><i class="bi bi-box-arrow-in-down"></i> {% translate "Receive" %}</button>
+  </form>
+  {% endif %}
+  {% if can_cancel %}
+  <form method="post" action="{% url 'inventory:transfer_cancel' transfer.pk %}" data-confirm="{% translate 'Cancel this transfer? The stock goes back to the outlet that sent it.' %}">
+    {% csrf_token %}<button class="btn btn-outline-danger" type="submit"><i class="bi bi-x-circle"></i> {% translate "Cancel transfer" %}</button>
+  </form>
+  {% endif %}
+  <button class="btn btn-outline-secondary" type="button" onclick="window.print()"><i class="bi bi-printer"></i> {% translate "Print" %}</button>
+</div>
+{% endblock %}
+{% block content %}
+<div class="card mb-4">
+  <div class="card-body transfer-route">
+    <div class="route-stop"><small>{% translate "From" %}</small><strong>{{ transfer.from_outlet.name }}</strong><span>{{ transfer.dispatched_at|date:"d M Y, h:i A" }}{% if transfer.dispatched_by %} · {{ transfer.dispatched_by }}{% endif %}</span></div>
+    <div class="route-line route-{{ transfer.status }}"><i class="bi {% if transfer.status == 'cancelled' %}bi-x-lg{% elif transfer.status == 'received' %}bi-check-lg{% else %}bi-truck{% endif %}"></i></div>
+    <div class="route-stop text-end"><small>{% translate "To" %}</small><strong>{{ transfer.to_outlet.name }}</strong>
+      <span>{% if transfer.status == "received" %}{% translate "Received" %} {{ transfer.closed_at|date:"d M Y, h:i A" }}{% if transfer.closed_by %} · {{ transfer.closed_by }}{% endif %}{% elif transfer.status == "cancelled" %}{% translate "Cancelled" %} {{ transfer.closed_at|date:"d M Y, h:i A" }}{% else %}{% translate "Waiting to be received" %}{% endif %}</span>
+    </div>
+  </div>
+</div>
+{% if transfer.note %}<p class="text-body-secondary"><i class="bi bi-sticky"></i> {{ transfer.note }}</p>{% endif %}
+<div class="card">
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table align-middle mb-0">
+        <thead><tr><th>{% translate "Medicine" %}</th><th>{% translate "Batch" %}</th><th>{% translate "Expiry" %}</th><th class="text-end">{% translate "Quantity" %}</th><th class="text-end">{% translate "Cost / unit" %}</th></tr></thead>
+        <tbody>
+          {% for line in lines %}
+          <tr>
+            <td class="fw-semibold">{{ line.medicine.display_name }}</td>
+            <td>{{ line.batch.batch_no|default:"—" }}</td>
+            <td>{% if line.batch.expiry_date %}{% shop_date line.batch.expiry_date %}{% else %}—{% endif %}</td>
+            <td class="text-end">{{ line.quantity_text }}</td>
+            <td class="text-end">{% money line.unit_cost %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot><tr><th colspan="4" class="text-end">{% translate "Value at cost" %}</th><th class="text-end">{% money transfer.total_cost %}</th></tr></tfoot>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

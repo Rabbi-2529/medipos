@@ -9,7 +9,7 @@ from apps.core.permissions import ALL_CODES, CRUD
 
 _LATER_MODULES = (
     "item", "item_setup", "stock", "pos", "sale", "sale_return", "quotation", "customer", "customer_receive",
-    "purchase", "purchase_return", "supplier", "supplier_payment", "transfer", "damage",
+    "purchase", "purchase_return", "supplier", "supplier_payment", "transfer", "damage", "adjustment", "promotion",
     "income", "expense", "deposit_withdraw", "accounting", "report",
 )
 
@@ -30,7 +30,7 @@ DEFAULT_ROLES = {
         "name": gettext_noop("Cashier"),
         "description": gettext_noop("Sells at the counter, takes returns and due payments."),
         "permissions": sorted([
-            "pos.create", "pos.list",
+            "pos.create", "pos.list", "quotation.list", "quotation.create",
             "sale.list", "sale.show", "sale_return.list", "sale_return.create",
             "customer.list", "customer.show", "customer.create", "customer_receive.create",
             "item.list", "item.show", "stock.list",

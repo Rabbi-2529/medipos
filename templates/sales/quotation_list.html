@@ -1,0 +1,39 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+{% block title %}{% translate "Quotations" %}{% endblock %}
+{% block page_title %}{% translate "Quotations" %}{% endblock %}
+{% block page_actions %}{% if can.pos.create %}<a class="btn btn-primary" href="{% url 'sales:pos' %}"><i class="bi bi-file-earmark-text"></i> {% translate "Make a quotation in the POS" %}</a>{% endif %}{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <div class="table-filters">
+      <div class="table-filter">
+        <label class="form-label" for="f-status">{% translate "Status" %}</label>
+        <select id="f-status" class="form-select" data-mp-select data-no-search data-allow-clear data-placeholder="{% translate 'All' %}">
+          <option></option>
+          <option value="open">{% translate "Open" %}</option>
+          <option value="expired">{% translate "Expired" %}</option>
+          <option value="sold">{% translate "Sold" %}</option>
+        </select>
+      </div>
+    </div>
+    <table id="quote-table" class="table table-hover align-middle w-100">
+      <thead><tr><th>{% translate "No." %}</th><th>{% translate "Date" %}</th><th>{% translate "Customer" %}</th><th>{% translate "Outlet" %}</th><th>{% translate "Valid until" %}</th><th>{% translate "Status" %}</th><th class="text-end">{% translate "Total" %}</th></tr></thead>
+    </table>
+    <p class="form-text mb-0">{% translate "Make a quotation from the POS cart with the Quote button. Open one to print it or sell it." %}</p>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+  (function () {
+    var table = MP.dataTable("#quote-table", {
+      ajax: { url: "{% url 'sales:quotation_data' %}", data: function (d) { d.status = $("#f-status").val() || ""; } },
+      order: [[1, "desc"]],
+      columnDefs: [{ targets: [6], className: "text-end text-nowrap" }],
+      language: { searchPlaceholder: "{% filter escapejs %}{% translate "Number, customer or phone…" %}{% endfilter %}" }
+    });
+    $("#f-status").on("change", function () { table.ajax.reload(); });
+  })();
+</script>
+{% endblock %}

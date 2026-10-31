@@ -515,7 +515,8 @@ html[lang="bn"] body { font-family: "Hind Siliguri", "Public Sans", system-ui, s
 .pos-totals .totals-grand { font-size: 1.35rem; color: var(--mp-primary); border-top-color: color-mix(in srgb, var(--mp-primary) 25%, transparent); }
 .pos-rounding-note { display: block; font-size: .72rem; font-weight: 400; color: var(--mp-muted); }
 .pos-discount-mode { width: auto; padding-top: .1rem; padding-bottom: .1rem; }
-.pos-actions { display: grid; grid-template-columns: repeat(3, auto) 1fr; gap: .5rem; margin-top: 1rem; }
+.pos-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1rem; }
+.pos-actions .pos-pay { flex: 1 1 130px; }
 .pos-actions kbd { font-size: .65rem; }
 .btn-soft {
   --tone: var(--mp-primary);
@@ -587,3 +588,125 @@ html[lang="bn"] body { font-family: "Hind Siliguri", "Public Sans", system-ui, s
   .detail-list { grid-template-columns: 1fr; gap: .15rem; }
   .detail-list dd { margin-bottom: .6rem; }
 }
+
+/* Date picker (flatpickr) in the app's colours */
+.mp-date-input {
+  padding-right: 2.25rem;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%2375718a'%3e%3cpath d='M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5M1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4z'/%3e%3cpath d='M11 7h2v2h-2zm-3 0h2v2H8zm-3 0h2v2H5zm6 3h2v2h-2zm-3 0h2v2H8zm-3 0h2v2H5z'/%3e%3c/svg%3e");
+  background-repeat: no-repeat; background-position: right .75rem center; background-size: 15px;
+}
+.form-control-sm.mp-date-input { padding-right: 1.9rem; background-position: right .5rem center; background-size: 13px; }
+.mp-date-input[readonly]:not(:disabled) { background-color: var(--bs-body-bg); }
+.flatpickr-calendar {
+  width: 296px; padding: .5rem; font-family: inherit; font-size: .875rem;
+  background: var(--mp-surface); border: 1px solid var(--mp-border); border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(47, 43, 61, .18);
+}
+.flatpickr-calendar::before, .flatpickr-calendar::after { display: none; }
+.flatpickr-calendar.static { top: calc(100% + 4px); }
+.flatpickr-months { align-items: center; margin-bottom: .25rem; }
+.flatpickr-months .flatpickr-month { height: 36px; color: var(--mp-heading); fill: var(--mp-heading); background: transparent; }
+.flatpickr-months .flatpickr-prev-month, .flatpickr-months .flatpickr-next-month {
+  top: .5rem; height: 32px; width: 32px; padding: 8px; border-radius: 8px; color: var(--mp-muted); fill: var(--mp-muted);
+}
+.flatpickr-months .flatpickr-prev-month { left: .5rem; } .flatpickr-months .flatpickr-next-month { right: .5rem; }
+.flatpickr-months .flatpickr-prev-month:hover, .flatpickr-months .flatpickr-next-month:hover { background: var(--mp-primary-subtle); }
+.flatpickr-months .flatpickr-prev-month:hover svg, .flatpickr-months .flatpickr-next-month:hover svg { fill: var(--mp-primary); }
+.flatpickr-current-month { padding-top: 6px; font-size: 1rem; font-weight: 600; }
+.flatpickr-current-month .flatpickr-monthDropdown-months { font-weight: 600; color: var(--mp-heading); background: transparent; border-radius: 6px; }
+.flatpickr-current-month .flatpickr-monthDropdown-months:hover, .flatpickr-current-month .numInputWrapper:hover { background: var(--mp-hover); }
+.flatpickr-current-month .flatpickr-monthDropdown-months option { background: var(--mp-surface); color: var(--mp-text); }
+.flatpickr-current-month input.cur-year { font-weight: 600; color: var(--mp-heading); }
+.numInputWrapper span.arrowUp::after { border-bottom-color: var(--mp-muted); }
+.numInputWrapper span.arrowDown::after { border-top-color: var(--mp-muted); }
+.flatpickr-weekdays { background: transparent; }
+span.flatpickr-weekday { background: transparent; color: var(--mp-muted); font-size: .75rem; font-weight: 600; }
+.flatpickr-innerContainer, .flatpickr-rContainer, .flatpickr-days, .dayContainer { width: 278px; min-width: 278px; max-width: 278px; }
+.flatpickr-day {
+  max-width: 38px; height: 36px; line-height: 34px; margin: 1px 0; border-radius: 9px;
+  color: var(--mp-text); border: 1px solid transparent;
+}
+.flatpickr-day:hover, .flatpickr-day:focus { background: var(--mp-hover); border-color: transparent; }
+.flatpickr-day.today { border-color: var(--mp-primary); color: var(--mp-primary); font-weight: 600; }
+.flatpickr-day.today:hover { background: var(--mp-primary-subtle); color: var(--mp-primary); border-color: var(--mp-primary); }
+.flatpickr-day.selected, .flatpickr-day.selected:hover, .flatpickr-day.selected:focus {
+  background: var(--mp-primary); border-color: var(--mp-primary); color: #fff; font-weight: 600;
+  box-shadow: 0 3px 8px rgba(var(--mp-primary-rgb), .35);
+}
+.flatpickr-day.prevMonthDay, .flatpickr-day.nextMonthDay { color: var(--mp-muted); opacity: .5; }
+.flatpickr-day.flatpickr-disabled, .flatpickr-day.flatpickr-disabled:hover { color: var(--mp-muted); opacity: .3; background: transparent; }
+.mp-picker-footer { display: flex; justify-content: space-between; gap: .5rem; margin-top: .35rem; padding-top: .45rem; border-top: 1px solid var(--mp-border); }
+.mp-picker-footer button {
+  padding: .25rem .7rem; border: 0; border-radius: 7px; background: transparent;
+  color: var(--mp-primary); font-size: .8125rem; font-weight: 600;
+}
+.mp-picker-footer button:hover { background: var(--mp-primary-subtle); }
+.mp-picker-footer button + button { color: var(--mp-muted); }
+/* Month picker (purchase expiry) */
+.flatpickr-monthSelect-months { margin: .25rem 0; }
+.flatpickr-monthSelect-month {
+  margin: 2px; padding: .45rem 0; border-radius: 9px; color: var(--mp-text); background: transparent; border: 1px solid transparent;
+}
+.flatpickr-monthSelect-month:hover { background: var(--mp-hover); }
+.flatpickr-monthSelect-month.today { border-color: var(--mp-primary); color: var(--mp-primary); }
+.flatpickr-monthSelect-month.selected, .flatpickr-monthSelect-month.selected:hover { background: var(--mp-primary); border-color: var(--mp-primary); color: #fff; }
+.flatpickr-calendar.mp-month-picker, .flatpickr-monthSelect-theme-light { width: 296px; }
+[data-bs-theme="dark"] .flatpickr-calendar { box-shadow: 0 12px 32px rgba(0, 0, 0, .45); }
+
+/* Inventory control: figure tiles, expiry tiles, transfer route, line editor */
+:where(.stat-tile, .expiry-tile) { --tone: var(--mp-primary); }  /* zero specificity: tone-* classes win */
+.stat-tile, .expiry-tile {
+  --tone-soft: color-mix(in srgb, var(--tone) 10%, transparent);
+  --tone-line: color-mix(in srgb, var(--tone) 32%, transparent);
+}
+.stat-tile { border-top: 3px solid var(--tone); background: linear-gradient(160deg, var(--tone-soft), var(--mp-surface) 60%); }
+.stat-tile .stat-label { font-size: .8125rem; }
+.stat-figure { font-size: 1.6rem; font-weight: 700; line-height: 1.2; color: var(--tone, var(--mp-heading)); margin-top: .2rem; }
+.expiry-tile {
+  display: flex; flex-direction: column; align-items: flex-start; gap: .15rem; padding: .9rem 1rem; text-align: left;
+  border: 1px solid var(--mp-border); border-left: 4px solid var(--tone);
+  background: linear-gradient(135deg, var(--tone-soft), var(--mp-surface) 65%); color: var(--mp-text);
+  transition: box-shadow .12s, transform .12s;
+}
+.expiry-tile:hover { box-shadow: 0 4px 14px var(--tone-line); transform: translateY(-1px); }
+.expiry-tile-label { font-size: .8125rem; font-weight: 600; color: var(--tone); }
+.expiry-tile-value { font-size: 1.35rem; font-weight: 700; color: var(--mp-heading); }
+.expiry-tile small { color: var(--mp-muted); font-size: .75rem; }
+.transfer-route { display: flex; align-items: center; gap: 1rem; }
+.route-stop { display: flex; flex-direction: column; min-width: 0; flex: 0 1 auto; }
+.route-stop small { color: var(--mp-muted); font-size: .75rem; text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
+.route-stop strong { font-size: 1.15rem; color: var(--mp-heading); }
+.route-stop span { font-size: .8125rem; color: var(--mp-muted); }
+.route-line {
+  --tone: #d4930a;
+  position: relative; flex: 1; height: 2px; min-width: 60px; display: grid; place-items: center;
+  background: repeating-linear-gradient(90deg, var(--tone) 0 8px, transparent 8px 14px);
+}
+.route-line i {
+  width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; font-size: 1.1rem;
+  background: var(--mp-surface); color: var(--tone); border: 2px solid var(--tone);
+}
+.route-received { --tone: #12a389; background: var(--tone); }
+.route-cancelled { --tone: #9a9fbf; }
+.stock-lines .lines-group td { background: color-mix(in srgb, var(--mp-primary) 6%, var(--mp-surface)); padding-top: .55rem; padding-bottom: .55rem; }
+.stock-lines .lines-group td:first-child { border-left: 3px solid var(--mp-primary); }
+.stock-lines .lines-new td { background: color-mix(in srgb, #12a389 6%, var(--mp-surface)); }
+.stock-lines input { max-width: 150px; }
+@media (max-width: 575.98px) { .transfer-route { flex-direction: column; align-items: stretch; } .route-stop.text-end { text-align: left !important; } .route-line { height: 30px; min-height: 30px; background: none; } }
+
+/* Promotions: offer tags at the POS and the promotion cards */
+.pos-offer {
+  flex: none; margin-left: auto; padding: .1rem .45rem; border-radius: 6px; font-size: .72rem; font-weight: 700;
+  background: linear-gradient(135deg, #f2545b, #ef8a2a); color: #fff; box-shadow: 0 2px 6px rgba(242, 84, 91, .35);
+}
+.pos-offer + .badge { margin-left: .25rem !important; }
+.pos-line-offer { display: block; font-size: .72rem; font-weight: 600; color: #e5484d; }
+:where(.promo-card) { --tone: var(--mp-primary); }
+.promo-card { border-top: 4px solid var(--tone); background: linear-gradient(160deg, color-mix(in srgb, var(--tone) 9%, transparent), var(--mp-surface) 55%); }
+.promo-card.is-idle { opacity: .75; }
+.promo-value { font-size: 1.9rem; font-weight: 800; line-height: 1; color: var(--tone); }
+.promo-value small { display: block; margin-top: .2rem; font-size: .75rem; font-weight: 600; color: var(--mp-muted); }
+.promo-name { margin: .75rem 0 .5rem; font-size: 1.05rem; font-weight: 600; color: var(--mp-heading); }
+.promo-facts { list-style: none; padding: 0; margin: 0 0 1rem; font-size: .8125rem; color: var(--mp-text); }
+.promo-facts li { display: flex; gap: .45rem; margin-bottom: .25rem; }
+.promo-facts i { color: var(--tone); }

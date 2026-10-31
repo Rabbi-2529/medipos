@@ -60,10 +60,11 @@ apps/stock/        batches, per-outlet stock, movement ledger, opening-stock imp
 apps/suppliers/    suppliers, supplier ledger, payments
 apps/purchases/    purchases (draft → received), purchase returns
 apps/customers/    customers, customer ledger, due collection
-apps/sales/        cash registers, POS, sales, held carts, sale returns
+apps/sales/        cash registers, POS, sales, held carts, sale returns, promotions, quotations
+apps/inventory/    transfers between outlets, damage/expired write-offs, stock counts
 locale/bn/         Bangla translations (django.po source, django.mo compiled)
 templates/         layouts, partials, pages
-static/            css/app.css (theme tokens, dark mode), js/app.js, js/pos.js
+static/            css/app.css (theme tokens, dark mode), js/app.js, js/pos.js, js/stock_lines.js
 ```
 
 ## Languages (English ⇄ বাংলা)
@@ -109,9 +110,15 @@ Use a list ThingBD has the right to use, such as DGDA's registered-drug list.
   - It locks the outlet × batch row, refuses to go below zero (`StockError`) and writes a `StockMovement`.
   - Quantities are always in sale units, e.g. pieces.
 - Sales take stock earliest-expiry-first (`apps.sales.services.allocate()`) and never from expired batches. Returns put it back into the batches it came from.
-- Document numbers come from `apps.setup.services.next_code(tenant, key, prefix=…)`: INV (invoice sequence from settings), PUR-, PRT-, SPY-, SRT-, RCV-.
+- Transfers, write-offs and stock counts go through `apps.inventory.services` (which calls `post_movement()`). A transfer takes stock out on dispatch and puts it in on receive; until then it is "in transit".
+- Document numbers come from `apps.setup.services.next_code(tenant, key, prefix=…)`: INV (invoice sequence from settings), PUR-, PRT-, SPY-, SRT-, RCV-, TRF-, DMG-, ADJ-, QT-.
 - Supplier balances come from `SupplierLedgerEntry` (credit = owed, debit = paid/returned). Post entries with `suppliers.services.post_entry()`.
 - Customer balances come from `CustomerLedgerEntry` (debit = owes, credit = paid/returned). Post entries with `customers.services.post_entry()`.
+
+## Forms and dates
+
+- `<input type="date">` and `<input type="month">` become a themed flatpickr calendar automatically (`MP.initDatePickers`, also after HTMX swaps). Add `data-native` to keep the browser's picker. Scripts that rebuild rows call `MP.destroyDatePickers(row)` first and `MP.initDatePickers(row)` after.
+- Selects with `data-mp-select` become Select2 (`data-ajax-url` for server search, `data-tags` to allow new values).
 
 ## Permissions
 

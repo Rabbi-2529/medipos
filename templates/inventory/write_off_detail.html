@@ -1,0 +1,47 @@
+{% extends "layouts/app.html" %}
+{% load i18n shop %}
+{% block title %}{{ write_off.number }}{% endblock %}
+{% block page_title %}{% translate "Write-off" %} {{ write_off.number }} <span class="state-badge state-{% if write_off.reason == 'expired' %}expired{% else %}grace{% endif %}">{{ write_off.get_reason_display }}</span>{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle no-print"><a href="{% url 'inventory:damages' %}"><i class="bi bi-chevron-left"></i> {% translate "Damage & expired" %}</a></p>{% endblock %}
+{% block page_actions %}<button class="btn btn-outline-secondary no-print" type="button" onclick="window.print()"><i class="bi bi-printer"></i> {% translate "Print" %}</button>{% endblock %}
+{% block content %}
+<div class="row g-4 mb-4">
+  <div class="col-lg-8">
+    <div class="card h-100"><div class="card-body">
+      <dl class="detail-list mb-0">
+        <dt>{% translate "Outlet" %}</dt><dd>{{ write_off.outlet.name }}</dd>
+        <dt>{% translate "Date" %}</dt><dd>{% shop_date write_off.date %}</dd>
+        <dt>{% translate "By" %}</dt><dd>{{ write_off.created_by|default:"—" }}</dd>
+        {% if write_off.note %}<dt>{% translate "Note" %}</dt><dd>{{ write_off.note }}</dd>{% endif %}
+      </dl>
+    </div></div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card h-100 stat-tile tone-red"><div class="card-body">
+      <div class="stat-label">{% translate "Loss at cost" %}</div>
+      <div class="stat-figure">{% money write_off.total_cost %}</div>
+    </div></div>
+  </div>
+</div>
+<div class="card">
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table align-middle mb-0">
+        <thead><tr><th>{% translate "Medicine" %}</th><th>{% translate "Batch" %}</th><th>{% translate "Expiry" %}</th><th class="text-end">{% translate "Quantity" %}</th><th class="text-end">{% translate "Cost / unit" %}</th><th class="text-end">{% translate "Total" %}</th></tr></thead>
+        <tbody>
+          {% for line in lines %}
+          <tr>
+            <td class="fw-semibold">{{ line.medicine.display_name }}</td>
+            <td>{{ line.batch.batch_no|default:"—" }}</td>
+            <td>{% if line.batch.expiry_date %}{% shop_date line.batch.expiry_date %}{% else %}—{% endif %}</td>
+            <td class="text-end">{{ line.quantity_text }}</td>
+            <td class="text-end">{% money line.unit_cost %}</td>
+            <td class="text-end fw-semibold">{% money line.line_total %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,37 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+{% block title %}{% translate "Stock counts" %}{% endblock %}
+{% block page_title %}{% translate "Stock counts & adjustments" %}{% endblock %}
+{% block page_actions %}{% if can.adjustment.create %}<a class="btn btn-primary" href="{% url 'inventory:count_create' %}"><i class="bi bi-clipboard-check"></i> {% translate "New stock count" %}</a>{% endif %}{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    {% if outlets|length > 1 %}
+    <div class="table-filters">
+      <div class="table-filter">
+        <label class="form-label" for="f-outlet">{% translate "Outlet" %}</label>
+        <select id="f-outlet" class="form-select" data-mp-select data-no-search data-allow-clear data-placeholder="{% translate 'All my outlets' %}">
+          <option></option>{% for o in outlets %}<option value="{{ o.pk }}">{{ o.name }}</option>{% endfor %}
+        </select>
+      </div>
+    </div>
+    {% endif %}
+    <table id="count-table" class="table table-hover align-middle w-100">
+      <thead><tr><th>{% translate "No." %}</th><th>{% translate "Date" %}</th><th>{% translate "Outlet" %}</th><th>{% translate "Note" %}</th><th>{% translate "By" %}</th><th class="text-end">{% translate "Found" %}</th><th class="text-end">{% translate "Missing" %}</th><th class="text-end">{% translate "Net" %}</th></tr></thead>
+    </table>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+  (function () {
+    var table = MP.dataTable("#count-table", {
+      ajax: { url: "{% url 'inventory:count_data' %}", data: function (d) { d.outlet = $("#f-outlet").val() || ""; } },
+      order: [[1, "desc"]],
+      columnDefs: [{ targets: [5, 6, 7], className: "text-end text-nowrap" }],
+      language: { searchPlaceholder: "{% filter escapejs %}{% translate "Number or note…" %}{% endfilter %}" }
+    });
+    $("#f-outlet").on("change", function () { table.ajax.reload(); });
+  })();
+</script>
+{% endblock %}

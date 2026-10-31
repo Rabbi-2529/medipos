@@ -163,13 +163,22 @@ Later: low-stock / expiring reports, adjustments, transfers and damage (Phase 6)
 
 Moved to Phase 6: promotions and quotations.
 
-### Phase 6 — Inventory operations and expiry control
-- Stock page with per-batch breakdown and stock value.
-- Promotions (discount rules) and quotations (from Phase 5).
-- Low-stock and expiring-soon (30/60/90 days) reports.
-- Damage and expired write-offs, and returns of expired stock to suppliers.
-- Transfers between outlets (dispatch → receive), and stock count/adjustment.
-- Done when: near-expiry stock is visible and actionable, and transfers balance on both sides.
+### Phase 6 — Inventory operations and expiry control ✅
+- **Calendar:** every date and month field uses a themed calendar (flatpickr) instead of the browser's own: the pharmacy's date format, Today/Clear buttons, Bangla month names, and a month grid for purchase expiry (past months blocked). The server still receives `YYYY-MM-DD` / `YYYY-MM`. User request, 2026-10-31.
+- **Expiring & expired stock** (`/stock/expiring/`): batches by outlet, expired or within 30/60/90/180 days, with coloured "expired 20 days ago" / "in 30 days" badges. Tiles show the value at cost that is already expired, within 30, 31–60 and 61–90 days. Each row offers **Write off**, and **Return to supplier** (opens the purchase return with that batch filled in) when the batch came from a purchase. A **Write off all expired** button clears an outlet in one go. Export to Excel.
+- **Low stock** (`/stock/low/`): medicines at or below their "low-stock alert at", out of stock, a suggested order (back to twice the alert, in whole packs) and the last supplier. Export for ordering.
+- **Dashboard:** running low, out of stock, expiring in 90 days, expired still on the shelf, and transfers waiting to be received.
+- **Damage & expired write-offs** (`DMG-`): reason (expired, damaged, lost, other), per-batch quantities, loss at cost.
+- **Transfers between outlets** (`TRF-`): stock leaves the sending outlet on dispatch, sits "in transit", and arrives when the receiving outlet presses Receive. The sender can cancel while in transit (stock goes back). Only staff of the receiving outlet can receive; out and in always add up to zero.
+- **Stock counts** (`ADJ-`): enter what's on the shelf per batch; the system moves stock by the difference and records found and missing value. Batches the system didn't know can be added (valued at the purchase price).
+- One line editor for all three (`static/js/stock_lines.js`): pick a medicine, see its batches at the outlet with stock and expiry.
+- **Promotions:** % off or an amount off each unit, for every medicine, a category, a dosage form or chosen medicines, with a minimum quantity and optional start/end dates. The POS shows the best running offer on each card and fills the line discount by itself; a typed discount replaces it. Sale lines remember the promotion.
+- **Quotations** (`QT-`): a Quote button in the POS saves the cart (no stock taken) and prints an A4 quotation with a valid-until date. Quotation list (open, expired, sold) and detail; **Sell in POS** loads it back into the cart at today's prices, and the sale marks it sold.
+- Permissions: transfer, damage, adjustment (stock counts), promotion and quotation; template roles updated by a data migration.
+- Demo seed: expired and low stock, a received and an in-transit transfer, a write-off, a stock count, three promotions and two quotations.
+- 218 tests.
+
+Later: returning expired stock to a supplier without the original purchase, and transfer requests (ask another outlet for stock) can come with Phase 8 reports if needed.
 
 ### Phase 7 — Accounting
 - Chart of accounts per tenant, with journals posted automatically from purchases, sales, returns, payments and write-offs.

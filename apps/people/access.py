@@ -73,12 +73,13 @@ class _ModuleCan:
 
 
 def _check(request, code):
-    if getattr(request, "tenant", None) is None or not has_perm(request.user, code):
+    codes = code if isinstance(code, (tuple, list)) else (code,)
+    if getattr(request, "tenant", None) is None or not any(has_perm(request.user, c) for c in codes):
         raise PermissionDenied
 
 
 def shop_permission_required(code):
-    """For pharmacy screens: logged in, belongs to a pharmacy, and holds `code`."""
+    """For pharmacy screens: logged in, belongs to a pharmacy, and holds `code` (or any code of a tuple)."""
 
     def decorator(view):
         @wraps(view)

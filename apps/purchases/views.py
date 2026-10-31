@@ -260,8 +260,14 @@ def return_create(request, pk):
                 return redirect("purchases:detail", pk=pk)
     from apps.stock.services import batch_on_hand
 
-    lines = [{"line": line, "left": left, "on_hand": batch_on_hand(purchase.outlet, line.batch) if line.batch else 0,
-              "posted": request.POST.get(f"qty_{line.pk}", "")} for line, left in rows]
+    picked_batch = request.GET.get("batch", "")
+    lines = []
+    for line, left in rows:
+        on_hand = batch_on_hand(purchase.outlet, line.batch) if line.batch else 0
+        posted = request.POST.get(f"qty_{line.pk}", "")
+        if request.method == "GET" and picked_batch.isdigit() and line.batch_id == int(picked_batch):
+            posted = min(left, on_hand) or ""  # sent here from the expiring-stock report
+        lines.append({"line": line, "left": left, "on_hand": on_hand, "posted": posted})
     return render(request, "purchases/return_form.html", {"purchase": purchase, "lines": lines, "form": form})
 
 

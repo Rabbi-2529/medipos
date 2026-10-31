@@ -50,7 +50,7 @@
         <tbody>
           {% for line in lines %}
           <tr>
-            <td class="fw-semibold">{{ line.medicine.display_name }}</td>
+            <td class="fw-semibold">{{ line.medicine.display_name }}{% if line.promotion %}<small class="pos-line-offer">{% translate "Offer" %}: {{ line.promotion.name }}</small>{% endif %}</td>
             <td>{{ line.unit_qty }} {{ line.unit_label }}{% if line.unit_factor > 1 %} <small class="text-body-secondary">({{ line.quantity }})</small>{% endif %}</td>
             <td class="small">{% for a in line.allocations.all %}{{ a.batch }} × {{ a.quantity }}{% if not forloop.last %}<br>{% endif %}{% endfor %}</td>
             <td class="text-end">{% money line.unit_price %}</td>

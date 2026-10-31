@@ -17,7 +17,7 @@ from apps.setup.services import get_business_settings
 from apps.stock.models import StockMovement
 from apps.stock.services import batch_on_hand, get_or_create_batch, on_hand, post_movement
 
-from .models import Sale
+from .models import Promotion, Quotation, Sale
 from .services import (
     SaleError, close_register, complete_sale, create_return, hold_cart, recall_cart, register_summary, start_register,
 )
@@ -232,3 +232,75 @@ class PosEndpointTests(TestCase):
         self.assertRedirects(response, reverse("sales:detail", args=[sale_id]))
         with tenant_context(self.tenant):
             self.assertEqual(on_hand(self.outlet, self.napa), 47)
+
+
+class PromotionAndQuotationTests(TestCase):
+    def setUp(self):
+        self.tenant, self.owner = make_pharmacy()
+        self.napa = make_medicine(self.tenant, "Napa", conversion=100, sale_price="2.00", dosage_form="tablet")
+        self.syrup = make_medicine(self.tenant, "Tusca", conversion=1, sale_price="80.00", dosage_form="syrup")
+        with tenant_context(self.tenant):
+            self.outlet = Outlet.objects.get()
+            self.cash = PaymentAccount.objects.get(name="Cash")
+            for medicine in (self.napa, self.syrup):
+                batch = get_or_create_batch(medicine, "B1", TODAY + timedelta(days=300), Decimal("1"))
+                post_movement(outlet=self.outlet, batch=batch, quantity=50, kind=StockMovement.Kind.OPENING)
+            self.syrups = Promotion.objects.create(name="Syrup week", kind="percent", value=Decimal("10"), scope="form", dosage_form="syrup")
+            self.bulk = Promotion.objects.create(name="Napa bulk", kind="amount", value=Decimal("0.50"), scope="medicines", min_quantity=10)
+            self.bulk.medicines.add(self.napa)
+            Promotion.objects.create(name="Old offer", kind="percent", value=Decimal("50"), ends_on=TODAY - timedelta(days=1))
+        self.client.force_login(self.owner)
+        self.client.post(reverse("sales:register_open"), {"opening_cash": "0"})
+
+    def _post(self, name, body):
+        return self.client.post(reverse(name), json.dumps(body), content_type="application/json")
+
+    def test_pos_shows_the_best_running_offer(self):
+        def offer(term):
+            return self.client.get(reverse("sales:pos_search"), {"q": term}).json()["results"][0]["promo"]
+
+        self.assertEqual(offer("Tusca")["name"], "Syrup week")
+        self.assertEqual((offer("Napa")["name"], offer("Napa")["minQty"]), ("Napa bulk", 10))  # the expired 50% is ignored
+        with tenant_context(self.tenant):
+            self.assertEqual(self.bulk.discount(Decimal("2.00"), 9), Decimal("0"))
+            self.assertEqual(self.bulk.discount(Decimal("2.00"), 10), Decimal("5.00"))
+
+    def test_sale_records_the_promotion_only_where_it_applies(self):
+        sale_id = self._post("sales:pos_checkout", {
+            "lines": [{"medicine": self.syrup.pk, "qty": 1, "discount": 8, "promotion": self.syrups.pk},
+                      {"medicine": self.napa.pk, "qty": 1, "discount": 0, "promotion": self.syrups.pk}],
+            "payments": [{"account": self.cash.pk, "amount": 74}],
+        }).json()["id"]
+        with tenant_context(self.tenant):
+            lines = {l.medicine_id: l.promotion_id for l in Sale.objects.get(pk=sale_id).lines.all()}
+        self.assertEqual(lines, {self.syrup.pk: self.syrups.pk, self.napa.pk: None})
+
+    def test_quote_then_sell_it(self):
+        quote = self._post("sales:pos_quote", {"lines": [{"medicine": self.syrup.pk, "qty": 2}], "validDays": 3}).json()
+        self.assertEqual(quote["number"], "QT-00001")
+        with tenant_context(self.tenant):
+            quotation = Quotation.objects.get()
+            self.assertEqual((quotation.total, quotation.valid_until), (Decimal("160"), TODAY + timedelta(days=3)))
+            self.assertEqual(on_hand(self.outlet, self.syrup), 50)  # a quote takes no stock
+        self.assertContains(self.client.get(reverse("sales:quotation_print", args=[quotation.pk])), "QT-00001")
+        page = self.client.get(reverse("sales:pos"), {"quotation": quotation.pk})
+        loaded = page.context["config"]["quotation"]
+        self.assertEqual((loaded["number"], [(l["medicine"], l["qty"]) for l in loaded["cart"]["lines"]]), ("QT-00001", [(self.syrup.pk, 2)]))
+        sale = self._post("sales:pos_checkout", {"lines": [{"medicine": self.syrup.pk, "qty": 2}], "quotation": quotation.pk,
+                                                 "payments": [{"account": self.cash.pk, "amount": 160}]}).json()
+        quotation.refresh_from_db()
+        self.assertEqual((quotation.status, quotation.sale_id), (Quotation.Status.SOLD, sale["id"]))
+        self.assertContains(self.client.get(reverse("sales:quotation", args=[quotation.pk])), sale["number"])
+
+    def test_promotion_form_and_list(self):
+        response = self.client.post(reverse("sales:promotion_create"), {
+            "name": "Vitamin month", "kind": "percent", "value": "120", "scope": "medicines", "min_quantity": "1", "is_active": "on",
+        })
+        self.assertFormError(response.context["form"], "value", "A percentage can't be more than 100.")
+        self.assertFormError(response.context["form"], "medicines", "Choose what this promotion applies to.")
+        response = self.client.post(reverse("sales:promotion_create"), {
+            "name": "Vitamin month", "kind": "percent", "value": "5", "scope": "medicines", "medicines": [self.napa.pk],
+            "min_quantity": "1", "is_active": "on",
+        })
+        self.assertRedirects(response, reverse("sales:promotions"))
+        self.assertContains(self.client.get(reverse("sales:promotions")), "Vitamin month")

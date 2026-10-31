@@ -1,0 +1,59 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle"><a href="{% url 'sales:promotions' %}"><i class="bi bi-chevron-left"></i> {% translate "Promotions" %}</a></p>{% endblock %}
+{% block content %}
+<form method="post" novalidate>
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="alert alert-danger">{% for e in form.non_field_errors %}<div>{{ e }}</div>{% endfor %}</div>{% endif %}
+  <div class="row g-4">
+    <div class="col-xl-8">
+      <div class="card mb-4">
+        <div class="card-header"><h2 class="card-title">{% translate "The offer" %}</h2></div>
+        <div class="card-body">
+          {% include "partials/_field.html" with field=form.name %}
+          <div class="row">
+            <div class="col-md-6">{% include "partials/_field.html" with field=form.kind %}</div>
+            <div class="col-md-6">{% include "partials/_field.html" with field=form.value %}</div>
+          </div>
+          {% include "partials/_field.html" with field=form.min_quantity %}
+        </div>
+      </div>
+      <div class="card mb-4">
+        <div class="card-header"><h2 class="card-title">{% translate "Which medicines" %}</h2></div>
+        <div class="card-body">
+          {% include "partials/_field.html" with field=form.scope %}
+          <div data-scope-field="category">{% include "partials/_field.html" with field=form.category %}</div>
+          <div data-scope-field="form">{% include "partials/_field.html" with field=form.dosage_form %}</div>
+          <div data-scope-field="medicines">{% include "partials/_field.html" with field=form.medicines %}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-4">
+      <div class="card mb-4">
+        <div class="card-header"><h2 class="card-title">{% translate "When" %}</h2></div>
+        <div class="card-body">
+          {% include "partials/_field.html" with field=form.starts_on %}
+          {% include "partials/_field.html" with field=form.ends_on %}
+          {% include "partials/_field.html" with field=form.is_active %}
+        </div>
+      </div>
+    </div>
+  </div>
+  <button class="btn btn-primary" type="submit">{% translate "Save" %}</button>
+  <a class="btn btn-link" href="{% url 'sales:promotions' %}">{% translate "Cancel" %}</a>
+</form>
+{% endblock %}
+{% block extra_js %}
+<script>
+  (function () {
+    var scope = document.getElementById("{{ form.scope.id_for_label }}");
+    function show() {
+      document.querySelectorAll("[data-scope-field]").forEach(function (box) { box.hidden = box.dataset.scopeField !== scope.value; });
+    }
+    $(scope).on("change", show);
+    show();
+  })();
+</script>
+{% endblock %}

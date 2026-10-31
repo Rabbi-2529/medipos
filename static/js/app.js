@@ -192,6 +192,62 @@
     });
   };
 
+  // Date and month fields: a themed flatpickr calendar instead of the browser's own.
+  // The real <input> keeps sending Y-m-d (or Y-m) to the server; people see the pharmacy's date format.
+  // Add data-native to an input to keep the browser picker.
+  if (window.flatpickr && flatpickr.l10ns && flatpickr.l10ns.bn && root.lang.indexOf("bn") === 0) flatpickr.localize(flatpickr.l10ns.bn);
+
+  function pickerFooter(instance) {
+    var bar = document.createElement("div");
+    bar.className = "mp-picker-footer";
+    [[T.today, function () { instance.setDate(new Date(), true); instance.close(); }],
+     [T.clear, function () { instance.clear(); instance.close(); }]].forEach(function (b) {
+      var btn = document.createElement("button");
+      btn.type = "button"; btn.textContent = b[0];
+      btn.addEventListener("click", b[1]);
+      bar.appendChild(btn);
+    });
+    instance.calendarContainer.appendChild(bar);
+  }
+
+  MP.initDatePickers = function (scope) {
+    if (!window.flatpickr) return;
+    var format = root.getAttribute("data-date-format") || "d M Y";
+    (scope || document).querySelectorAll("input[type=date]:not([data-native]), input[type=month]:not([data-native])").forEach(function (el) {
+      if (el._flatpickr) return;
+      var month = el.type === "month";
+      var label = el.id ? document.querySelector("label[for='" + el.id + "']") : null;
+      var options = {
+        altInput: true,
+        altInputClass: el.className + " mp-date-input",
+        altFormat: month ? "M Y" : format,
+        dateFormat: month ? "Y-m" : "Y-m-d",
+        allowInput: true,
+        disableMobile: true,
+        static: !!el.closest(".modal"),  // inside a dialog the calendar must live in the dialog too
+        minDate: el.min || null,
+        maxDate: el.max || null,
+        plugins: month && window.monthSelectPlugin ? [new monthSelectPlugin({ shorthand: true, dateFormat: "Y-m", altFormat: "M Y" })] : [],
+        onReady: function (_d, _s, instance) {
+          var alt = instance.altInput;
+          alt.placeholder = el.placeholder || (month ? "" : T.pickDate);
+          if (el.getAttribute("aria-label")) alt.setAttribute("aria-label", el.getAttribute("aria-label"));
+          else if (label) alt.setAttribute("aria-label", label.textContent.trim());
+          if (label) label.addEventListener("click", function (ev) { ev.preventDefault(); alt.focus(); instance.open(); });
+          pickerFooter(instance);
+        },
+        // Scripts that watch the field for "input" (e.g. purchase lines) hear about picked dates too.
+        onChange: function () { el.dispatchEvent(new Event("input", { bubbles: true })); }
+      };
+      flatpickr(el, options);
+    });
+  };
+
+  // Call before throwing away rows that hold pickers, so their calendars don't pile up in <body>.
+  MP.destroyDatePickers = function (scope) {
+    (scope || document).querySelectorAll("input").forEach(function (el) { if (el._flatpickr) el._flatpickr.destroy(); });
+  };
+
   // <form data-confirm="Are you sure?">: ask in a styled dialog before submitting.
   var confirmModal;
   document.addEventListener("submit", function (ev) {
@@ -223,8 +279,10 @@
 
   MP.initSelect2();
   MP.initLocalTables();
+  MP.initDatePickers();
   document.body.addEventListener("htmx:afterSwap", function (ev) {
     MP.initSelect2(ev.target);
     MP.initLocalTables(ev.target);
+    MP.initDatePickers(ev.target);
   });
 })();

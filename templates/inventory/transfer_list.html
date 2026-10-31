@@ -1,0 +1,51 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+{% block title %}{% translate "Transfers" %}{% endblock %}
+{% block page_title %}{% translate "Stock transfers" %}{% endblock %}
+{% block page_actions %}{% if can.transfer.create %}<a class="btn btn-primary" href="{% url 'inventory:transfer_create' %}"><i class="bi bi-send"></i> {% translate "Send stock" %}</a>{% endif %}{% endblock %}
+{% block content %}
+{% if incoming %}
+<div class="alert alert-warning d-flex flex-wrap align-items-center gap-2">
+  <i class="bi bi-truck"></i>
+  <div>{% blocktranslate count n=incoming %}{{ n }} transfer is on its way to your outlet. Open it and press Receive when the stock arrives.{% plural %}{{ n }} transfers are on their way to your outlets. Open each one and press Receive when the stock arrives.{% endblocktranslate %}</div>
+  <button class="btn btn-sm btn-warning ms-auto" type="button" data-show-incoming>{% translate "Show them" %}</button>
+</div>
+{% endif %}
+<div class="card">
+  <div class="card-body">
+    <div class="table-filters">
+      <div class="table-filter">
+        <label class="form-label" for="f-direction">{% translate "Direction" %}</label>
+        <select id="f-direction" class="form-select" data-mp-select data-no-search data-allow-clear data-placeholder="{% translate 'Both' %}">
+          <option></option><option value="in">{% translate "Coming to my outlets" %}</option><option value="out">{% translate "Sent from my outlets" %}</option>
+        </select>
+      </div>
+      <div class="table-filter">
+        <label class="form-label" for="f-status">{% translate "Status" %}</label>
+        <select id="f-status" class="form-select" data-mp-select data-no-search data-allow-clear data-placeholder="{% translate 'All' %}">
+          <option></option>{% for value, label in statuses %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+        </select>
+      </div>
+    </div>
+    <table id="transfer-table" class="table table-hover align-middle w-100">
+      <thead><tr><th>{% translate "No." %}</th><th>{% translate "Sent" %}</th><th>{% translate "From" %}</th><th>{% translate "To" %}</th><th>{% translate "Status" %}</th><th class="text-end">{% translate "Value at cost" %}</th></tr></thead>
+    </table>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+  (function () {
+    var table = MP.dataTable("#transfer-table", {
+      ajax: { url: "{% url 'inventory:transfer_data' %}", data: function (d) { d.direction = $("#f-direction").val() || ""; d.status = $("#f-status").val() || ""; } },
+      order: [[1, "desc"]],
+      columnDefs: [{ targets: [5], className: "text-end text-nowrap" }],
+      language: { searchPlaceholder: "{% filter escapejs %}{% translate "Number or note…" %}{% endfilter %}" }
+    });
+    $("#f-direction, #f-status").on("change", function () { table.ajax.reload(); });
+    $("[data-show-incoming]").on("click", function () {
+      $("#f-direction").val("in").trigger("change"); $("#f-status").val("in_transit").trigger("change");
+    });
+  })();
+</script>
+{% endblock %}

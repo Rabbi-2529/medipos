@@ -13,7 +13,7 @@ def js_texts():
         "infoEmpty": _("No records"), "infoFiltered": _("(filtered from _MAX_)"), "zeroRecords": _("Nothing matches your search."),
         "emptyTable": _("No records yet."), "nothingHere": _("Nothing here yet."), "cancel": _("Cancel"), "confirm": _("Yes, continue"),
         "searching": _("Searching…"), "noResults": _("No results found"), "loadingMore": _("Loading more…"),
-        "typeMore": _("Type to search"),
+        "typeMore": _("Type to search"), "today": _("Today"), "clear": _("Clear"), "pickDate": _("Pick a date"),
     }
 
 
@@ -36,5 +36,11 @@ def app_context(request):
         ctx["subscription_banner"] = subscription_banner(tenant) if tenant else None
         ctx["can"] = Can(user_permissions(user))
         ctx["current_outlet"] = getattr(request, "outlet", None)
+        if tenant is not None:
+            from apps.setup.services import get_business_settings
+
+            # Date pickers show dates the way the pharmacy writes them (Django and flatpickr share d/m/Y/M).
+            business = getattr(request, "_business_settings", None) or get_business_settings(tenant)
+            ctx["DATE_FORMAT"] = business.date_format
         ctx["allowed_outlets"] = getattr(request, "allowed_outlets", [])
     return ctx

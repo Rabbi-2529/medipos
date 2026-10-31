@@ -1,8 +1,11 @@
 """The only code that changes stock. Every change locks the row, refuses to go negative and leaves a movement."""
+from datetime import timedelta
 from decimal import Decimal
 
 from django.db import transaction
-from django.db.models import Sum
+from django.db.models import F, IntegerField, OuterRef, Subquery, Sum, Value
+from django.db.models.functions import Coalesce
+from django.utils import timezone
 from django.utils.translation import gettext as _
 
 from .models import Batch, BatchStock, StockMovement
@@ -75,3 +78,21 @@ def format_quantity(units, medicine):
         text = f"{sign}{packs} {medicine.purchase_unit.name}"
         return f"{text} + {rest} {sale}" if rest else text
     return f"{units} {sale}"
+
+
+def alert_counts(outlet_ids, today=None):
+    """Numbers for the dashboard: medicines at/below their alert, out of stock, batches expiring in 90 days, expired."""
+    from apps.items.models import Medicine
+
+    today = today or timezone.localdate()
+    on_hand = (BatchStock.objects.filter(medicine=OuterRef("pk"), outlet_id__in=outlet_ids, quantity__gt=0)
+               .order_by().values("medicine").annotate(q=Sum("quantity")).values("q"))
+    low = (Medicine.objects.filter(is_active=True, alert_quantity__gt=0)
+           .annotate(on_hand=Coalesce(Subquery(on_hand, output_field=IntegerField()), Value(0))).filter(on_hand__lte=F("alert_quantity")))
+    batches = BatchStock.objects.filter(outlet_id__in=outlet_ids, quantity__gt=0, batch__expiry_date__isnull=False)
+    return {
+        "low": low.filter(on_hand__gt=0).count(),
+        "out": low.filter(on_hand=0).count(),
+        "expiring": batches.filter(batch__expiry_date__gt=today, batch__expiry_date__lte=today + timedelta(days=90)).count(),
+        "expired": batches.filter(batch__expiry_date__lte=today).count(),
+    }

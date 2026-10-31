@@ -1,0 +1,32 @@
+{% load i18n static %}
+<div class="card mb-4" data-stock-lines data-mode="{{ mode }}" data-batches-url="{% url 'inventory:batches' %}" data-outlet-field="#id_outlet" data-currency="{{ currency }}">
+  <div class="card-header d-flex flex-wrap gap-3 align-items-center justify-content-between">
+    <h2 class="card-title">{% translate "Medicines" %}</h2>
+    <div class="line-picker">
+      <select id="add-line-medicine" class="form-select" data-mp-select data-placeholder="{% translate 'Search a medicine to add (name, generic, barcode)' %}" data-ajax-url="{% url 'items:lookup' 'medicines' %}"><option></option></select>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table align-middle mb-0 stock-lines">
+        <thead><tr>
+          <th>{% translate "Batch" %}</th><th>{% translate "Expiry" %}</th>
+          {% if mode == "count" %}
+          <th class="text-center">{% translate "In system" %}</th><th style="width:140px">{% translate "Counted" %}</th><th class="text-center">{% translate "Difference" %}</th>
+          {% else %}
+          <th class="text-center">{% translate "In stock" %}</th><th style="width:140px">{% translate "Quantity" %}</th>
+          {% endif %}
+          <th style="width:40px"></th>
+        </tr></thead>
+        <tbody data-lines></tbody>
+      </table>
+    </div>
+    <p class="text-body-secondary text-center my-4" data-empty>
+      {% if mode == "count" %}{% translate "Add the medicines you counted. A batch left blank stays as it is." %}{% else %}{% translate "Search above to add medicines." %}{% endif %}
+    </p>
+    <p class="text-end fw-semibold mb-0 mt-3" data-summary></p>
+  </div>
+  <input type="hidden" name="lines" value="">
+  {% if mode == "count" %}<input type="hidden" name="new_batches" value="">{% endif %}
+</div>
+{{ texts|json_script:"lines-i18n" }}{{ initial_lines|json_script:"lines-initial" }}{{ initial_new|json_script:"lines-initial-new" }}

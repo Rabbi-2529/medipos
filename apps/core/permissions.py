@@ -37,6 +37,7 @@ ACCOUNTS = _("Accounts")
 MEDICINES = _("Medicines")
 BUYING = _("Stock & purchases")
 SELLING = _("Sales & customers")
+INVENTORY = _("Inventory control")
 
 MODULES = (
     # "pos.create" = sell at the counter (and open/close your own cash register).
@@ -46,6 +47,13 @@ MODULES = (
     Module("register", _("Cash registers of all staff"), SELLING, (LIST,)),
     Module("customer", _("Customers"), SELLING, (LIST, CREATE, EDIT, DELETE)),
     Module("customer_receive", _("Due collection"), SELLING, (LIST, CREATE)),
+    Module("promotion", _("Promotions"), SELLING, (LIST, CREATE, EDIT, DELETE)),
+    # "quotation.create" also loads a quotation into the POS (selling it still needs "pos.create").
+    Module("quotation", _("Quotations"), SELLING, (LIST, CREATE, DELETE)),
+    # "transfer.create" = send stock to another outlet and receive what was sent to yours (or cancel it).
+    Module("transfer", _("Stock transfers"), INVENTORY, (LIST, CREATE)),
+    Module("damage", _("Damage & expired write-offs"), INVENTORY, (LIST, CREATE)),
+    Module("adjustment", _("Stock counts & adjustments"), INVENTORY, (LIST, CREATE)),
     # "stock.create" = opening-stock import. "purchase.create" also receives purchases; edit/delete apply to drafts.
     Module("stock", _("Stock"), BUYING, (LIST, CREATE)),
     Module("purchase", _("Purchases"), BUYING, (LIST, CREATE, EDIT, DELETE)),

@@ -1,0 +1,58 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+{% block title %}{% translate "Low stock" %}{% endblock %}
+{% block page_title %}{% translate "Low stock" %}{% endblock %}
+{% block page_actions %}
+<a class="btn btn-outline-primary" href="{% url 'stock:low_export' %}" data-export><i class="bi bi-file-earmark-excel"></i> {% translate "Export for ordering" %}</a>
+{% if can.purchase.create %}<a class="btn btn-primary" href="{% url 'purchases:create' %}"><i class="bi bi-bag-plus"></i> {% translate "New purchase" %}</a>{% endif %}
+{% endblock %}
+{% block content %}
+<div class="row g-4 mb-4">
+  {% translate "Running low" as l_low %}{% translate "Out of stock" as l_out %}
+  {% include "core/_stat.html" with label=l_low value="…" icon="bi-graph-down-arrow" tone="warning" col="col-sm-6" %}
+  {% include "core/_stat.html" with label=l_out value="…" icon="bi-x-octagon" tone="danger" col="col-sm-6" %}
+</div>
+<div class="card">
+  <div class="card-body">
+    <div class="table-filters">
+      <div class="table-filter">
+        <label class="form-label" for="f-outlet">{% translate "Outlet" %}</label>
+        <select id="f-outlet" class="form-select" data-mp-select data-no-search>
+          {% if outlets|length > 1 %}<option value="">{% translate "All my outlets" %}</option>{% endif %}
+          {% for o in outlets %}<option value="{{ o.pk }}" {% if o.pk == current %}selected{% endif %}>{{ o.name }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="table-filter">
+        <label class="form-label" for="f-show">{% translate "Show" %}</label>
+        <select id="f-show" class="form-select" data-mp-select data-no-search>
+          <option value="">{% translate "Low and out of stock" %}</option>
+          <option value="out">{% translate "Out of stock only" %}</option>
+        </select>
+      </div>
+    </div>
+    <table id="low-table" class="table table-hover align-middle w-100">
+      <thead><tr><th>{% translate "Code" %}</th><th>{% translate "Medicine" %}</th><th>{% translate "Category" %}</th><th>{% translate "On hand" %}</th><th>{% translate "Alert at" %}</th><th>{% translate "Status" %}</th><th>{% translate "Suggested order" %}</th><th>{% translate "Last supplier" %}</th></tr></thead>
+    </table>
+    <p class="form-text mb-0">{% translate "Only medicines with a “low-stock alert at” quantity are checked; set it on the medicine. The suggested order brings stock back to twice the alert level, in whole packs." %}</p>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+  (function () {
+    var tiles = document.querySelectorAll(".stat-value");
+    function params() { return { outlet: $("#f-outlet").val() || "", show: $("#f-show").val() || "" }; }
+    var table = MP.dataTable("#low-table", {
+      ajax: { url: "{% url 'stock:low_data' %}", data: function (d) { Object.assign(d, params()); } },
+      order: [[3, "asc"]],
+      columnDefs: [{ targets: [5, 6], orderable: false }],
+      language: { searchPlaceholder: "{% filter escapejs %}{% translate "Medicine, generic or code…" %}{% endfilter %}" }
+    });
+    table.on("xhr", function (_e, _s, json) { if (json && json.summary) { tiles[0].textContent = json.summary.low; tiles[1].textContent = json.summary.out; } });
+    $("#f-outlet, #f-show").on("change", function () { table.ajax.reload(); });
+    document.querySelector("[data-export]").addEventListener("click", function (ev) {
+      ev.preventDefault(); window.location = this.href + "?" + new URLSearchParams(params()).toString();
+    });
+  })();
+</script>
+{% endblock %}

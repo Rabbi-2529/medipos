@@ -79,7 +79,6 @@ MENU = (
             _item("stock", _("Current stock"), "stock:list"),
             _item("stock", _("Low stock"), "stock:low"),
             _item("stock", _("Expiring soon"), "stock:expiring"),
-            _item("stock", _("Adjustments"), "stock:adjustments"),
             MenuItem("stock", _("Opening stock"), "stock:opening", perm="stock.create"),
         )),
     )),
@@ -90,6 +89,7 @@ MENU = (
             _item("sale_return", _("Sale returns"), "sales:returns"),
             MenuItem("pos", _("Cash registers"), "sales:registers"),
             _item("quotation", _("Quotations"), "sales:quotations"),
+            _item("promotion", _("Promotions"), "sales:promotions"),
         )),
         MenuItem("customer", _("Customers"), icon="bi-people", perm=None, children=(
             _item("customer", _("Customer list"), "customers:list"),
@@ -111,6 +111,7 @@ MENU = (
     MenuSection(_("Inventory control"), (
         MenuItem("transfer", _("Transfers"), "inventory:transfers", "bi-arrow-left-right"),
         MenuItem("damage", _("Damage & expired"), "inventory:damages", "bi-trash3"),
+        MenuItem("adjustment", _("Stock counts"), "inventory:counts", "bi-clipboard-check"),
     )),
     MenuSection(_("Accounts"), (
         MenuItem("payment_account", _("Payment accounts"), "accounting:payment_accounts", "bi-wallet2"),

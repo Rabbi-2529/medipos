@@ -31,7 +31,7 @@ class PermissionTests(TestCase):
         self.assertEqual(user_permissions(self.owner), ALL_CODES)
 
     def test_staff_get_their_roles_codes_and_future_codes_are_ignored(self):
-        user = add_staff(self.tenant, "a@x.test", ["outlet.list", "transfer.create"])  # transfers arrive in Phase 6
+        user = add_staff(self.tenant, "a@x.test", ["outlet.list", "expense.create"])  # expenses arrive in Phase 7
         self.assertEqual(user_permissions(user), {"outlet.list"})
 
     def test_no_role_or_platform_admin_means_nothing(self):
@@ -48,7 +48,7 @@ class PermissionTests(TestCase):
         # Stored codes switch on as their modules arrive.
         self.assertEqual(cashier.codes, {
             "item.list", "stock.list", "pos.create", "sale.list", "sale_return.list", "sale_return.create",
-            "customer.list", "customer.create", "customer_receive.create",
+            "customer.list", "customer.create", "customer_receive.create", "quotation.list", "quotation.create",
         })
         self.assertIn("pos.list", cashier.permissions)  # not a real action: kept but ignored
         self.assertIn("purchase.create", manager.codes)

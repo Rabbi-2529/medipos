@@ -31,11 +31,31 @@ def dashboard(request):
     context = {}
     if request.user.is_platform_admin:
         context["overview"] = platform_overview()
-    elif request.tenant is not None and request.user.is_owner:
-        checklist = _setup_checklist(request.tenant)
-        if not all(step["done"] for step in checklist):
-            context["checklist"] = checklist
+    elif request.tenant is not None:
+        if request.user.is_owner:
+            checklist = _setup_checklist(request.tenant)
+            if not all(step["done"] for step in checklist):
+                context["checklist"] = checklist
+        context.update(_stock_alerts(request))
     return render(request, "core/dashboard.html", context)
+
+
+def _stock_alerts(request):
+    """Low / expiring stock in the outlet the user works in, and transfers waiting for them."""
+    from apps.people.access import has_perm
+
+    context = {}
+    outlet = getattr(request, "outlet", None)
+    if outlet is not None and has_perm(request.user, "stock.list"):
+        from apps.stock.services import alert_counts
+
+        context["stock_alerts"] = alert_counts([outlet.pk])
+    if has_perm(request.user, "transfer.list"):
+        from apps.inventory.models import Transfer
+
+        context["incoming_transfers"] = Transfer.objects.filter(
+            to_outlet_id__in=[o.pk for o in request.allowed_outlets], status=Transfer.Status.IN_TRANSIT).count()
+    return context
 
 
 def healthz(request):

@@ -1,0 +1,93 @@
+{% load i18n shop %}<!doctype html>
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ quotation.number }} · {{ tenant.name }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600&family=Public+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root { color-scheme: light; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #eceaf3; color: #111; font-family: "Public Sans", "Hind Siliguri", system-ui, sans-serif; font-size: 13px; }
+    .paper { width: 210mm; min-height: 297mm; margin: 16px auto; padding: 18mm; background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,.12); }
+    .head { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; padding-bottom: 14px; border-bottom: 3px solid #6d5dfc; }
+    .shop { font-size: 1.5em; font-weight: 700; }
+    .muted { color: #555; }
+    .logo { max-height: 70px; max-width: 220px; }
+    h1 { margin: 0 0 6px; font-size: 1.9em; letter-spacing: .04em; color: #6d5dfc; text-transform: uppercase; }
+    .meta { text-align: right; }
+    .to { margin: 18px 0; display: flex; justify-content: space-between; gap: 24px; }
+    .to strong { display: block; font-size: 1.1em; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 7px 6px; border-bottom: 1px solid #e5e5e5; vertical-align: top; text-align: left; }
+    th { background: #f3f1ff; color: #4b3fd1; font-weight: 600; }
+    .r { text-align: right; }
+    .totals { width: 280px; margin: 14px 0 0 auto; }
+    .totals td { border: 0; padding: 4px 6px; }
+    .grand td { font-size: 1.25em; font-weight: 700; border-top: 2px solid #111; padding-top: 8px; }
+    .valid { margin-top: 24px; padding: 10px 14px; border-radius: 8px; background: #fff7e6; color: #8a5a00; }
+    .foot { margin-top: 32px; color: #555; font-size: .9em; }
+    .tools { text-align: center; margin: 12px; }
+    .tools button, .tools a { font: inherit; margin: 0 4px; padding: 6px 12px; border-radius: 6px; border: 1px solid #6d5dfc; background: #fff; color: #6d5dfc; text-decoration: none; cursor: pointer; }
+    @media print { body { background: #fff; } .paper { margin: 0; box-shadow: none; } .tools { display: none; } @page { size: A4; margin: 10mm; } }
+  </style>
+</head>
+<body>
+{% with bn=shop.receipt_bangla_digits %}
+<div class="tools">
+  <button type="button" onclick="window.print()">{% translate "Print" %}</button>
+  <a href="{% url 'sales:quotation' quotation.pk %}">{% translate "Back" %}</a>
+</div>
+<div class="paper">
+  <div class="head">
+    <div>
+      {% if shop.logo %}<img class="logo" src="{{ shop.logo.url }}" alt=""><br>{% endif %}
+      <div class="shop">{{ tenant.name }}</div>
+      <div class="muted">{{ quotation.outlet.name }}{% if quotation.outlet.address %} · {{ quotation.outlet.address }}{% endif %}</div>
+      <div class="muted">{% if quotation.outlet.phone %}{{ quotation.outlet.phone|bn_digits:bn }}{% else %}{{ tenant.phone|bn_digits:bn }}{% endif %}</div>
+      {% if shop.drug_license_no %}<div class="muted">{% translate "Drug license" %}: {{ shop.drug_license_no }}</div>{% endif %}
+    </div>
+    <div class="meta">
+      <h1>{% translate "Quotation" %}</h1>
+      <div>{% translate "No." %} <strong>{{ quotation.number }}</strong></div>
+      <div>{% translate "Date" %}: {% shop_date quotation.date as d %}{{ d|bn_digits:bn }}</div>
+    </div>
+  </div>
+  <div class="to">
+    <div><span class="muted">{% translate "Prepared for" %}</span>
+      <strong>{% if quotation.customer %}{{ quotation.customer.name }}{% else %}{% translate "Walk-in customer" %}{% endif %}</strong>
+      {% if quotation.customer.phone %}<span class="muted">{{ quotation.customer.phone|bn_digits:bn }}</span>{% endif %}
+    </div>
+    <div class="meta"><span class="muted">{% translate "Price" %}</span><strong>{{ quotation.get_price_type_display }}</strong></div>
+  </div>
+  <table>
+    <thead><tr><th>#</th><th>{% translate "Medicine" %}</th><th class="r">{% translate "Qty" %}</th><th class="r">{% translate "Price" %}</th><th class="r">{% translate "Discount" %}</th><th class="r">{% translate "Total" %}</th></tr></thead>
+    <tbody>
+      {% for line in lines %}
+      <tr>
+        <td>{{ forloop.counter|bn_digits:bn }}</td>
+        <td>{{ line.medicine.display_name }}</td>
+        <td class="r">{{ line.unit_qty|bn_digits:bn }} {{ line.unit_label }}{% if line.unit_factor > 1 %} ({{ line.quantity|bn_digits:bn }}){% endif %}</td>
+        <td class="r">{% money line.unit_price as v %}{{ v|bn_digits:bn }}</td>
+        <td class="r">{% if line.discount %}{% money line.discount as v %}{{ v|bn_digits:bn }}{% else %}—{% endif %}</td>
+        <td class="r">{% money line.line_total as v %}{{ v|bn_digits:bn }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <table class="totals">
+    <tr><td>{% translate "Subtotal" %}</td><td class="r">{% money quotation.subtotal as v %}{{ v|bn_digits:bn }}</td></tr>
+    {% if quotation.total_discount %}<tr><td>{% translate "Discount" %}</td><td class="r">− {% money quotation.total_discount as v %}{{ v|bn_digits:bn }}</td></tr>{% endif %}
+    {% if quotation.vat_amount %}<tr><td>{% translate "VAT" %} ({{ quotation.vat_percent|floatformat:"-2" }}%)</td><td class="r">{% money quotation.vat_amount as v %}{{ v|bn_digits:bn }}</td></tr>{% endif %}
+    {% if quotation.rounding %}<tr><td>{% translate "Rounding" %}</td><td class="r">{% money quotation.rounding as v %}{{ v|bn_digits:bn }}</td></tr>{% endif %}
+    <tr class="grand"><td>{% translate "Total" %}</td><td class="r">{% money quotation.total as v %}{{ v|bn_digits:bn }}</td></tr>
+  </table>
+  <div class="valid">{% shop_date quotation.valid_until as until %}{% blocktranslate with until=until %}Prices are valid until {{ until }}. Stock is not reserved until you buy.{% endblocktranslate %}</div>
+  {% if quotation.note %}<p class="foot">{{ quotation.note }}</p>{% endif %}
+  {% if shop.invoice_footer %}<p class="foot">{{ shop.invoice_footer|linebreaksbr }}</p>{% endif %}
+</div>
+{% endwith %}
+{% if auto_print %}<script>window.addEventListener("load", function () { window.print(); });</script>{% endif %}
+</body>
+</html>
