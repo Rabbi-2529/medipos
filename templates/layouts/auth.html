@@ -2,7 +2,7 @@
 {% block body_class %}auth-page{% endblock %}
 {% block body %}
 <div class="auth-wrap">
-  <div class="auth-card card">
+  <div class="auth-card card {% block auth_card_class %}{% endblock %}">
     <div class="card-body">
       <div class="auth-brand">
         <span class="brand-mark"><i class="bi bi-capsule-pill"></i></span>

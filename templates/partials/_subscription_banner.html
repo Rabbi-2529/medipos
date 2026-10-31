@@ -1,0 +1,10 @@
+{% load i18n %}
+{% if subscription_banner %}
+<div class="subscription-banner alert alert-{{ subscription_banner.level }} d-flex align-items-center gap-2" role="status">
+  <i class="bi {% if subscription_banner.level == 'info' %}bi-info-circle{% else %}bi-exclamation-triangle{% endif %}"></i>
+  <span class="flex-grow-1">{{ subscription_banner.text }}</span>
+  {% if request.resolver_match.view_name != "billing:subscription" %}
+  <a class="alert-link text-nowrap" href="{% url 'billing:subscription' %}">{% translate "View subscription" %}</a>
+  {% endif %}
+</div>
+{% endif %}

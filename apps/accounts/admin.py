@@ -13,7 +13,7 @@ class UserAdmin(BaseUserAdmin):
     fieldsets = [
         (None, {"fields": ["email", "password"]}),
         ("Profile", {"fields": ["first_name", "last_name", "phone"]}),
-        ("Tenant", {"fields": ["tenant", "is_platform_admin"]}),
+        ("Tenant", {"fields": ["tenant", "is_owner", "is_platform_admin"]}),
         ("Permissions", {"fields": ["is_active", "is_staff", "is_superuser", "groups", "user_permissions"]}),
         ("Dates", {"fields": ["last_login", "date_joined"]}),
     ]

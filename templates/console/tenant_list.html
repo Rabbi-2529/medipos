@@ -1,0 +1,64 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+{% block title %}{% translate "Pharmacies" %}{% endblock %}
+{% block page_title %}{% translate "Pharmacies" %}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% translate "Every pharmacy subscribed to the platform." %}</p>{% endblock %}
+{% block page_actions %}<a class="btn btn-primary" href="{% url 'platform:tenant_create' %}"><i class="bi bi-plus-lg"></i> {% translate "Add pharmacy" %}</a>{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <div class="table-filters">
+      <div class="table-filter">
+        <label class="form-label" for="filter-state">{% translate "Status" %}</label>
+        <select id="filter-state" class="form-select" data-mp-select data-no-search data-allow-clear data-placeholder="{% translate 'All statuses' %}">
+          <option></option>
+          {% for value, label in states %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="table-filter">
+        <label class="form-label" for="filter-plan">{% translate "Plan" %}</label>
+        <select id="filter-plan" class="form-select" data-mp-select data-no-search data-allow-clear data-placeholder="{% translate 'All plans' %}">
+          <option></option>
+          {% for plan in plans %}<option value="{{ plan.pk }}">{{ plan.name }}</option>{% endfor %}
+        </select>
+      </div>
+    </div>
+    <table id="tenant-table" class="table table-hover align-middle w-100">
+      <thead>
+        <tr>
+          <th>{% translate "Pharmacy" %}</th>
+          <th>{% translate "Owner" %}</th>
+          <th>{% translate "Plan" %}</th>
+          <th>{% translate "Status" %}</th>
+          <th>{% translate "Ends" %}</th>
+          <th>{% translate "Users" %}</th>
+          <th>{% translate "Joined" %}</th>
+          <th><span class="visually-hidden">{% translate "Actions" %}</span></th>
+        </tr>
+      </thead>
+    </table>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+  (function () {
+    var table = MP.dataTable("#tenant-table", {
+      ajax: {
+        url: "{% url 'platform:tenant_data' %}",
+        data: function (d) {
+          d.state = $("#filter-state").val() || "";
+          d.plan = $("#filter-plan").val() || "";
+        }
+      },
+      order: [[6, "desc"]],
+      columnDefs: [
+        { targets: [1, 4, 7], orderable: false },
+        { targets: 5, className: "text-center" },
+        { targets: 7, className: "text-end" }
+      ]
+    });
+    $("#filter-state, #filter-plan").on("change", function () { table.ajax.reload(); });
+  })();
+</script>
+{% endblock %}

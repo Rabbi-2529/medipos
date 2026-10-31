@@ -72,7 +72,7 @@ a { text-decoration: none; }
   --bs-btn-active-bg: var(--mp-primary-hover);
   --bs-btn-active-border-color: var(--mp-primary-hover);
 }
-.form-control, .form-select { border-color: var(--mp-border); }
+.form-control, .form-select { border-color: var(--mp-border); background-color: var(--mp-surface); }
 .form-control:focus, .form-select:focus {
   border-color: var(--mp-primary);
   box-shadow: 0 0 0 .2rem rgba(var(--mp-primary-rgb), .15);
@@ -240,6 +240,104 @@ kbd { background: var(--mp-hover); color: var(--mp-muted); font-size: .7rem; bor
 .auth-card .card-body { padding: 2.25rem; }
 .auth-brand { display: flex; align-items: center; justify-content: center; gap: .6rem; margin-bottom: 1.75rem; }
 .auth-title { font-size: 1.4rem; font-weight: 600; margin-bottom: .35rem; }
+
+.auth-card-wide { max-width: 760px; }
+.form-section-title {
+  margin: 1.25rem 0 .9rem; padding-bottom: .4rem; border-bottom: 1px solid var(--mp-border);
+  font-size: .8125rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--mp-muted);
+}
+.form-section-title:first-of-type { margin-top: 0; }
+.hp-field { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+
+/* Plan picker (sign-up) */
+.plan-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: .75rem; }
+.plan-option { position: relative; cursor: pointer; }
+.plan-option input { position: absolute; opacity: 0; pointer-events: none; }
+.plan-card {
+  display: flex; flex-direction: column; gap: .35rem; height: 100%;
+  padding: 1rem; border: 1.5px solid var(--mp-border); border-radius: var(--mp-radius);
+  transition: border-color .15s, box-shadow .15s, background-color .15s;
+}
+.plan-option:hover .plan-card { border-color: rgba(var(--mp-primary-rgb), .5); }
+.plan-option input:checked + .plan-card {
+  border-color: var(--mp-primary); background: var(--mp-primary-subtle);
+  box-shadow: 0 0 0 .2rem rgba(var(--mp-primary-rgb), .12);
+}
+.plan-option input:focus-visible + .plan-card { outline: 2px solid var(--mp-primary); outline-offset: 2px; }
+.plan-name { font-weight: 600; color: var(--mp-heading); }
+.plan-price { font-size: 1.35rem; font-weight: 700; color: var(--mp-primary); }
+.plan-price small, .plan-summary-price small { font-size: .8rem; font-weight: 400; color: var(--mp-muted); }
+.plan-limits { display: flex; flex-direction: column; gap: .15rem; font-size: .8125rem; color: var(--mp-muted); }
+.plan-summary { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+.plan-summary-name { font-size: 1.5rem; font-weight: 700; color: var(--mp-heading); }
+.plan-summary-price { font-size: 1.1rem; font-weight: 600; color: var(--mp-primary); }
+.plan-list { list-style: none; margin: 0 0 1rem; padding: 0; display: flex; flex-direction: column; gap: .5rem; }
+.plan-list li { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: .65rem .85rem; border: 1px solid var(--mp-border); border-radius: 8px; }
+.plan-list li.is-current { border-color: var(--mp-primary); background: var(--mp-primary-subtle); }
+.usage-row + .usage-row { margin-top: 1.1rem; }
+.progress { --bs-progress-bg: var(--mp-hover); --bs-progress-height: .5rem; --bs-progress-bar-bg: var(--mp-primary); }
+.subscription-banner { box-shadow: var(--mp-shadow); }
+
+/* Access state badges */
+.state-badge {
+  display: inline-flex; align-items: center; gap: .3rem;
+  padding: .2rem .6rem; border-radius: 50rem;
+  font-size: .75rem; font-weight: 600; line-height: 1.4; white-space: nowrap; vertical-align: middle;
+}
+.state-badge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.state-trial { background: rgba(0, 186, 209, .14); color: #00a5ba; }
+.state-active { background: rgba(40, 199, 111, .14); color: #1fa65a; }
+.state-grace { background: rgba(255, 159, 67, .16); color: #e5821f; }
+.state-expired { background: rgba(234, 84, 85, .14); color: #e04445; }
+.state-suspended { background: rgba(130, 134, 139, .18); color: var(--mp-muted); }
+.page-title .state-badge { margin-left: .4rem; font-size: .8rem; }
+.tone-info { background: rgba(0, 186, 209, .14); color: #00a5ba; }
+
+/* Lists & timeline */
+.simple-list { list-style: none; margin: 0; padding: 0; }
+.simple-list li { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: .55rem 0; border-bottom: 1px dashed var(--mp-border); }
+.simple-list li:last-child { border-bottom: 0; }
+.timeline { list-style: none; margin: 0; padding: 0; position: relative; }
+.timeline-item { position: relative; display: flex; gap: .9rem; padding-bottom: 1rem; }
+.timeline-item:not(:last-child)::after { content: ""; position: absolute; left: 5px; top: 16px; bottom: 0; border-left: 1px solid var(--mp-border); }
+.timeline-dot { flex: none; width: 11px; height: 11px; margin-top: 5px; border-radius: 50%; background: var(--mp-primary); box-shadow: 0 0 0 3px var(--mp-primary-subtle); }
+.kind-payment .timeline-dot { background: #28c76f; box-shadow: 0 0 0 3px rgba(40, 199, 111, .18); }
+.kind-suspended .timeline-dot { background: #ea5455; box-shadow: 0 0 0 3px rgba(234, 84, 85, .18); }
+.kind-trial_extended .timeline-dot { background: #00bad1; box-shadow: 0 0 0 3px rgba(0, 186, 209, .18); }
+
+/* Tables, DataTables, Select2 — blended into the theme */
+.table { --bs-table-bg: transparent; --bs-table-color: var(--mp-text); --bs-table-hover-bg: var(--mp-hover); --bs-table-border-color: var(--mp-border); }
+.table > thead th {
+  font-size: .75rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase;
+  color: var(--mp-muted); white-space: nowrap;
+}
+.table-filters { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem; }
+.table-filter { width: 220px; max-width: 100%; }
+div.dt-container .dt-search input { min-width: 240px; border-color: var(--mp-border); }
+div.dt-container .dt-layout-table > .dt-layout-cell { overflow-x: auto; }
+div.dt-container .dt-length select { border-color: var(--mp-border); }
+div.dt-container .dt-info { color: var(--mp-muted); font-size: .8125rem; }
+div.dt-container div.dt-processing { background: var(--mp-surface); border: 0; box-shadow: var(--mp-shadow); color: var(--mp-text); }
+div.dt-container div.dt-processing > div:last-child { display: none; }
+.pagination { --bs-pagination-color: var(--mp-text); --bs-pagination-bg: transparent; --bs-pagination-border-color: var(--mp-border);
+  --bs-pagination-hover-bg: var(--mp-hover); --bs-pagination-hover-color: var(--mp-primary);
+  --bs-pagination-active-bg: var(--mp-primary); --bs-pagination-active-border-color: var(--mp-primary);
+  --bs-pagination-disabled-bg: transparent; --bs-pagination-focus-box-shadow: 0 0 0 .2rem rgba(var(--mp-primary-rgb), .15); }
+table.dataTable thead > tr > th.dt-orderable-asc:hover, table.dataTable thead > tr > th.dt-orderable-desc:hover { outline: none; color: var(--mp-heading); }
+.select2-container--bootstrap-5 .select2-selection {
+  border-color: var(--mp-border); background-color: var(--mp-surface); color: var(--mp-text); font-size: inherit;
+}
+.select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered { color: var(--mp-text); }
+.select2-container--bootstrap-5.select2-container--focus .select2-selection,
+.select2-container--bootstrap-5.select2-container--open .select2-selection {
+  border-color: var(--mp-primary); box-shadow: 0 0 0 .2rem rgba(var(--mp-primary-rgb), .15);
+}
+.select2-container--bootstrap-5 .select2-dropdown {
+  background: var(--mp-surface); border-color: var(--mp-border); color: var(--mp-text); box-shadow: var(--mp-shadow);
+}
+.select2-container--bootstrap-5 .select2-dropdown .select2-search .select2-search__field { background: var(--bs-body-bg); color: var(--mp-text); border-color: var(--mp-border); }
+.select2-container--bootstrap-5 .select2-dropdown .select2-results__options .select2-results__option.select2-results__option--highlighted { background: var(--mp-primary-subtle); color: var(--mp-primary); }
+.select2-container--bootstrap-5 .select2-dropdown .select2-results__options .select2-results__option.select2-results__option--selected { background: var(--mp-primary); color: #fff; }
 
 @media (max-width: 991.98px) {
   .app-sidebar { transform: translateX(-100%); }

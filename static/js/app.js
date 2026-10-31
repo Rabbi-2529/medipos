@@ -100,4 +100,51 @@
     var meta = document.querySelector("meta[name=csrf-token]");
     if (meta) ev.detail.headers["X-CSRFToken"] = meta.content;
   });
+
+  // ---- Shared widgets (Select2, DataTables) --------------------------------
+  var MP = window.MP = window.MP || {};
+
+  // <select data-mp-select [data-no-search] [data-allow-clear] [data-placeholder="…"]>
+  // (Not "data-select2": jQuery would expose it as .data("select2"), the key Select2 keeps its instance under.)
+  MP.initSelect2 = function (root) {
+    if (!window.jQuery || !jQuery.fn.select2) return;
+    jQuery(root || document).find("select[data-mp-select]").each(function () {
+      var $el = jQuery(this);
+      if ($el.hasClass("select2-hidden-accessible")) return;
+      var $modal = $el.closest(".modal");
+      $el.select2({
+        theme: "bootstrap-5",
+        width: "100%",
+        placeholder: $el.data("placeholder") || "",
+        allowClear: $el.is("[data-allow-clear]"),
+        minimumResultsForSearch: $el.is("[data-no-search]") ? Infinity : 0,
+        dropdownParent: $modal.length ? $modal : jQuery(document.body)
+      });
+    });
+  };
+
+  // Server-side DataTable with the app's defaults; pass DataTables options to override.
+  MP.dataTable = function (selector, options) {
+    return new DataTable(selector, Object.assign({
+      processing: true,
+      serverSide: true,
+      pageLength: 25,
+      lengthMenu: [10, 25, 50, 100],
+      searchDelay: 350,
+      language: {
+        search: "",
+        searchPlaceholder: "Search…",
+        lengthMenu: "_MENU_ per page",
+        info: "_START_–_END_ of _TOTAL_",
+        infoEmpty: "No records",
+        infoFiltered: "(filtered from _MAX_)",
+        zeroRecords: "Nothing matches your search.",
+        emptyTable: "No records yet.",
+        processing: '<span class="spinner-border spinner-border-sm text-primary" role="status"></span>'
+      }
+    }, options || {}));
+  };
+
+  MP.initSelect2();
+  document.body.addEventListener("htmx:afterSwap", function (ev) { MP.initSelect2(ev.target); });
 })();

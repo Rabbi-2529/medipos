@@ -39,7 +39,10 @@ MENU = (
         MenuItem("dashboard", _("Dashboard"), "core:dashboard", "bi-speedometer2", audience=ALL),
     )),
     MenuSection(_("Platform"), (
-        MenuItem("platform", _("Pharmacies"), "platform:tenants", "bi-buildings", audience=PLATFORM),
+        MenuItem("platform", _("Pharmacies"), icon="bi-buildings", audience=PLATFORM, children=(
+            MenuItem("platform", _("Add pharmacy"), "platform:tenant_create", audience=PLATFORM),
+            MenuItem("platform", _("Pharmacy list"), "platform:tenants", audience=PLATFORM),
+        )),
         MenuItem("platform", _("Plans"), "platform:plans", "bi-card-checklist", audience=PLATFORM),
     )),
     MenuSection(_("Medicines & stock"), (
@@ -108,8 +111,12 @@ MENU = (
         MenuItem("report", _("Reports"), "reports:index", "bi-bar-chart-line"),
         MenuItem("outlet", _("Outlets"), "setup:outlets", "bi-shop"),
         MenuItem("settings", _("Settings"), "setup:settings", "bi-gear"),
+        MenuItem("subscription", _("Subscription"), "billing:subscription", "bi-credit-card"),
     )),
 )
+
+# What a pharmacy whose subscription lapsed can still open.
+LOCKED_KEYS = frozenset({"subscription"})
 
 
 def _audience_ok(item, user):
@@ -145,9 +152,13 @@ def _resolve(item, user, current_view):
 def build_menu(request):
     match = getattr(request, "resolver_match", None)
     current_view = match.view_name if match else ""
+    tenant = getattr(request, "tenant", None)
+    locked = tenant is not None and not tenant.has_access
     sections = []
     for section in MENU:
         items = [i for i in (_resolve(it, request.user, current_view) for it in section.items) if i]
+        if locked:
+            items = [i for i in items if i["key"] in LOCKED_KEYS]
         if items:
             sections.append({"title": section.title, "items": items})
     return sections

@@ -24,6 +24,9 @@ INSTALLED_APPS = [
     "apps.core",
     "apps.tenants",
     "apps.accounts",
+    "apps.billing",
+    "apps.outlets",
+    "apps.console",
 ]
 
 MIDDLEWARE = [
@@ -35,6 +38,8 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     # Must come after AuthenticationMiddleware: it reads request.user.tenant.
     "apps.core.middleware.TenantMiddleware",
+    # Locks out pharmacies whose trial/subscription has lapsed. Needs request.tenant.
+    "apps.billing.middleware.SubscriptionGateMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -98,3 +103,11 @@ REST_FRAMEWORK = {
 APP_COMPANY = "ThingBD"
 APP_PRODUCT = "MediPOS"
 APP_NAME = f"{APP_COMPANY} {APP_PRODUCT}"
+
+# SaaS subscription rules
+TRIAL_DAYS = env.int("TRIAL_DAYS", default=14)
+SUBSCRIPTION_GRACE_DAYS = env.int("SUBSCRIPTION_GRACE_DAYS", default=3)
+SUBSCRIPTION_PAYMENT_INSTRUCTIONS = env(
+    "SUBSCRIPTION_PAYMENT_INSTRUCTIONS",
+    default="Contact ThingBD support to renew or upgrade your subscription.",
+)

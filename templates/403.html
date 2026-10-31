@@ -1,0 +1,8 @@
+{% extends "layouts/auth.html" %}
+{% load i18n %}
+{% block title %}{% translate "Not allowed" %}{% endblock %}
+{% block auth_content %}
+<h1 class="auth-title">{% translate "You don't have access to this page" %}</h1>
+<p class="text-body-secondary">{% translate "Ask your administrator if you think you should." %}</p>
+<a class="btn btn-primary w-100" href="/">{% translate "Go to dashboard" %}</a>
+{% endblock %}

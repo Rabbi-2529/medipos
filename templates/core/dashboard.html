@@ -1,5 +1,5 @@
 {% extends "layouts/app.html" %}
-{% load i18n %}
+{% load i18n money billing_tags %}
 {% block title %}{% translate "Dashboard" %}{% endblock %}
 {% block page_title %}{% translate "Dashboard" %}{% endblock %}
 {% block page_subtitle %}<p class="page-subtitle">{% now "l, d F Y" %}</p>{% endblock %}
@@ -18,25 +18,65 @@
   </div>
 </div>
 
-{% if tenant_counts %}
+{% if overview %}
+<div class="row g-4 mb-4">
+  {% translate "Pharmacies" as l_total %}{% translate "Active" as l_active %}{% translate "On trial" as l_trial %}
+  {% translate "Payment due / expired" as l_attention %}{% translate "Suspended" as l_susp %}{% translate "Revenue this month" as l_revenue %}
+  {% include "core/_stat.html" with label=l_total value=overview.total icon="bi-buildings" tone="primary" col="col-sm-6 col-xl-4" %}
+  {% include "core/_stat.html" with label=l_active value=overview.counts.active icon="bi-check-circle" tone="success" col="col-sm-6 col-xl-4" %}
+  {% include "core/_stat.html" with label=l_trial value=overview.counts.trial icon="bi-hourglass-split" tone="info" col="col-sm-6 col-xl-4" %}
+  {% include "core/_stat.html" with label=l_attention value=overview.attention icon="bi-exclamation-triangle" tone="warning" col="col-sm-6 col-xl-4" %}
+  {% include "core/_stat.html" with label=l_susp value=overview.counts.suspended icon="bi-pause-circle" tone="danger" col="col-sm-6 col-xl-4" %}
+  {% include "core/_stat.html" with label=l_revenue value=overview.revenue_this_month|taka icon="bi-cash-stack" tone="success" col="col-sm-6 col-xl-4" %}
+</div>
 <div class="row g-4">
-  {% translate "Pharmacies" as l_total %}{% translate "Active" as l_active %}{% translate "On trial" as l_trial %}{% translate "Suspended" as l_susp %}
-  {% include "core/_stat.html" with label=l_total value=tenant_counts.total icon="bi-buildings" tone="primary" %}
-  {% include "core/_stat.html" with label=l_active value=tenant_counts.active icon="bi-check-circle" tone="success" %}
-  {% include "core/_stat.html" with label=l_trial value=tenant_counts.trial icon="bi-hourglass-split" tone="warning" %}
-  {% include "core/_stat.html" with label=l_susp value=tenant_counts.suspended icon="bi-pause-circle" tone="danger" %}
+  <div class="col-xl-6">
+    <div class="card h-100">
+      <div class="card-header"><h2 class="card-title">{% translate "Ending in the next 7 days" %}</h2></div>
+      <div class="card-body">
+        {% if overview.expiring %}
+        <ul class="simple-list">
+          {% for t in overview.expiring %}
+          <li>
+            <a href="{% url 'platform:tenant_detail' t.pk %}">{{ t.name }}</a>
+            <span class="text-body-secondary small">{{ t.ends_on|date:"d M" }} · {% state_badge t %}</span>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}<p class="text-body-secondary mb-0">{% translate "Nothing ends this week." %}</p>{% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-xl-6">
+    <div class="card h-100">
+      <div class="card-header"><h2 class="card-title">{% translate "Newest pharmacies" %}</h2></div>
+      <div class="card-body">
+        <ul class="simple-list">
+          {% for t in overview.recent %}
+          <li>
+            <a href="{% url 'platform:tenant_detail' t.pk %}">{{ t.name }}</a>
+            <span class="text-body-secondary small">{{ t.created_at|date:"d M Y" }} · {{ t.plan.name|default:"—" }}</span>
+          </li>
+          {% empty %}<li class="text-body-secondary">{% translate "No pharmacies yet." %}</li>{% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
 </div>
 {% elif current_tenant %}
 <div class="row g-4">
   <div class="col-lg-6">
     <div class="card h-100">
-      <div class="card-header"><h2 class="card-title">{% translate "Business profile" %}</h2></div>
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h2 class="card-title">{% translate "Business profile" %}</h2>
+        {% state_badge current_tenant %}
+      </div>
       <div class="card-body">
         <dl class="detail-list mb-0">
           <dt>{% translate "Business name" %}</dt><dd>{{ current_tenant.name }}</dd>
           <dt>{% translate "Phone" %}</dt><dd>{{ current_tenant.phone|default:"—" }}</dd>
           <dt>{% translate "Email" %}</dt><dd>{{ current_tenant.email|default:"—" }}</dd>
-          <dt>{% translate "Subscription" %}</dt><dd><span class="badge text-bg-{% if current_tenant.status == 'active' %}success{% elif current_tenant.status == 'trial' %}warning{% else %}danger{% endif %}">{{ current_tenant.get_status_display }}</span></dd>
+          <dt>{% translate "Plan" %}</dt><dd>{{ current_tenant.plan.name|default:"—" }} · <a href="{% url 'billing:subscription' %}">{% translate "Subscription" %}</a></dd>
         </dl>
       </div>
     </div>

@@ -1,0 +1,50 @@
+{% extends "layouts/app.html" %}
+{% load i18n money billing_tags %}
+{% block title %}{% translate "Plans" %}{% endblock %}
+{% block page_title %}{% translate "Plans" %}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% translate "Packages pharmacies can subscribe to. Empty limits mean unlimited." %}</p>{% endblock %}
+{% block page_actions %}<a class="btn btn-primary" href="{% url 'platform:plan_create' %}"><i class="bi bi-plus-lg"></i> {% translate "New plan" %}</a>{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead>
+          <tr>
+            <th>{% translate "Plan" %}</th>
+            <th class="text-end">{% translate "Monthly" %}</th>
+            <th class="text-end">{% translate "Yearly" %}</th>
+            <th class="text-center">{% translate "Outlets" %}</th>
+            <th class="text-center">{% translate "Users" %}</th>
+            <th class="text-center">{% translate "Medicines" %}</th>
+            <th class="text-center">{% translate "Pharmacies" %}</th>
+            <th>{% translate "Visibility" %}</th>
+            <th><span class="visually-hidden">{% translate "Actions" %}</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for plan in plans %}
+          <tr>
+            <td><span class="fw-semibold">{{ plan.name }}</span><small class="d-block text-body-secondary">{{ plan.description }}</small></td>
+            <td class="text-end">{{ plan.price_monthly|taka }}</td>
+            <td class="text-end">{{ plan.price_yearly|taka|default:"—" }}</td>
+            <td class="text-center">{{ plan.max_outlets|limit_text }}</td>
+            <td class="text-center">{{ plan.max_users|limit_text }}</td>
+            <td class="text-center">{{ plan.max_medicines|limit_text }}</td>
+            <td class="text-center">{{ plan.tenant_count }}</td>
+            <td>
+              {% if not plan.is_active %}<span class="badge text-bg-secondary">{% translate "Inactive" %}</span>
+              {% elif plan.is_public %}<span class="badge text-bg-success">{% translate "On sign-up page" %}</span>
+              {% else %}<span class="badge text-bg-light">{% translate "Hidden" %}</span>{% endif %}
+            </td>
+            <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="{% url 'platform:plan_edit' plan.pk %}">{% translate "Edit" %}</a></td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="9" class="text-body-secondary">{% translate "No plans yet." %}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

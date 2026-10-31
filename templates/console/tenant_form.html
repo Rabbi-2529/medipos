@@ -1,0 +1,46 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+{% block title %}{% translate "Add pharmacy" %}{% endblock %}
+{% block page_title %}{% translate "Add pharmacy" %}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle"><a href="{% url 'platform:tenants' %}"><i class="bi bi-chevron-left"></i> {% translate "All pharmacies" %}</a></p>{% endblock %}
+{% block content %}
+<div class="row">
+  <div class="col-xl-9">
+    <div class="card">
+      <div class="card-body">
+        <p class="text-body-secondary">{% translate "Creates the pharmacy, its owner login and a “Main branch” outlet, and starts a free trial. Pharmacies can also sign themselves up at" %} <code>/signup/</code>.</p>
+        <form method="post" novalidate>
+          {% csrf_token %}
+          {% if form.non_field_errors %}<div class="alert alert-danger py-2">{% for e in form.non_field_errors %}{{ e }}{% endfor %}</div>{% endif %}
+
+          <h2 class="form-section-title">{% translate "Pharmacy" %}</h2>
+          <div class="row">
+            <div class="col-md-6">{% include "partials/_field.html" with field=form.business_name %}</div>
+            <div class="col-md-6">{% include "partials/_field.html" with field=form.business_phone %}</div>
+            <div class="col-12">{% include "partials/_field.html" with field=form.address %}</div>
+          </div>
+
+          <h2 class="form-section-title">{% translate "Owner login" %}</h2>
+          <div class="row">
+            <div class="col-md-6">{% include "partials/_field.html" with field=form.owner_name %}</div>
+            <div class="col-md-6">{% include "partials/_field.html" with field=form.email %}</div>
+            <div class="col-md-6">{% include "partials/_field.html" with field=form.phone %}</div>
+            <div class="col-md-6"></div>
+            <div class="col-md-6">{% include "partials/_field.html" with field=form.password1 %}</div>
+            <div class="col-md-6">{% include "partials/_field.html" with field=form.password2 %}</div>
+          </div>
+
+          <h2 class="form-section-title">{% translate "Subscription" %}</h2>
+          <div class="row">
+            <div class="col-md-6">{% include "partials/_field.html" with field=form.plan %}</div>
+            <div class="col-md-6">{% include "partials/_field.html" with field=form.trial_days %}</div>
+          </div>
+
+          <button class="btn btn-primary" type="submit"><i class="bi bi-plus-lg"></i> {% translate "Create pharmacy" %}</button>
+          <a class="btn btn-link" href="{% url 'platform:tenants' %}">{% translate "Cancel" %}</a>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

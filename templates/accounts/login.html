@@ -25,4 +25,5 @@
   <input type="hidden" name="next" value="{{ next }}">
   <button class="btn btn-primary w-100" type="submit">{% translate "Login" %}</button>
 </form>
+<p class="text-center mt-3 mb-0 small">{% translate "New pharmacy?" %} <a href="{% url 'tenants:signup' %}">{% translate "Start a free trial" %}</a></p>
 {% endblock %}

@@ -1,0 +1,33 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+{% block title %}{% if plan %}{% translate "Edit plan" %}{% else %}{% translate "New plan" %}{% endif %}{% endblock %}
+{% block page_title %}{% if plan %}{% blocktranslate with name=plan.name %}Edit {{ name }}{% endblocktranslate %}{% else %}{% translate "New plan" %}{% endif %}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle"><a href="{% url 'platform:plans' %}"><i class="bi bi-chevron-left"></i> {% translate "All plans" %}</a></p>{% endblock %}
+{% block content %}
+<div class="row">
+  <div class="col-xl-8">
+    <div class="card">
+      <div class="card-body">
+        <form method="post" novalidate>
+          {% csrf_token %}
+          <div class="row">
+            <div class="col-md-6">{% include "partials/_field.html" with field=form.name %}</div>
+            <div class="col-md-6">{% include "partials/_field.html" with field=form.slug %}</div>
+            <div class="col-12">{% include "partials/_field.html" with field=form.description %}</div>
+            <div class="col-md-6">{% include "partials/_field.html" with field=form.price_monthly %}</div>
+            <div class="col-md-6">{% include "partials/_field.html" with field=form.price_yearly %}</div>
+            <div class="col-md-4">{% include "partials/_field.html" with field=form.max_outlets %}</div>
+            <div class="col-md-4">{% include "partials/_field.html" with field=form.max_users %}</div>
+            <div class="col-md-4">{% include "partials/_field.html" with field=form.max_medicines %}</div>
+            <div class="col-md-4">{% include "partials/_field.html" with field=form.sort_order %}</div>
+            <div class="col-md-4 pt-md-4">{% include "partials/_field.html" with field=form.is_public %}</div>
+            <div class="col-md-4 pt-md-4">{% include "partials/_field.html" with field=form.is_active %}</div>
+          </div>
+          <button class="btn btn-primary" type="submit">{% translate "Save plan" %}</button>
+          <a class="btn btn-link" href="{% url 'platform:plans' %}">{% translate "Cancel" %}</a>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

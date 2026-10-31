@@ -1,0 +1,58 @@
+{% extends "layouts/auth.html" %}
+{% load i18n money %}
+{% block title %}{% translate "Create your pharmacy account" %}{% endblock %}
+{% block auth_card_class %}auth-card-wide{% endblock %}
+{% block auth_content %}
+<h1 class="auth-title">{% translate "Create your pharmacy account" %}</h1>
+<p class="text-body-secondary mb-4">{% blocktranslate %}Free for {{ trial_days }} days. No card needed.{% endblocktranslate %}</p>
+<form method="post" novalidate>
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="alert alert-danger py-2">{% for e in form.non_field_errors %}{{ e }}{% endfor %}</div>{% endif %}
+
+  <h2 class="form-section-title">{% translate "Your pharmacy" %}</h2>
+  <div class="row">
+    <div class="col-md-6">{% include "partials/_field.html" with field=form.business_name %}</div>
+    <div class="col-md-6">{% include "partials/_field.html" with field=form.business_phone %}</div>
+    <div class="col-12">{% include "partials/_field.html" with field=form.address %}</div>
+  </div>
+
+  <h2 class="form-section-title">{% translate "Your login" %}</h2>
+  <div class="row">
+    <div class="col-md-6">{% include "partials/_field.html" with field=form.owner_name %}</div>
+    <div class="col-md-6">{% include "partials/_field.html" with field=form.email %}</div>
+    <div class="col-md-6">{% include "partials/_field.html" with field=form.phone %}</div>
+    <div class="col-md-6"></div>
+    <div class="col-md-6">{% include "partials/_field.html" with field=form.password1 %}</div>
+    <div class="col-md-6">{% include "partials/_field.html" with field=form.password2 %}</div>
+  </div>
+
+  <h2 class="form-section-title">{% translate "Choose a plan" %}</h2>
+  <p class="form-text mt-n2 mb-3">{% translate "You won't be charged during the trial. You can change plans later." %}</p>
+  <div class="plan-options mb-3" role="radiogroup" aria-label="{% translate 'Plan' %}">
+    {% for plan in plans %}
+    <label class="plan-option">
+      <input type="radio" name="{{ form.plan.html_name }}" value="{{ plan.pk }}"
+             {% if form.plan.value|stringformat:"s" == plan.pk|stringformat:"s" %}checked{% endif %}>
+      <span class="plan-card">
+        <span class="plan-name">{{ plan.name }}</span>
+        <span class="plan-price">{{ plan.price_monthly|taka }}<small> / {% translate "month" %}</small></span>
+        <span class="plan-limits">
+          <span><i class="bi bi-shop"></i> {% if plan.max_outlets %}{{ plan.max_outlets }} {% translate "outlet(s)" %}{% else %}{% translate "Unlimited outlets" %}{% endif %}</span>
+          <span><i class="bi bi-people"></i> {% if plan.max_users %}{{ plan.max_users }} {% translate "users" %}{% else %}{% translate "Unlimited users" %}{% endif %}</span>
+          <span><i class="bi bi-capsule"></i> {% if plan.max_medicines %}{{ plan.max_medicines }} {% translate "medicines" %}{% else %}{% translate "Unlimited medicines" %}{% endif %}</span>
+        </span>
+      </span>
+    </label>
+    {% endfor %}
+  </div>
+  {% for error in form.plan.errors %}<div class="invalid-feedback d-block mb-3">{{ error }}</div>{% endfor %}
+
+  <div class="hp-field" aria-hidden="true">
+    <label for="id_website">Website</label>
+    <input type="text" name="website" id="id_website" tabindex="-1" autocomplete="off">
+  </div>
+
+  <button class="btn btn-primary w-100" type="submit">{% translate "Start free trial" %}</button>
+</form>
+<p class="text-center mt-3 mb-0 small">{% translate "Already have an account?" %} <a href="{% url 'accounts:login' %}">{% translate "Log in" %}</a></p>
+{% endblock %}

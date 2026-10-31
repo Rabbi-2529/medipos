@@ -1,4 +1,15 @@
 {% extends "base.html" %}
+{% block vendor_css %}
+<link href="https://cdn.jsdelivr.net/npm/datatables.net-bs5@2.1.8/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet">
+{% endblock %}
+{% block vendor_js %}
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/datatables.net@2.1.8/js/dataTables.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/datatables.net-bs5@2.1.8/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+{% endblock %}
 {% block body %}
 <div class="app-shell">
   {% include "partials/_sidebar.html" %}
@@ -6,6 +17,7 @@
   <div class="app-main">
     {% include "partials/_topbar.html" %}
     <main class="app-content">
+      {% include "partials/_subscription_banner.html" %}
       {% include "partials/_messages.html" %}
       {% block page_header %}
       <div class="page-header">

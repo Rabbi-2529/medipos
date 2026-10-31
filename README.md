@@ -18,11 +18,18 @@ Open http://localhost:8000. `seed_demo` creates:
 
 | Login | Role |
 |---|---|
-| `admin@medipos.local` | Platform admin (manages pharmacies) |
-| `owner@lazzpharma.local` | Owner of "Lazz Pharma (Demo)" |
-| `owner@greenlife.local` | Owner of "Green Life Pharmacy (Demo)" |
+| `admin@medipos.local` | Platform admin: console at `/platform/` |
+| `owner@lazzpharma.local` | "Lazz Pharma (Demo)", paid on Business |
+| `owner@greenlife.local` | "Green Life Pharmacy (Demo)", trial ending in 2 days |
+| `owner@sunrise.local` | "Sunrise Pharmacy (Demo)", trial expired (locked out) |
 
-All three use the `DEMO_PASSWORD` from `.env`.
+All of them use the `DEMO_PASSWORD` from `.env`. New pharmacies sign up at `/signup/`, or the platform admin adds them under **Pharmacies → Add pharmacy**.
+
+## Subscriptions
+
+- Trial length, grace days and the "how to pay" text are set in `.env` (`TRIAL_DAYS`, `SUBSCRIPTION_GRACE_DAYS`, `SUBSCRIPTION_PAYMENT_INSTRUCTIONS`).
+- Payments are recorded by the platform admin on the pharmacy's page. Each payment extends "paid until" and reactivates the account.
+- Before creating outlets, users or medicines, call `apps.billing.limits.check_limit(tenant, resource)`.
 
 ## Tests
 
@@ -35,8 +42,11 @@ venv/Scripts/python.exe manage.py test --settings=config.settings.test
 ```
 config/            settings (base/dev/prod/test), urls
 apps/core/         tenancy (context, TenantOwnedModel, middleware), menu registry, dashboard
-apps/tenants/      Tenant (pharmacy) model, seed_demo command
+apps/tenants/      Tenant (pharmacy) + access state, self-signup, seed_demo command
 apps/accounts/     custom User (email/phone login), auth views
+apps/billing/      plans, payments, subscription services, plan limits, access gate
+apps/console/      platform console for ThingBD staff (/platform/)
+apps/outlets/      Outlet (branch) model; screens come in Phase 2
 templates/         layouts, partials, pages
 static/            css/app.css (theme tokens, dark mode), js/app.js
 ```

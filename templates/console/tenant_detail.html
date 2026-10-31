@@ -1,0 +1,219 @@
+{% extends "layouts/app.html" %}
+{% load i18n money billing_tags %}
+{% block title %}{{ tenant.name }}{% endblock %}
+{% block page_title %}{{ tenant.name }} {% state_badge tenant %}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle"><a href="{% url 'platform:tenants' %}"><i class="bi bi-chevron-left"></i> {% translate "All pharmacies" %}</a></p>{% endblock %}
+{% block page_actions %}
+<button class="btn btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#paymentModal"><i class="bi bi-cash-coin"></i> {% translate "Record payment" %}</button>
+<div class="dropdown">
+  <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">{% translate "More" %}</button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item" type="button" data-bs-toggle="modal" data-bs-target="#planModal"><i class="bi bi-arrow-repeat"></i> {% translate "Change plan" %}</button></li>
+    {% if tenant.status == "trial" %}
+    <li><button class="dropdown-item" type="button" data-bs-toggle="modal" data-bs-target="#trialModal"><i class="bi bi-hourglass-split"></i> {% translate "Extend trial" %}</button></li>
+    {% endif %}
+    <li><hr class="dropdown-divider"></li>
+    {% if state == "suspended" %}
+    <li>
+      <form method="post" action="{% url 'platform:tenant_action' tenant.pk 'reactivate' %}">
+        {% csrf_token %}
+        <button class="dropdown-item text-success" type="submit"><i class="bi bi-play-circle"></i> {% translate "Reactivate" %}</button>
+      </form>
+    </li>
+    {% else %}
+    <li><button class="dropdown-item text-danger" type="button" data-bs-toggle="modal" data-bs-target="#suspendModal"><i class="bi bi-pause-circle"></i> {% translate "Suspend" %}</button></li>
+    {% endif %}
+  </ul>
+</div>
+{% endblock %}
+{% block content %}
+<div class="row g-4">
+  <div class="col-xl-4">
+    <div class="card mb-4">
+      <div class="card-header"><h2 class="card-title">{% translate "Subscription" %}</h2></div>
+      <div class="card-body">
+        <dl class="detail-list mb-0">
+          <dt>{% translate "Plan" %}</dt><dd>{{ tenant.plan.name|default:"—" }}</dd>
+          <dt>{% translate "Status" %}</dt><dd>{% state_badge tenant %}</dd>
+          {% if tenant.trial_ends_at %}<dt>{% translate "Trial ends" %}</dt><dd>{{ tenant.trial_ends_at|date:"d M Y, h:i A" }}</dd>{% endif %}
+          <dt>{% translate "Paid until" %}</dt><dd>{{ tenant.paid_until|date:"d M Y"|default:"—" }}</dd>
+          {% if days_left is not None %}
+            {% if days_left >= 0 %}<dt>{% translate "Days left" %}</dt><dd>{{ days_left }}</dd>
+            {% else %}<dt>{% translate "Overdue by" %}</dt><dd class="text-danger">{% blocktranslate count days=days_overdue %}{{ days }} day{% plural %}{{ days }} days{% endblocktranslate %}</dd>{% endif %}
+          {% endif %}
+          {% if tenant.suspended_reason %}<dt>{% translate "Suspended for" %}</dt><dd>{{ tenant.suspended_reason }}</dd>{% endif %}
+        </dl>
+      </div>
+    </div>
+    <div class="card mb-4">
+      <div class="card-header"><h2 class="card-title">{% translate "Pharmacy" %}</h2></div>
+      <div class="card-body">
+        <dl class="detail-list mb-0">
+          <dt>{% translate "Phone" %}</dt><dd>{{ tenant.phone|default:"—" }}</dd>
+          <dt>{% translate "Email" %}</dt><dd>{{ tenant.email|default:"—" }}</dd>
+          <dt>{% translate "Address" %}</dt><dd>{{ tenant.address|default:"—"|linebreaksbr }}</dd>
+          <dt>{% translate "Slug" %}</dt><dd><code>{{ tenant.slug }}</code></dd>
+          <dt>{% translate "Joined" %}</dt><dd>{{ tenant.created_at|date:"d M Y" }}</dd>
+        </dl>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><h2 class="card-title">{% translate "Users & outlets" %}</h2></div>
+      <div class="card-body">
+        <ul class="simple-list mb-3">
+          {% for u in users %}
+          <li>
+            <span>{{ u.get_full_name|default:u.email }}{% if u.is_owner %} <span class="badge text-bg-primary">{% translate "Owner" %}</span>{% endif %}{% if not u.is_active %} <span class="badge text-bg-secondary">{% translate "Inactive" %}</span>{% endif %}</span>
+            <span class="text-body-secondary small">{{ u.email }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+        <ul class="simple-list mb-0">
+          {% for o in outlets %}
+          <li><span><i class="bi bi-shop"></i> {{ o.name }}</span><span class="text-body-secondary small">{{ o.code }}</span></li>
+          {% empty %}<li class="text-body-secondary">{% translate "No outlets." %}</li>{% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-8">
+    <div class="card mb-4">
+      <div class="card-header"><h2 class="card-title">{% translate "Usage vs plan" %}</h2></div>
+      <div class="card-body">
+        <div class="row g-4">
+          {% for row in usage %}
+          <div class="col-md-4">
+            <div class="d-flex justify-content-between small mb-1"><span>{{ row.label }}</span><span class="text-body-secondary">{{ row.used }} / {{ row.limit|limit_text }}</span></div>
+            <div class="progress" role="progressbar" aria-label="{{ row.label }}" aria-valuenow="{{ row.percent }}" aria-valuemin="0" aria-valuemax="100">
+              <div class="progress-bar{% if row.percent >= 90 %} bg-danger{% elif row.percent >= 70 %} bg-warning{% endif %}" style="width: {% if row.limit %}{{ row.percent }}{% else %}0{% endif %}%"></div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="card mb-4">
+      <div class="card-header"><h2 class="card-title">{% translate "Payments" %}</h2></div>
+      <div class="card-body">
+        {% if payments %}
+        <div class="table-responsive">
+          <table class="table align-middle mb-0">
+            <thead><tr><th>{% translate "Paid on" %}</th><th>{% translate "Plan" %}</th><th>{% translate "Period" %}</th><th>{% translate "Method" %}</th><th class="text-end">{% translate "Amount" %}</th></tr></thead>
+            <tbody>
+              {% for p in payments %}
+              <tr>
+                <td>{{ p.paid_at|date:"d M Y" }}<small class="d-block text-body-secondary">{{ p.recorded_by|default:"" }}</small></td>
+                <td>{{ p.plan.name }} <small class="text-body-secondary">· {{ p.months }} {% translate "mo" %}</small></td>
+                <td class="text-nowrap">{{ p.period_start|date:"d M Y" }} – {{ p.period_end|date:"d M Y" }}</td>
+                <td>{{ p.get_method_display }}{% if p.reference %}<small class="d-block text-body-secondary">{{ p.reference }}</small>{% endif %}</td>
+                <td class="text-end fw-semibold">{{ p.amount|taka }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}<p class="text-body-secondary mb-0">{% translate "No payments yet." %}</p>{% endif %}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><h2 class="card-title">{% translate "Activity" %}</h2></div>
+      <div class="card-body">
+        <ul class="timeline">
+          {% for e in events %}
+          <li class="timeline-item kind-{{ e.kind }}">
+            <span class="timeline-dot"></span>
+            <div>
+              <div>{{ e.message }}</div>
+              <small class="text-body-secondary">{{ e.created_at|date:"d M Y, h:i A" }}{% if e.actor %} · {{ e.actor }}{% endif %}</small>
+            </div>
+          </li>
+          {% empty %}<li class="text-body-secondary">{% translate "No activity yet." %}</li>{% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ---- Modals ---- #}
+<div class="modal fade" id="paymentModal" tabindex="-1" aria-labelledby="paymentModalTitle" aria-hidden="true">
+  <div class="modal-dialog">
+    <form class="modal-content" method="post" action="{% url 'platform:tenant_action' tenant.pk 'payment' %}" novalidate>
+      {% csrf_token %}
+      <div class="modal-header"><h2 class="modal-title fs-5" id="paymentModalTitle">{% translate "Record payment" %}</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% translate 'Close' %}"></button></div>
+      <div class="modal-body">
+        <div class="row">
+          <div class="col-md-6">{% include "partials/_field.html" with field=payment_form.plan %}</div>
+          <div class="col-md-6">{% include "partials/_field.html" with field=payment_form.months %}</div>
+          <div class="col-md-6">{% include "partials/_field.html" with field=payment_form.amount %}</div>
+          <div class="col-md-6">{% include "partials/_field.html" with field=payment_form.method %}</div>
+          <div class="col-12">{% include "partials/_field.html" with field=payment_form.reference %}</div>
+          <div class="col-12">{% include "partials/_field.html" with field=payment_form.note %}</div>
+        </div>
+        <p class="form-text mb-0">{% translate "The paid period starts after the current paid period or trial, whichever ends later." %}</p>
+      </div>
+      <div class="modal-footer"><button type="button" class="btn btn-link" data-bs-dismiss="modal">{% translate "Cancel" %}</button><button class="btn btn-primary" type="submit">{% translate "Save payment" %}</button></div>
+    </form>
+  </div>
+</div>
+
+<div class="modal fade" id="planModal" tabindex="-1" aria-labelledby="planModalTitle" aria-hidden="true">
+  <div class="modal-dialog">
+    <form class="modal-content" method="post" action="{% url 'platform:tenant_action' tenant.pk 'plan' %}" novalidate>
+      {% csrf_token %}
+      <div class="modal-header"><h2 class="modal-title fs-5" id="planModalTitle">{% translate "Change plan" %}</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% translate 'Close' %}"></button></div>
+      <div class="modal-body">
+        {% include "partials/_field.html" with field=plan_form.plan %}
+        <p class="form-text mb-0">{% translate "Takes effect now. Doesn't change the paid-until date or record a payment." %}</p>
+      </div>
+      <div class="modal-footer"><button type="button" class="btn btn-link" data-bs-dismiss="modal">{% translate "Cancel" %}</button><button class="btn btn-primary" type="submit">{% translate "Change plan" %}</button></div>
+    </form>
+  </div>
+</div>
+
+<div class="modal fade" id="trialModal" tabindex="-1" aria-labelledby="trialModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-sm">
+    <form class="modal-content" method="post" action="{% url 'platform:tenant_action' tenant.pk 'trial' %}" novalidate>
+      {% csrf_token %}
+      <div class="modal-header"><h2 class="modal-title fs-5" id="trialModalTitle">{% translate "Extend trial" %}</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% translate 'Close' %}"></button></div>
+      <div class="modal-body">{% include "partials/_field.html" with field=trial_form.days %}</div>
+      <div class="modal-footer"><button type="button" class="btn btn-link" data-bs-dismiss="modal">{% translate "Cancel" %}</button><button class="btn btn-primary" type="submit">{% translate "Extend" %}</button></div>
+    </form>
+  </div>
+</div>
+
+<div class="modal fade" id="suspendModal" tabindex="-1" aria-labelledby="suspendModalTitle" aria-hidden="true">
+  <div class="modal-dialog">
+    <form class="modal-content" method="post" action="{% url 'platform:tenant_action' tenant.pk 'suspend' %}" novalidate>
+      {% csrf_token %}
+      <div class="modal-header"><h2 class="modal-title fs-5" id="suspendModalTitle">{% translate "Suspend pharmacy" %}</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% translate 'Close' %}"></button></div>
+      <div class="modal-body">
+        <p>{% blocktranslate with name=tenant.name %}Staff of {{ name }} will only be able to see their subscription page until you reactivate it.{% endblocktranslate %}</p>
+        {% include "partials/_field.html" with field=suspend_form.reason %}
+      </div>
+      <div class="modal-footer"><button type="button" class="btn btn-link" data-bs-dismiss="modal">{% translate "Cancel" %}</button><button class="btn btn-danger" type="submit">{% translate "Suspend" %}</button></div>
+    </form>
+  </div>
+</div>
+{{ plan_prices|json_script:"plan-prices" }}
+{% endblock %}
+{% block extra_js %}
+<script>
+  (function () {
+    // Show the plan price as the amount placeholder so staff see what "empty" will charge.
+    var prices = JSON.parse(document.getElementById("plan-prices").textContent);
+    var $plan = $("#paymentModal [name=plan]"), $months = $("#paymentModal [name=months]"), amount = document.querySelector("#paymentModal [name=amount]");
+    function update() {
+      var p = prices[$plan.val()], months = parseInt($months.val(), 10) || 1;
+      if (!p) { amount.placeholder = ""; return; }
+      var value = months === 12 && p.yearly !== null ? parseFloat(p.yearly) : parseFloat(p.monthly) * months;
+      amount.placeholder = "৳" + value.toLocaleString("en-US");
+    }
+    $plan.on("change", update);
+    $months.on("change", update);
+    update();
+  })();
+</script>
+{% endblock %}

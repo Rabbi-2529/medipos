@@ -42,6 +42,9 @@ class User(AbstractUser):
         related_name="users",
     )
     is_platform_admin = models.BooleanField(default=False)
+    is_owner = models.BooleanField(
+        default=False, help_text=_("The pharmacy's owner account. Owners always have full access.")
+    )
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []

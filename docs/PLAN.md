@@ -26,12 +26,23 @@ Custom user (email/phone login), Tenant model, fail-closed tenant scoping and mi
 (sidebar, top bar, Ctrl+K menu search, dark mode, mobile drawer), login/logout/profile/password change/reset,
 `seed_demo` command, 32 tests including tenant-isolation tests.
 
-### Phase 1 — SaaS platform and onboarding
-- Pharmacy self-signup: business, owner and first outlet, starting a trial.
-- Plans with limits (outlets, users, medicines) and subscription periods.
-- Trial expiry and suspension gate: a suspended pharmacy can log in only to see a billing notice.
-- Platform console: pharmacy list, details, activate/suspend, extend subscription, record a manual payment, usage counts.
-- Done when: a new pharmacy signs up, works during the trial, is suspended at expiry, and is reactivated by the platform admin.
+### Phase 1 — SaaS platform and onboarding ✅
+- **Self-signup** at `/signup/`: creates the pharmacy, its owner (`is_owner`) and a "Main branch" outlet, and starts a `TRIAL_DAYS` trial. Includes a honeypot against bots.
+- **Plans** (`billing.Plan`) with monthly/yearly prices and outlet/user/medicine limits (empty = unlimited). Three placeholder plans are seeded by migration.
+- **Access state** is computed from the stored status plus dates: trial → active → payment due (`SUBSCRIPTION_GRACE_DAYS`) → expired, or suspended.
+  - `Tenant.access_state()` and `Tenant.objects.in_state()` are kept in agreement by tests.
+  - `SubscriptionGateMiddleware` sends expired or suspended pharmacies to `/subscription/`. HTMX and API requests get a 402.
+  - A banner warns before a trial or paid period ends.
+- **Plan limits**: `billing.limits.check_limit(tenant, "users"|"outlets"|"medicines")`. Phase 2+ must call it before creating any of these.
+- **Platform console** at `/platform/`:
+  - **Add pharmacy** (`/platform/pharmacies/new/`): staff create a pharmacy, owner login and outlet for a customer, with any active plan and a chosen trial length. Django admin's "add" is disabled, because it would create a pharmacy with no owner.
+  - pharmacy list (server-side DataTables, Select2 filters)
+  - pharmacy detail with usage, payments and an activity log
+  - actions: record payment, change plan, extend trial, suspend, reactivate
+  - plan management
+  - dashboard overview: counts, revenue this month, what's ending this week
+- **Subscription page** for pharmacies: plan, status, usage, payment history, how to pay.
+- 80 tests.
 
 ### Phase 2 — Shop setup and access
 - Business settings: name, logo, currency, date format, invoice numbering, default customer and payment method.

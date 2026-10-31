@@ -8,8 +8,11 @@ admin.site.site_title = settings.APP_NAME
 
 urlpatterns = [
     path("platform-admin/", admin.site.urls),
+    path("platform/", include("apps.console.urls")),
     path("i18n/", include("django.conf.urls.i18n")),
     path("accounts/", include("apps.accounts.urls")),
+    path("", include("apps.tenants.urls")),
+    path("", include("apps.billing.urls")),
     path("", include("apps.core.urls")),
 ]
 
