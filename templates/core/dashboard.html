@@ -64,7 +64,28 @@
   </div>
 </div>
 {% elif current_tenant %}
+{% if not allowed_outlets %}
+<div class="alert alert-warning d-flex gap-2 align-items-center"><i class="bi bi-shop"></i> {% translate "You haven't been given access to any outlet yet. Ask the owner to add you to one." %}</div>
+{% endif %}
 <div class="row g-4">
+  {% if checklist %}
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-header"><h2 class="card-title">{% translate "Set up your shop" %}</h2></div>
+      <div class="card-body">
+        <ul class="checklist">
+          {% for step in checklist %}
+          <li class="{% if step.done %}is-done{% endif %}">
+            <span class="check">{% if step.done %}<i class="bi bi-check-lg"></i>{% endif %}</span>
+            <span class="checklist-label">{{ step.label }}</span>
+            {% if not step.done %}<a href="{{ step.url }}">{% translate "Open" %} <i class="bi bi-arrow-right"></i></a>{% endif %}
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+  {% endif %}
   <div class="col-lg-6">
     <div class="card h-100">
       <div class="card-header d-flex justify-content-between align-items-center">
@@ -76,7 +97,8 @@
           <dt>{% translate "Business name" %}</dt><dd>{{ current_tenant.name }}</dd>
           <dt>{% translate "Phone" %}</dt><dd>{{ current_tenant.phone|default:"—" }}</dd>
           <dt>{% translate "Email" %}</dt><dd>{{ current_tenant.email|default:"—" }}</dd>
-          <dt>{% translate "Plan" %}</dt><dd>{{ current_tenant.plan.name|default:"—" }} · <a href="{% url 'billing:subscription' %}">{% translate "Subscription" %}</a></dd>
+          <dt>{% translate "Working in" %}</dt><dd>{{ current_outlet.name|default:"—" }}</dd>
+          {% if can.subscription.show %}<dt>{% translate "Plan" %}</dt><dd>{{ current_tenant.plan.name|default:"—" }} · <a href="{% url 'billing:subscription' %}">{% translate "Subscription" %}</a></dd>{% endif %}
         </dl>
       </div>
     </div>

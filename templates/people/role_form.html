@@ -1,0 +1,96 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle"><a href="{% url 'people:roles' %}"><i class="bi bi-chevron-left"></i> {% translate "All roles" %}</a></p>{% endblock %}
+{% block content %}
+<form method="post" novalidate>
+  {% csrf_token %}
+  <div class="card mb-4">
+    <div class="card-body">
+      {% if form.non_field_errors %}<div class="alert alert-danger py-2">{% for e in form.non_field_errors %}{{ e }}{% endfor %}</div>{% endif %}
+      <div class="row">
+        <div class="col-md-4">{% include "partials/_field.html" with field=form.name %}</div>
+        <div class="col-md-8">{% include "partials/_field.html" with field=form.description %}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+      <h2 class="card-title">{% translate "Permissions" %}</h2>
+      <div class="form-check mb-0">
+        <input class="form-check-input" type="checkbox" id="perm-all" data-perm-all>
+        <label class="form-check-label" for="perm-all">{% translate "Select everything" %}</label>
+      </div>
+    </div>
+    <div class="card-body">
+      {% for error in form.perms.errors %}<div class="alert alert-danger py-2">{{ error }}</div>{% endfor %}
+      <div class="table-responsive">
+        <table class="table align-middle perm-grid mb-0">
+          <thead>
+            <tr>
+              <th>{% translate "Screen" %}</th>
+              {% for label in actions %}<th class="text-center">{{ label }}</th>{% endfor %}
+              <th class="text-center">{% translate "Row" %}</th>
+            </tr>
+          </thead>
+          {% for group, rows in grid.items %}
+          <tbody>
+            <tr class="perm-group"><th colspan="{{ actions|length|add:2 }}">{{ group }}</th></tr>
+            {% for row in rows %}
+            <tr data-perm-row>
+              <td>{{ row.module.label }}</td>
+              {% for cell in row.cells %}
+              <td class="text-center">
+                {% if cell %}
+                <input class="form-check-input" type="checkbox" name="perms" value="{{ cell.code }}" aria-label="{{ row.module.label }} {{ cell.code }}" {% if cell.checked %}checked{% endif %}>
+                {% else %}<span class="text-body-tertiary">—</span>{% endif %}
+              </td>
+              {% endfor %}
+              <td class="text-center"><input class="form-check-input" type="checkbox" data-perm-row-all aria-label="{% blocktranslate with name=row.module.label %}All of {{ name }}{% endblocktranslate %}"></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          {% endfor %}
+        </table>
+      </div>
+      <p class="form-text mb-0 mt-3">{% translate "New screens (medicines, POS, purchases…) appear here as they are added to the system." %}</p>
+    </div>
+  </div>
+  <div class="form-actions">
+    <button class="btn btn-primary" type="submit"><i class="bi bi-check2"></i> {% translate "Save role" %}</button>
+    <a class="btn btn-link" href="{% url 'people:roles' %}">{% translate "Cancel" %}</a>
+  </div>
+</form>
+{% endblock %}
+{% block extra_js %}
+<script>
+  (function () {
+    var boxes = function (root) { return Array.prototype.slice.call(root.querySelectorAll("input[name=perms]")); };
+    var all = document.querySelector("[data-perm-all]");
+    function sync() {
+      document.querySelectorAll("[data-perm-row]").forEach(function (row) {
+        var items = boxes(row);
+        row.querySelector("[data-perm-row-all]").checked = items.length > 0 && items.every(function (b) { return b.checked; });
+      });
+      var every = boxes(document);
+      all.checked = every.length > 0 && every.every(function (b) { return b.checked; });
+    }
+    document.addEventListener("change", function (ev) {
+      var t = ev.target;
+      if (t.matches("[data-perm-row-all]")) {
+        boxes(t.closest("[data-perm-row]")).forEach(function (b) { b.checked = t.checked; });
+      } else if (t.matches("[data-perm-all]")) {
+        boxes(document).forEach(function (b) { b.checked = t.checked; });
+      } else if (t.name === "perms" && t.checked && !/\.(list|show)$/.test(t.value)) {
+        // Adding, editing or deleting needs the list too.
+        var list = document.querySelector('input[name=perms][value="' + t.value.split(".")[0] + '.list"]');
+        if (list) list.checked = true;
+      }
+      sync();
+    });
+    sync();
+  })();
+</script>
+{% endblock %}

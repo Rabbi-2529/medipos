@@ -1,0 +1,39 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+{% block title %}{% translate "Roles & permissions" %}{% endblock %}
+{% block page_title %}{% translate "Roles & permissions" %}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% translate "A role decides which screens and actions an employee can use. The owner always has full access." %}</p>{% endblock %}
+{% block page_actions %}{% if can.role.create %}<a class="btn btn-primary" href="{% url 'people:role_create' %}"><i class="bi bi-plus-lg"></i> {% translate "Add role" %}</a>{% endif %}{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <table class="table table-hover align-middle w-100" data-mp-table>
+      <thead>
+        <tr>
+          <th>{% translate "Role" %}</th>
+          <th class="text-center">{% translate "Permissions" %}</th>
+          <th class="text-center">{% translate "Employees" %}</th>
+          <th class="no-sort"><span class="visually-hidden">{% translate "Actions" %}</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for role in roles %}
+        <tr>
+          <td><span class="fw-semibold">{{ role.name }}</span><small class="d-block text-body-secondary">{{ role.description }}</small></td>
+          <td class="text-center">{{ role.codes|length }}</td>
+          <td class="text-center">{{ role.employee_count }}</td>
+          <td class="text-end text-nowrap">
+            {% if can.role.edit %}<a class="btn btn-sm btn-outline-primary" href="{% url 'people:role_edit' role.pk %}">{% translate "Edit" %}</a>{% endif %}
+            {% if can.role.delete %}
+            <form method="post" action="{% url 'people:role_delete' role.pk %}" class="d-inline" data-confirm="{% blocktranslate with name=role.name %}Delete the {{ name }} role?{% endblocktranslate %}">
+              {% csrf_token %}<button class="btn btn-sm btn-outline-danger" type="submit">{% translate "Delete" %}</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

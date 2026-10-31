@@ -7,7 +7,9 @@ from django.utils import timezone
 from apps.accounts.models import User
 from apps.billing.models import Plan
 from apps.core.tenancy import tenant_context
-from apps.outlets.models import Outlet
+from apps.outlets.models import Counter, Outlet
+from apps.people.models import Employee, Role
+from apps.setup.services import provision_tenant
 from apps.tenants.models import Tenant
 
 # One pharmacy per subscription situation, so every screen has something to show.
@@ -89,11 +91,33 @@ class Command(BaseCommand):
                 owner.save(update_fields=["is_owner"])
             with tenant_context(tenant):
                 Outlet.objects.get_or_create(code="0001", defaults={"name": "Main branch", "phone": spec["phone"]})
+            provision_tenant(tenant)
+            if spec["slug"] == "lazz-pharma-demo":
+                self._lazz_staff(tenant, password)
 
         self.stdout.write(self.style.SUCCESS(
             "Demo ready: admin@medipos.local (platform), owner@lazzpharma.local (paid), "
+            "manager@lazzpharma.local + cashier@lazzpharma.local (Lazz staff), "
             "owner@greenlife.local (trial ending), owner@sunrise.local (expired). Password = DEMO_PASSWORD from .env."
         ))
+
+    def _lazz_staff(self, tenant, password):
+        """Second outlet, a counter, a manager (all outlets) and a cashier (Main branch only)."""
+        with tenant_context(tenant):
+            main = Outlet.objects.get(code="0001")
+            Outlet.objects.get_or_create(code="0002", defaults={"name": "Gulshan branch", "phone": "01700000002"})
+            Counter.objects.get_or_create(outlet=main, name="Counter 1")
+            for email, first, role_key, all_outlets in (
+                ("manager@lazzpharma.local", "Lazz Manager", "manager", True),
+                ("cashier@lazzpharma.local", "Lazz Cashier", "cashier", False),
+            ):
+                user = self._ensure_user(email, password, tenant=tenant, first_name=first)
+                employee, created = Employee.objects.get_or_create(user=user, defaults={
+                    "role": Role.objects.get(template_key=role_key), "all_outlets": all_outlets,
+                    "designation": "Manager" if role_key == "manager" else "Cashier",
+                })
+                if created and not all_outlets:
+                    employee.outlets.set([main])
 
     def _ensure_user(self, email, password, **fields):
         user, created = User.objects.get_or_create(email=email, defaults=fields)

@@ -1,0 +1,21 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block page_subtitle %}{% if cancel_url %}<p class="page-subtitle"><a href="{{ cancel_url }}"><i class="bi bi-chevron-left"></i> {% translate "Back to list" %}</a></p>{% endif %}{% endblock %}
+{% block content %}
+<div class="row">
+  <div class="col-xl-8">
+    <div class="card">
+      <div class="card-body">
+        <form method="post" enctype="multipart/form-data" novalidate>
+          {% csrf_token %}
+          {% include "partials/_form_grid.html" %}
+          <button class="btn btn-primary" type="submit">{% translate "Save" %}</button>
+          {% if cancel_url %}<a class="btn btn-link" href="{{ cancel_url }}">{% translate "Cancel" %}</a>{% endif %}
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

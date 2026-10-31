@@ -27,6 +27,9 @@ INSTALLED_APPS = [
     "apps.billing",
     "apps.outlets",
     "apps.console",
+    "apps.setup",
+    "apps.people",
+    "apps.accounting",
 ]
 
 MIDDLEWARE = [
@@ -40,6 +43,7 @@ MIDDLEWARE = [
     "apps.core.middleware.TenantMiddleware",
     # Locks out pharmacies whose trial/subscription has lapsed. Needs request.tenant.
     "apps.billing.middleware.SubscriptionGateMiddleware",
+    "apps.outlets.middleware.CurrentOutletMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]

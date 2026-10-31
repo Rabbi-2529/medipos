@@ -9,6 +9,7 @@ from django.utils.translation import gettext as _
 from apps.accounts.models import User
 from apps.core.tenancy import tenant_context
 from apps.outlets.models import Outlet
+from apps.setup.services import provision_tenant
 
 from .models import Tenant, TenantEvent
 
@@ -53,6 +54,7 @@ def register_pharmacy(*, business_name, business_phone, address, plan, owner_nam
     )
     with tenant_context(tenant):
         Outlet.objects.create(name=_("Main branch"), code="0001", phone=business_phone, email=email, address=address)
+    provision_tenant(tenant)
     params = {"plan": plan.name, "days": trial_days}
     if created_by:
         message = _("Added by ThingBD on %(plan)s with a %(days)s-day free trial") % params

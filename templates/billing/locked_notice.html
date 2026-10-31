@@ -1,0 +1,15 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+{% block title %}{% translate "Account paused" %}{% endblock %}
+{% block page_title %}{% translate "Account paused" %}{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-body d-flex gap-3 align-items-start">
+    <span class="stat-icon tone-warning"><i class="bi bi-pause-circle"></i></span>
+    <div>
+      <h2 class="card-title mb-1">{% blocktranslate with name=current_tenant.name %}{{ name }} can't use the system right now{% endblocktranslate %}</h2>
+      <p class="mb-0 text-body-secondary">{% translate "The pharmacy's subscription needs attention. Please ask the owner to contact ThingBD." %}</p>
+    </div>
+  </div>
+</div>
+{% endblock %}

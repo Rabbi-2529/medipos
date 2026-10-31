@@ -1,0 +1,98 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% if employee and not employee.user.is_active %} <span class="state-badge state-suspended">{% translate "Inactive" %}</span>{% endif %}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle"><a href="{% url 'people:employees' %}"><i class="bi bi-chevron-left"></i> {% translate "All employees" %}</a></p>{% endblock %}
+{% block content %}
+<div class="row g-4">
+  <div class="col-xl-8">
+    <form class="card" method="post" novalidate>
+      {% csrf_token %}
+      <div class="card-body">
+        {% if form.non_field_errors %}<div class="alert alert-danger py-2">{% for e in form.non_field_errors %}{{ e }}{% endfor %}</div>{% endif %}
+        <h2 class="form-section-title">{% translate "Login" %}</h2>
+        <div class="row">
+          <div class="col-md-6">{% include "partials/_field.html" with field=form.first_name %}</div>
+          <div class="col-md-6">{% include "partials/_field.html" with field=form.last_name %}</div>
+          <div class="col-md-6">{% include "partials/_field.html" with field=form.email %}</div>
+          <div class="col-md-6">{% include "partials/_field.html" with field=form.phone %}</div>
+          {% if form.password1 %}
+          <div class="col-md-6">{% include "partials/_field.html" with field=form.password1 %}</div>
+          <div class="col-md-6">{% include "partials/_field.html" with field=form.password2 %}</div>
+          {% endif %}
+        </div>
+
+        <h2 class="form-section-title">{% translate "Access" %}</h2>
+        {% if form.role %}
+        <div class="row">
+          <div class="col-md-6">
+            {% include "partials/_field.html" with field=form.role %}
+            {% if can.role.list %}<p class="form-text mt-n2"><a href="{% url 'people:roles' %}">{% translate "Manage roles" %}</a></p>{% endif %}
+          </div>
+          <div class="col-md-6">{% include "partials/_field.html" with field=form.designation %}</div>
+          <div class="col-12">{% include "partials/_field.html" with field=form.all_outlets %}</div>
+          <div class="col-12" data-outlets-field>{% include "partials/_field.html" with field=form.outlets %}</div>
+        </div>
+        {% else %}
+        <p class="text-body-secondary"><i class="bi bi-shield-check text-primary"></i> {% translate "This is the owner's account: full access to every screen and outlet." %}</p>
+        <div class="row"><div class="col-md-6">{% include "partials/_field.html" with field=form.designation %}</div></div>
+        {% endif %}
+
+        <h2 class="form-section-title">{% translate "Details" %}</h2>
+        <div class="row">
+          <div class="col-md-6">{% include "partials/_field.html" with field=form.joined_on %}</div>
+          <div class="col-md-6">{% include "partials/_field.html" with field=form.nid %}</div>
+          <div class="col-12">{% include "partials/_field.html" with field=form.address %}</div>
+        </div>
+      </div>
+      <div class="card-footer bg-transparent border-0 pt-0 px-4 pb-4">
+        <button class="btn btn-primary" type="submit">{% translate "Save" %}</button>
+        <a class="btn btn-link" href="{% url 'people:employees' %}">{% translate "Cancel" %}</a>
+      </div>
+    </form>
+  </div>
+
+  {% if employee and can_manage %}
+  <div class="col-xl-4">
+    <div class="card mb-4">
+      <div class="card-header"><h2 class="card-title">{% translate "Reset password" %}</h2></div>
+      <div class="card-body">
+        <form method="post" action="{% url 'people:employee_password' employee.pk %}" novalidate>
+          {% csrf_token %}
+          {% include "partials/_field.html" with field=password_form.password1 %}
+          {% include "partials/_field.html" with field=password_form.password2 %}
+          <button class="btn btn-outline-primary w-100" type="submit">{% translate "Set new password" %}</button>
+        </form>
+      </div>
+    </div>
+    {% if can.employee.delete and not employee.user.is_owner and employee.user_id != user.pk %}
+    <div class="card">
+      <div class="card-header"><h2 class="card-title">{% if employee.user.is_active %}{% translate "Deactivate login" %}{% else %}{% translate "Reactivate login" %}{% endif %}</h2></div>
+      <div class="card-body">
+        <p class="text-body-secondary small">{% if employee.user.is_active %}{% translate "They won't be able to log in. Their history is kept, and the login stops counting toward your plan." %}{% else %}{% translate "They'll be able to log in again. This counts toward your plan's user limit." %}{% endif %}</p>
+        <form method="post" action="{% url 'people:employee_toggle' employee.pk %}" {% if employee.user.is_active %}data-confirm="{% translate 'Deactivate this login?' %}"{% endif %}>
+          {% csrf_token %}
+          {% if employee.user.is_active %}
+          <button class="btn btn-outline-danger w-100" type="submit">{% translate "Deactivate" %}</button>
+          {% else %}
+          <button class="btn btn-outline-success w-100" type="submit">{% translate "Reactivate" %}</button>
+          {% endif %}
+        </form>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+  (function () {
+    var all = document.querySelector("[name=all_outlets]"), box = document.querySelector("[data-outlets-field]");
+    if (!all || !box) return;
+    function sync() { box.classList.toggle("d-none", all.checked); }
+    all.addEventListener("change", sync);
+    sync();
+  })();
+</script>
+{% endblock %}

@@ -195,8 +195,21 @@ class BannerTests(TestCase):
 class SubscriptionGateTests(TestCase):
     def setUp(self):
         self.tenant = make_tenant("t", status="trial", trial_ends_at=timezone.now() - timedelta(days=1))
-        self.user = User.objects.create_user("staff@x.test", "pw", tenant=self.tenant)
+        self.user = User.objects.create_user("staff@x.test", "pw", tenant=self.tenant, is_owner=True)
         self.client.force_login(self.user)
+
+    def test_staff_without_permission_get_a_plain_notice_when_locked(self):
+        cashier = User.objects.create_user("cashier@x.test", "pw", tenant=self.tenant)
+        self.client.force_login(cashier)
+        response = self.client.get(reverse("billing:subscription"))
+        self.assertContains(response, "ask the owner to contact ThingBD")
+        self.assertNotIn("payments", response.context)
+
+    def test_staff_without_permission_cannot_see_billing_when_open(self):
+        self.tenant.status = Tenant.Status.ACTIVE
+        self.tenant.save()
+        self.client.force_login(User.objects.create_user("cashier@x.test", "pw", tenant=self.tenant))
+        self.assertEqual(self.client.get(reverse("billing:subscription")).status_code, 403)
 
     def test_expired_pharmacy_is_sent_to_subscription_page(self):
         self.assertRedirects(self.client.get(reverse("core:dashboard")), reverse("billing:subscription"))

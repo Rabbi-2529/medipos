@@ -1,0 +1,37 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% translate "Tills inside each outlet. Cash is counted per counter when the POS arrives." %}</p>{% endblock %}
+{% block page_actions %}{% if can.counter.create %}<a class="btn btn-primary" href="{% url 'outlets:counter_create' %}"><i class="bi bi-plus-lg"></i> {% translate "Add counter" %}</a>{% endif %}{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <table class="table table-hover align-middle w-100" data-mp-table>
+      <thead>
+        <tr>
+          <th>{% translate "Counter" %}</th>
+          <th>{% translate "Outlet" %}</th>
+          <th>{% translate "Description" %}</th>
+          <th>{% translate "Status" %}</th>
+          <th class="no-sort"><span class="visually-hidden">{% translate "Actions" %}</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for counter in object_list %}
+        <tr>
+          <td class="fw-semibold">{{ counter.name }}</td>
+          <td>{{ counter.outlet.name }}</td>
+          <td>{{ counter.description|default:"—" }}</td>
+          <td>{% include "shop/_status.html" with active=counter.is_active %}</td>
+          <td class="text-end text-nowrap">
+            {% if can.counter.edit %}<a class="btn btn-sm btn-outline-primary" href="{% url 'outlets:counter_edit' counter.pk %}">{% translate "Edit" %}</a>{% endif %}
+            {% if can.counter.delete %}{% url 'outlets:counter_toggle' counter.pk as toggle_url %}{% include "shop/_toggle.html" with url=toggle_url active=counter.is_active name=counter.name %}{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

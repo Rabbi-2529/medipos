@@ -1,0 +1,39 @@
+{% extends "layouts/app.html" %}
+{% load i18n shop %}
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% translate "Cash drawer, bank accounts and mobile wallets that sales and purchases are paid through." %}</p>{% endblock %}
+{% block page_actions %}{% if can.payment_account.create %}<a class="btn btn-primary" href="{% url 'accounting:payment_account_create' %}"><i class="bi bi-plus-lg"></i> {% translate "Add account" %}</a>{% endif %}{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <table class="table table-hover align-middle w-100" data-mp-table>
+      <thead>
+        <tr>
+          <th>{% translate "Account" %}</th>
+          <th>{% translate "Type" %}</th>
+          <th>{% translate "Account / wallet no." %}</th>
+          <th class="text-end">{% translate "Opening balance" %}</th>
+          <th>{% translate "Status" %}</th>
+          <th class="no-sort"><span class="visually-hidden">{% translate "Actions" %}</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for account in object_list %}
+        <tr>
+          <td><span class="fw-semibold">{{ account.name }}</span>{% if account.provider %}<small class="d-block text-body-secondary">{{ account.provider }}</small>{% endif %}</td>
+          <td>{{ account.get_kind_display }}</td>
+          <td>{{ account.account_number|default:"—" }}</td>
+          <td class="text-end" data-order="{{ account.opening_balance }}">{% money account.opening_balance %}</td>
+          <td>{% include "shop/_status.html" with active=account.is_active %}</td>
+          <td class="text-end text-nowrap">
+            {% if can.payment_account.edit %}<a class="btn btn-sm btn-outline-primary" href="{% url 'accounting:payment_account_edit' account.pk %}">{% translate "Edit" %}</a>{% endif %}
+            {% if can.payment_account.delete %}{% url 'accounting:payment_account_toggle' account.pk as toggle_url %}{% include "shop/_toggle.html" with url=toggle_url active=account.is_active name=account.name %}{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

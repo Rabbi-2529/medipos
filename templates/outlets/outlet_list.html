@@ -1,0 +1,42 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% translate "Branches of your pharmacy. Stock and sales are kept per outlet." %}</p>{% endblock %}
+{% block page_actions %}{% if can.outlet.create %}<a class="btn btn-primary" href="{% url 'outlets:create' %}"><i class="bi bi-plus-lg"></i> {% translate "Add outlet" %}</a>{% endif %}{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <table class="table table-hover align-middle w-100" data-mp-table>
+      <thead>
+        <tr>
+          <th>{% translate "Code" %}</th>
+          <th>{% translate "Outlet" %}</th>
+          <th>{% translate "Phone" %}</th>
+          <th>{% translate "Counters" %}</th>
+          <th>{% translate "Status" %}</th>
+          <th class="no-sort"><span class="visually-hidden">{% translate "Actions" %}</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for outlet in object_list %}
+        <tr>
+          <td><code>{{ outlet.code }}</code></td>
+          <td>
+            <span class="fw-semibold">{{ outlet.name }}</span>{% if outlet.pk == current_outlet.pk %} <span class="badge text-bg-primary">{% translate "You're here" %}</span>{% endif %}
+            {% if outlet.address %}<small class="d-block text-body-secondary">{{ outlet.address|truncatechars:60 }}</small>{% endif %}
+          </td>
+          <td>{{ outlet.phone|default:"—" }}</td>
+          <td>{{ outlet.counters.all|length }}</td>
+          <td>{% include "shop/_status.html" with active=outlet.is_active %}</td>
+          <td class="text-end text-nowrap">
+            {% if can.outlet.edit %}<a class="btn btn-sm btn-outline-primary" href="{% url 'outlets:edit' outlet.pk %}">{% translate "Edit" %}</a>{% endif %}
+            {% if can.outlet.delete %}{% url 'outlets:toggle' outlet.pk as toggle_url %}{% include "shop/_toggle.html" with url=toggle_url active=outlet.is_active name=outlet.name %}{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

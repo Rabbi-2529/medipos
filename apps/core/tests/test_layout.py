@@ -49,10 +49,18 @@ class MenuTests(TestCase):
 
     def test_unbuilt_pages_are_hidden(self):
         tenant = Tenant.objects.create(name="T", slug="t")
+        owner = User.objects.create_user("u@x.test", "pw", tenant=tenant, is_owner=True)
+        labels = [e["label"] for e in flatten_menu(self._menu_for(owner))]
+        # Later menus (medicines, POS, …) stay hidden until their URLs exist.
+        self.assertEqual(labels, [
+            "Dashboard", "Payment accounts", "Employees", "Roles & permissions",
+            "Business settings", "Outlet list", "Counters", "Subscription",
+        ])
+
+    def test_staff_without_role_only_get_dashboard(self):
+        tenant = Tenant.objects.create(name="T", slug="t")
         user = User.objects.create_user("u@x.test", "pw", tenant=tenant)
-        labels = [e["label"] for e in flatten_menu(self._menu_for(user))]
-        # Later menus stay hidden until their URLs exist.
-        self.assertEqual(labels, ["Dashboard", "Subscription"])
+        self.assertEqual([e["label"] for e in flatten_menu(self._menu_for(user))], ["Dashboard"])
 
     def test_platform_admin_gets_platform_section(self):
         admin = User.objects.create_superuser("admin@x.test", "pw")
@@ -61,8 +69,8 @@ class MenuTests(TestCase):
 
     def test_locked_pharmacy_only_gets_subscription(self):
         tenant = Tenant.objects.create(name="T", slug="t", status=Tenant.Status.SUSPENDED)
-        user = User.objects.create_user("u@x.test", "pw", tenant=tenant)
-        labels = [e["label"] for e in flatten_menu(self._menu_for(user))]
+        owner = User.objects.create_user("u@x.test", "pw", tenant=tenant, is_owner=True)
+        labels = [e["label"] for e in flatten_menu(self._menu_for(owner))]
         self.assertEqual(labels, ["Subscription"])
 
     def test_tenant_users_never_get_platform_section(self):
@@ -78,7 +86,9 @@ class SeedDemoTests(TestCase):
             call_command("seed_demo", stdout=open(os.devnull, "w"))
             call_command("seed_demo", stdout=open(os.devnull, "w"))
         self.assertEqual(Tenant.objects.count(), 3)
-        self.assertEqual(User.objects.count(), 4)
+        self.assertEqual(User.objects.count(), 6)
+        cashier = User.objects.get(email="cashier@lazzpharma.local")
+        self.assertEqual(cashier.employee.role.template_key, "cashier")
         owner = User.objects.get(email="owner@lazzpharma.local")
         self.assertEqual(owner.tenant.slug, "lazz-pharma-demo")
         self.assertTrue(owner.is_owner)

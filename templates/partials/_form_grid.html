@@ -1,0 +1,10 @@
+{% comment %}Renders a form in a two-column grid; long fields (textareas, checkboxes, multi-selects) take a full row.{% endcomment %}
+{% if form.non_field_errors %}<div class="alert alert-danger py-2">{% for e in form.non_field_errors %}{{ e }}{% endfor %}</div>{% endif %}
+{% for field in form.hidden_fields %}{{ field }}{% endfor %}
+<div class="row">
+  {% for field in form.visible_fields %}
+  <div class="{% if field.widget_type == 'textarea' or field.widget_type == 'checkbox' or field.widget_type == 'selectmultiple' %}col-12{% else %}col-md-6{% endif %}">
+    {% include "partials/_field.html" %}
+  </div>
+  {% endfor %}
+</div>

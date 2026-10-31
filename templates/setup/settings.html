@@ -1,0 +1,73 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+{% block title %}{% translate "Business settings" %}{% endblock %}
+{% block page_title %}{% translate "Business settings" %}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% translate "How your pharmacy appears on invoices and how money and dates are shown." %}</p>{% endblock %}
+{% block content %}
+<form method="post" enctype="multipart/form-data" novalidate>
+  {% csrf_token %}
+  <div class="row g-4">
+    <div class="col-xl-8">
+      <div class="card mb-4">
+        <div class="card-header"><h2 class="card-title">{% translate "Business profile" %}</h2></div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">{% include "partials/_field.html" with field=profile.name %}</div>
+            <div class="col-md-6">{% include "partials/_field.html" with field=profile.phone %}</div>
+            <div class="col-md-6">{% include "partials/_field.html" with field=profile.email %}</div>
+            <div class="col-md-6">{% include "partials/_field.html" with field=shop.drug_license_no %}</div>
+            <div class="col-md-6">{% include "partials/_field.html" with field=shop.vat_number %}</div>
+            <div class="col-12">{% include "partials/_field.html" with field=profile.address %}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card mb-4">
+        <div class="card-header"><h2 class="card-title">{% translate "Money & dates" %}</h2></div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-4">{% include "partials/_field.html" with field=shop.currency_symbol %}</div>
+            <div class="col-md-4">{% include "partials/_field.html" with field=shop.currency_code %}</div>
+            <div class="col-md-4">{% include "partials/_field.html" with field=shop.decimal_places %}</div>
+            <div class="col-md-6">{% include "partials/_field.html" with field=shop.currency_position %}</div>
+            <div class="col-md-6">{% include "partials/_field.html" with field=shop.date_format %}</div>
+          </div>
+          <p class="form-text mb-0">{% translate "Example" %}: <strong>{{ examples.money }}</strong></p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><h2 class="card-title">{% translate "Invoices" %}</h2></div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-4">{% include "partials/_field.html" with field=numbering.prefix %}</div>
+            <div class="col-md-4">{% include "partials/_field.html" with field=numbering.next_value %}</div>
+            <div class="col-md-4">{% include "partials/_field.html" with field=numbering.padding %}</div>
+            <div class="col-12">{% include "partials/_field.html" with field=shop.invoice_footer %}</div>
+          </div>
+          <p class="form-text mb-0">{% translate "Next invoice will be" %} <strong>{{ examples.invoice }}</strong></p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-4">
+      <div class="card">
+        <div class="card-header"><h2 class="card-title">{% translate "Logo" %}</h2></div>
+        <div class="card-body">
+          <div class="logo-preview mb-3">
+            {% if settings_obj.logo %}<img src="{{ settings_obj.logo.url }}" alt="{% translate 'Current logo' %}">
+            {% else %}<span class="text-body-secondary"><i class="bi bi-image"></i> {% translate "No logo yet" %}</span>{% endif %}
+          </div>
+          {% include "partials/_field.html" with field=shop.logo %}
+          <p class="form-text mb-0">{% translate "PNG, JPG or WebP, up to 1 MB. Printed on invoices." %}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% if can_edit %}
+  <div class="form-actions">
+    <button class="btn btn-primary" type="submit"><i class="bi bi-check2"></i> {% translate "Save settings" %}</button>
+  </div>
+  {% endif %}
+</form>
+{% endblock %}

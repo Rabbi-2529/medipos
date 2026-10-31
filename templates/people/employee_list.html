@@ -1,0 +1,46 @@
+{% extends "layouts/app.html" %}
+{% load i18n billing_tags %}
+{% block title %}{% translate "Employees" %}{% endblock %}
+{% block page_title %}{% translate "Employees" %}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% blocktranslate with used=user_usage.used limit=user_usage.limit|limit_text %}{{ used }} of {{ limit }} logins used on your plan.{% endblocktranslate %}</p>{% endblock %}
+{% block page_actions %}{% if can.employee.create %}<a class="btn btn-primary" href="{% url 'people:employee_create' %}"><i class="bi bi-person-plus"></i> {% translate "Add employee" %}</a>{% endif %}{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <div class="table-filters">
+      <div class="table-filter">
+        <label class="form-label" for="filter-status">{% translate "Status" %}</label>
+        <select id="filter-status" class="form-select" data-mp-select data-no-search data-allow-clear data-placeholder="{% translate 'Everyone' %}">
+          <option></option>
+          <option value="active">{% translate "Active" %}</option>
+          <option value="inactive">{% translate "Inactive" %}</option>
+        </select>
+      </div>
+    </div>
+    <table id="employee-table" class="table table-hover align-middle w-100">
+      <thead>
+        <tr>
+          <th>{% translate "Name" %}</th>
+          <th>{% translate "Login" %}</th>
+          <th>{% translate "Role" %}</th>
+          <th>{% translate "Outlets" %}</th>
+          <th>{% translate "Status" %}</th>
+          <th>{% translate "Last login" %}</th>
+          <th><span class="visually-hidden">{% translate "Actions" %}</span></th>
+        </tr>
+      </thead>
+    </table>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+  (function () {
+    var table = MP.dataTable("#employee-table", {
+      ajax: { url: "{% url 'people:employee_data' %}", data: function (d) { d.status = $("#filter-status").val() || ""; } },
+      columnDefs: [{ targets: [3, 6], orderable: false }, { targets: 6, className: "text-end" }]
+    });
+    $("#filter-status").on("change", function () { table.ajax.reload(); });
+  })();
+</script>
+{% endblock %}

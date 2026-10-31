@@ -145,6 +145,59 @@
     }, options || {}));
   };
 
+  // Client-side DataTable for short lists rendered in the page: <table data-mp-table>.
+  // Columns whose <th> has class "no-sort" aren't sortable.
+  MP.initLocalTables = function (root) {
+    if (!window.DataTable) return;
+    (root || document).querySelectorAll("table[data-mp-table]").forEach(function (el) {
+      if (el.dataset.mpReady) return;
+      el.dataset.mpReady = "1";
+      var rows = el.tBodies[0] ? el.tBodies[0].rows.length : 0;
+      new DataTable(el, {
+        paging: rows > 25,
+        pageLength: 25,
+        info: rows > 25,
+        order: [],
+        columnDefs: [{ targets: "no-sort", orderable: false, searchable: false }],
+        language: {
+          search: "", searchPlaceholder: "Search…", lengthMenu: "_MENU_ per page",
+          info: "_START_–_END_ of _TOTAL_", zeroRecords: "Nothing matches your search.", emptyTable: "Nothing here yet."
+        }
+      });
+    });
+  };
+
+  // <form data-confirm="Are you sure?">: ask in a styled dialog before submitting.
+  var confirmModal;
+  document.addEventListener("submit", function (ev) {
+    var form = ev.target;
+    if (!form.matches("form[data-confirm]") || form.dataset.confirmed) return;
+    ev.preventDefault();
+    if (!confirmModal) {
+      var wrap = document.createElement("div");
+      wrap.className = "modal fade";
+      wrap.tabIndex = -1;
+      wrap.innerHTML =
+        '<div class="modal-dialog modal-dialog-centered modal-sm"><div class="modal-content">' +
+        '<div class="modal-body pt-4"><p class="mb-0" data-confirm-text></p></div>' +
+        '<div class="modal-footer border-0"><button type="button" class="btn btn-link" data-bs-dismiss="modal">Cancel</button>' +
+        '<button type="button" class="btn btn-danger" data-confirm-ok>Yes, continue</button></div></div></div>';
+      document.body.appendChild(wrap);
+      confirmModal = { el: wrap, modal: new bootstrap.Modal(wrap) };
+    }
+    confirmModal.el.querySelector("[data-confirm-text]").textContent = form.dataset.confirm;
+    confirmModal.el.querySelector("[data-confirm-ok]").onclick = function () {
+      form.dataset.confirmed = "1";
+      confirmModal.modal.hide();
+      form.requestSubmit ? form.requestSubmit() : form.submit();
+    };
+    confirmModal.modal.show();
+  });
+
   MP.initSelect2();
-  document.body.addEventListener("htmx:afterSwap", function (ev) { MP.initSelect2(ev.target); });
+  MP.initLocalTables();
+  document.body.addEventListener("htmx:afterSwap", function (ev) {
+    MP.initSelect2(ev.target);
+    MP.initLocalTables(ev.target);
+  });
 })();

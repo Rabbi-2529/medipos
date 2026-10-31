@@ -1,17 +1,22 @@
 """Sidebar menu registry.
 
 The whole planned menu lives here. An entry is shown only once its URL exists,
-so each phase "switches on" its menus just by adding the views. `key` is the
-permission module the roles matrix (Phase 2) will check.
+so each phase "switches on" its menus just by adding the views. Entries for
+pharmacy screens are also filtered by permission: `perm` defaults to the
+module's first action (e.g. "outlet.list") when `key` is a registered module.
 """
 from dataclasses import dataclass
 
 from django.urls import NoReverseMatch, reverse
 from django.utils.translation import gettext_lazy as _
 
+from .permissions import MODULES_BY_KEY
+
 TENANT = "tenant"
 PLATFORM = "platform"
 ALL = "all"
+
+_DEFAULT = object()
 
 
 @dataclass(frozen=True)
@@ -22,6 +27,14 @@ class MenuItem:
     icon: str = "bi-circle"
     children: tuple = ()
     audience: str = TENANT
+    perm: object = _DEFAULT
+
+    @property
+    def permission(self):
+        if self.perm is not _DEFAULT:
+            return self.perm
+        module = MODULES_BY_KEY.get(self.key)
+        return f"{module.key}.{module.default_action}" if module else None
 
 
 @dataclass(frozen=True)
@@ -107,10 +120,15 @@ MENU = (
         MenuItem("attendance", _("Attendance"), "people:attendance", "bi-calendar-check"),
         MenuItem("salary", _("Payroll"), "people:payroll", "bi-cash-coin"),
     )),
-    MenuSection(_("Reports & settings"), (
+    MenuSection(_("Reports"), (
         MenuItem("report", _("Reports"), "reports:index", "bi-bar-chart-line"),
-        MenuItem("outlet", _("Outlets"), "setup:outlets", "bi-shop"),
-        MenuItem("settings", _("Settings"), "setup:settings", "bi-gear"),
+    )),
+    MenuSection(_("Shop setup"), (
+        MenuItem("settings", _("Business settings"), "setup:settings", "bi-gear"),
+        MenuItem("outlet", _("Outlets"), icon="bi-shop", perm=None, children=(
+            _item("outlet", _("Outlet list"), "outlets:list"),
+            _item("counter", _("Counters"), "outlets:counters"),
+        )),
         MenuItem("subscription", _("Subscription"), "billing:subscription", "bi-credit-card"),
     )),
 )
@@ -127,10 +145,12 @@ def _audience_ok(item, user):
     return user.tenant_id is not None
 
 
-def _resolve(item, user, current_view):
+def _resolve(item, user, current_view, codes):
     if not _audience_ok(item, user):
         return None
-    children = [c for c in (_resolve(ch, user, current_view) for ch in item.children) if c]
+    if item.audience == TENANT and item.permission is not None and item.permission not in codes:
+        return None
+    children = [c for c in (_resolve(ch, user, current_view, codes) for ch in item.children) if c]
     url = None
     if item.url_name:
         try:
@@ -150,13 +170,16 @@ def _resolve(item, user, current_view):
 
 
 def build_menu(request):
+    from apps.people.access import user_permissions
+
     match = getattr(request, "resolver_match", None)
     current_view = match.view_name if match else ""
     tenant = getattr(request, "tenant", None)
     locked = tenant is not None and not tenant.has_access
+    codes = user_permissions(request.user)
     sections = []
     for section in MENU:
-        items = [i for i in (_resolve(it, request.user, current_view) for it in section.items) if i]
+        items = [i for i in (_resolve(it, request.user, current_view, codes) for it in section.items) if i]
         if locked:
             items = [i for i in items if i["key"] in LOCKED_KEYS]
         if items:

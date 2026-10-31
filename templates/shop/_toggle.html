@@ -1,0 +1,9 @@
+{% load i18n %}
+<form method="post" action="{{ url }}" class="d-inline" {% if active %}data-confirm="{% blocktranslate %}Deactivate {{ name }}?{% endblocktranslate %}"{% endif %}>
+  {% csrf_token %}
+  {% if active %}
+  <button class="btn btn-sm btn-outline-danger" type="submit">{% translate "Deactivate" %}</button>
+  {% else %}
+  <button class="btn btn-sm btn-outline-success" type="submit">{% translate "Activate" %}</button>
+  {% endif %}
+</form>

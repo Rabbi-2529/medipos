@@ -44,12 +44,31 @@ Custom user (email/phone login), Tenant model, fail-closed tenant scoping and mi
 - **Subscription page** for pharmacies: plan, status, usage, payment history, how to pay.
 - 80 tests.
 
-### Phase 2 — Shop setup and access
-- Business settings: name, logo, currency, date format, invoice numbering, default customer and payment method.
-- Outlets, "enter outlet", and allowed outlets per user.
-- Roles and permissions: module × list/create/edit/delete/show grid, driven by the menu registry `key`s.
-- Employees, counters (tills), payment accounts (Cash, Bank, bKash, Nagad).
-- Done when: an owner creates a cashier role, and the cashier sees only allowed menus and outlets.
+### Phase 2 — Shop setup and access ✅
+- **Permissions**:
+  - The registry `core/permissions.py` lists modules and their actions; codes look like `outlet.create`.
+  - `Role.permissions` stores codes. Codes for future modules are kept and switch on when their phase registers the module.
+  - `people.access` provides `has_perm`, `shop_permission_required` and `ShopPermissionMixin`, plus `can.<module>.<action>` in templates.
+  - The sidebar hides anything not allowed. Owners have everything.
+- **Starter data:** new pharmacies get Manager and Cashier roles (`template_key`), Cash/bKash/Nagad accounts, settings and the INV numbering. `provision_tenants` fills in what's missing for older ones.
+- **Employees** (`people.Employee`, one per login): role, designation, all outlets or chosen outlets, joining date, NID.
+  - Plan user limit enforced on create and on reactivation.
+  - The owner can't be edited by others, and nobody can deactivate themselves.
+  - Password reset is available.
+- **Outlets and counters**:
+  - Code suggestion, plan outlet limit, and you can't deactivate the last active outlet.
+  - The current outlet is kept per session (`request.outlet`), with a top-bar switcher limited to allowed outlets.
+- **Payment accounts:** cash, bank, mobile banking or card, with opening balance. At least one must stay active.
+- **Business settings:**
+  - profile, drug license no., BIN/VAT, logo (1 MB max)
+  - currency symbol, position and decimals; date format
+  - invoice prefix, next number and digits; invoice footer
+  - `{% money %}` and `{% shop_date %}` tags; `setup.services.next_code()` for document numbers
+- **Owner dashboard** has a "Set up your shop" checklist.
+- **Subscription page** is limited to staff with `subscription.show`. Others see a plain notice when the account is locked.
+- 124 tests.
+
+Deferred: "default customer" moves to Phase 5, when customers exist.
 
 ### Phase 3 — Medicine master
 - Categories, generics, manufacturers/brands, units with conversion (Box → Strip → Piece), racks.

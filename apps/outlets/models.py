@@ -5,14 +5,14 @@ from apps.core.models import TenantOwnedModel
 
 
 class Outlet(TenantOwnedModel):
-    """A branch of a pharmacy. Stock and sales are kept per outlet (screens come in Phase 2)."""
+    """A branch of a pharmacy. Stock and sales are kept per outlet."""
 
     name = models.CharField(_("name"), max_length=100)
     code = models.CharField(_("code"), max_length=20)
-    phone = models.CharField(max_length=20, blank=True)
-    email = models.EmailField(blank=True)
-    address = models.TextField(blank=True)
-    is_active = models.BooleanField(default=True)
+    phone = models.CharField(_("phone"), max_length=20, blank=True)
+    email = models.EmailField(_("email"), blank=True)
+    address = models.TextField(_("address"), blank=True)
+    is_active = models.BooleanField(_("active"), default=True)
 
     class Meta:
         ordering = ["code"]
@@ -23,3 +23,19 @@ class Outlet(TenantOwnedModel):
 
     def __str__(self):
         return self.name
+
+
+class Counter(TenantOwnedModel):
+    """A till inside an outlet. Cash registers are opened per counter (Phase 5)."""
+
+    outlet = models.ForeignKey(Outlet, on_delete=models.CASCADE, related_name="counters", verbose_name=_("outlet"))
+    name = models.CharField(_("name"), max_length=60)
+    description = models.CharField(_("description"), max_length=255, blank=True)
+    is_active = models.BooleanField(_("active"), default=True)
+
+    class Meta:
+        ordering = ["outlet__code", "name"]
+        constraints = [models.UniqueConstraint(fields=["outlet", "name"], name="uniq_counter_name_per_outlet")]
+
+    def __str__(self):
+        return f"{self.outlet} · {self.name}"
