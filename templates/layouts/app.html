@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="app-shell">
+  {% include "partials/_sidebar.html" %}
+  <div class="app-backdrop" data-sidebar-close></div>
+  <div class="app-main">
+    {% include "partials/_topbar.html" %}
+    <main class="app-content">
+      {% include "partials/_messages.html" %}
+      {% block page_header %}
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">{% block page_title %}{% endblock %}</h1>
+          {% block page_subtitle %}{% endblock %}
+        </div>
+        <div class="page-actions">{% block page_actions %}{% endblock %}</div>
+      </div>
+      {% endblock %}
+      {% block content %}{% endblock %}
+    </main>
+    <footer class="app-footer">&copy; {% now "Y" %} {{ APP_NAME }}</footer>
+  </div>
+</div>
+{% include "partials/_command_palette.html" %}
+{{ nav_search|json_script:"nav-search-data" }}
+{% endblock %}

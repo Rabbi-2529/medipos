@@ -1,0 +1,16 @@
+{% load i18n %}
+<div class="modal fade" id="commandPalette" tabindex="-1" aria-label="{% translate 'Search menu' %}" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable command-dialog">
+    <div class="modal-content">
+      <div class="command-input">
+        <i class="bi bi-search"></i>
+        <input type="search" class="form-control" placeholder="{% translate 'Type a page name, e.g. stock' %}" autocomplete="off" data-command-input>
+        <kbd>Esc</kbd>
+      </div>
+      <div class="modal-body p-2">
+        <div class="command-results" data-command-results role="listbox"></div>
+        <p class="command-empty text-body-secondary text-center my-4 d-none" data-command-empty>{% translate "No matching pages." %}</p>
+      </div>
+    </div>
+  </div>
+</div>

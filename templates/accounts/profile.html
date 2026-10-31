@@ -1,0 +1,41 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+{% block title %}{% translate "My profile" %}{% endblock %}
+{% block page_title %}{% translate "My profile" %}{% endblock %}
+{% block content %}
+<div class="row g-4">
+  <div class="col-lg-8">
+    <div class="card">
+      <div class="card-header"><h2 class="card-title">{% translate "Profile details" %}</h2></div>
+      <div class="card-body">
+        <form method="post" novalidate>
+          {% csrf_token %}
+          <div class="row">
+            <div class="col-md-6">{% include "partials/_field.html" with field=form.first_name %}</div>
+            <div class="col-md-6">{% include "partials/_field.html" with field=form.last_name %}</div>
+            <div class="col-md-6">{% include "partials/_field.html" with field=form.email %}</div>
+            <div class="col-md-6">{% include "partials/_field.html" with field=form.phone %}</div>
+          </div>
+          <button class="btn btn-primary" type="submit">{% translate "Save changes" %}</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card">
+      <div class="card-header"><h2 class="card-title">{% translate "Account" %}</h2></div>
+      <div class="card-body">
+        <dl class="detail-list">
+          <dt>{% translate "Business" %}</dt>
+          <dd>{% if current_tenant %}{{ current_tenant.name }}{% else %}{% translate "Platform admin" %}{% endif %}</dd>
+          <dt>{% translate "Member since" %}</dt>
+          <dd>{{ user.date_joined|date:"d M Y" }}</dd>
+          <dt>{% translate "Last login" %}</dt>
+          <dd>{{ user.last_login|date:"d M Y, h:i A"|default:"—" }}</dd>
+        </dl>
+        <a class="btn btn-outline-primary w-100" href="{% url 'accounts:password_change' %}"><i class="bi bi-key"></i> {% translate "Change password" %}</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

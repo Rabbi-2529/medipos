@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block body_class %}auth-page{% endblock %}
+{% block body %}
+<div class="auth-wrap">
+  <div class="auth-card card">
+    <div class="card-body">
+      <div class="auth-brand">
+        <span class="brand-mark"><i class="bi bi-capsule-pill"></i></span>
+        <span class="brand-text"><small>{{ APP_COMPANY }}</small>{{ APP_PRODUCT }}</span>
+      </div>
+      {% include "partials/_messages.html" %}
+      {% block auth_content %}{% endblock %}
+    </div>
+  </div>
+</div>
+{% endblock %}

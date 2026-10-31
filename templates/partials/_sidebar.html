@@ -1,0 +1,35 @@
+{% load i18n %}
+<aside class="app-sidebar" id="appSidebar" aria-label="{% translate 'Main menu' %}">
+  <a class="sidebar-brand" href="{% url 'core:dashboard' %}">
+    <span class="brand-mark"><i class="bi bi-capsule-pill"></i></span>
+    <span class="brand-text"><small>{{ APP_COMPANY }}</small>{{ APP_PRODUCT }}</span>
+  </a>
+  {% if current_tenant %}
+  <div class="sidebar-tenant" title="{{ current_tenant.name }}">
+    <i class="bi bi-building"></i><span>{{ current_tenant.name }}</span>
+  </div>
+  {% endif %}
+  <nav class="sidebar-nav">
+    {% for section in nav_menu %}
+      {% if section.title %}<div class="nav-section">{{ section.title }}</div>{% endif %}
+      {% for item in section.items %}
+        {% if item.children %}
+          <a class="nav-link{% if not item.active %} collapsed{% endif %}" data-bs-toggle="collapse"
+             href="#nav-{{ forloop.parentloop.counter }}-{{ forloop.counter }}" role="button"
+             aria-expanded="{{ item.active|yesno:'true,false' }}">
+            <i class="bi {{ item.icon }}"></i><span>{{ item.label }}</span><i class="bi bi-chevron-right nav-caret"></i>
+          </a>
+          <div class="collapse{% if item.active %} show{% endif %}" id="nav-{{ forloop.parentloop.counter }}-{{ forloop.counter }}">
+            {% for child in item.children %}
+              <a class="nav-link nav-child{% if child.active %} active{% endif %}" href="{{ child.url }}">{{ child.label }}</a>
+            {% endfor %}
+          </div>
+        {% else %}
+          <a class="nav-link{% if item.active %} active{% endif %}" href="{{ item.url }}"{% if item.active %} aria-current="page"{% endif %}>
+            <i class="bi {{ item.icon }}"></i><span>{{ item.label }}</span>
+          </a>
+        {% endif %}
+      {% endfor %}
+    {% endfor %}
+  </nav>
+</aside>

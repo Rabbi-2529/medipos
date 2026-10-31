@@ -1,0 +1,41 @@
+{% load i18n %}
+<header class="app-topbar">
+  <button class="btn-icon d-lg-none" type="button" data-sidebar-toggle aria-label="{% translate 'Open menu' %}">
+    <i class="bi bi-list"></i>
+  </button>
+  <button class="topbar-search" type="button" data-command-open>
+    <i class="bi bi-search"></i>
+    <span class="d-none d-sm-inline">{% translate "Search menu" %}</span>
+    <kbd class="d-none d-md-inline">Ctrl K</kbd>
+  </button>
+  <div class="topbar-actions">
+    <button class="btn-icon" type="button" data-theme-toggle aria-label="{% translate 'Toggle dark mode' %}">
+      <i class="bi bi-moon-stars theme-icon-to-dark"></i>
+      <i class="bi bi-sun theme-icon-to-light"></i>
+    </button>
+    <div class="dropdown">
+      <button class="user-chip" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+        <span class="avatar">{% if user.first_name %}{{ user.first_name|first|upper }}{{ user.last_name|first|upper }}{% else %}{{ user.email|first|upper }}{% endif %}</span>
+        <span class="user-meta d-none d-sm-flex">
+          <strong>{{ user }}</strong>
+          <small>{% if user.is_platform_admin %}{% translate "Platform admin" %}{% elif current_tenant %}{{ current_tenant.name }}{% endif %}</small>
+        </span>
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end">
+        <li><h6 class="dropdown-header">{{ user.email }}</h6></li>
+        <li><a class="dropdown-item" href="{% url 'accounts:profile' %}"><i class="bi bi-person"></i> {% translate "My profile" %}</a></li>
+        <li><a class="dropdown-item" href="{% url 'accounts:password_change' %}"><i class="bi bi-key"></i> {% translate "Change password" %}</a></li>
+        {% if user.is_platform_admin %}
+        <li><a class="dropdown-item" href="{% url 'admin:index' %}"><i class="bi bi-tools"></i> {% translate "Django admin" %}</a></li>
+        {% endif %}
+        <li><hr class="dropdown-divider"></li>
+        <li>
+          <form method="post" action="{% url 'accounts:logout' %}">
+            {% csrf_token %}
+            <button class="dropdown-item text-danger" type="submit"><i class="bi bi-box-arrow-right"></i> {% translate "Logout" %}</button>
+          </form>
+        </li>
+      </ul>
+    </div>
+  </div>
+</header>

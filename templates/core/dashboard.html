@@ -1,0 +1,46 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+{% block title %}{% translate "Dashboard" %}{% endblock %}
+{% block page_title %}{% translate "Dashboard" %}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% now "l, d F Y" %}</p>{% endblock %}
+{% block content %}
+<div class="card welcome-card mb-4">
+  <div class="card-body">
+    <div>
+      <h2 class="h4 mb-1">{% blocktranslate with name=user.first_name|default:user.email %}Welcome, {{ name }}!{% endblocktranslate %}</h2>
+      {% if user.is_platform_admin %}
+        <p class="mb-0 text-body-secondary">{% translate "You're signed in to the platform console. Pharmacies and plans are managed here." %}</p>
+      {% elif current_tenant %}
+        <p class="mb-0 text-body-secondary">{% blocktranslate with shop=current_tenant.name %}You're working in {{ shop }}.{% endblocktranslate %}</p>
+      {% endif %}
+    </div>
+    <i class="bi bi-capsule-pill welcome-icon" aria-hidden="true"></i>
+  </div>
+</div>
+
+{% if tenant_counts %}
+<div class="row g-4">
+  {% translate "Pharmacies" as l_total %}{% translate "Active" as l_active %}{% translate "On trial" as l_trial %}{% translate "Suspended" as l_susp %}
+  {% include "core/_stat.html" with label=l_total value=tenant_counts.total icon="bi-buildings" tone="primary" %}
+  {% include "core/_stat.html" with label=l_active value=tenant_counts.active icon="bi-check-circle" tone="success" %}
+  {% include "core/_stat.html" with label=l_trial value=tenant_counts.trial icon="bi-hourglass-split" tone="warning" %}
+  {% include "core/_stat.html" with label=l_susp value=tenant_counts.suspended icon="bi-pause-circle" tone="danger" %}
+</div>
+{% elif current_tenant %}
+<div class="row g-4">
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-header"><h2 class="card-title">{% translate "Business profile" %}</h2></div>
+      <div class="card-body">
+        <dl class="detail-list mb-0">
+          <dt>{% translate "Business name" %}</dt><dd>{{ current_tenant.name }}</dd>
+          <dt>{% translate "Phone" %}</dt><dd>{{ current_tenant.phone|default:"—" }}</dd>
+          <dt>{% translate "Email" %}</dt><dd>{{ current_tenant.email|default:"—" }}</dd>
+          <dt>{% translate "Subscription" %}</dt><dd><span class="badge text-bg-{% if current_tenant.status == 'active' %}success{% elif current_tenant.status == 'trial' %}warning{% else %}danger{% endif %}">{{ current_tenant.get_status_display }}</span></dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,28 @@
+{% extends "layouts/auth.html" %}
+{% load i18n %}
+{% block title %}{% translate "Login" %}{% endblock %}
+{% block auth_content %}
+<h1 class="auth-title">{% translate "Welcome back" %}</h1>
+<p class="text-body-secondary mb-4">{% translate "Sign in to manage your pharmacy." %}</p>
+<form method="post" novalidate>
+  {% csrf_token %}
+  {% if form.non_field_errors %}
+    <div class="alert alert-danger py-2">{% for e in form.non_field_errors %}{{ e }}{% endfor %}</div>
+  {% endif %}
+  {% include "partials/_field.html" with field=form.username %}
+  <div class="mb-3">
+    <div class="d-flex justify-content-between">
+      <label class="form-label" for="{{ form.password.id_for_label }}">{{ form.password.label }} <span class="text-danger">*</span></label>
+      <a class="small" href="{% url 'accounts:password_reset' %}">{% translate "Forgot password?" %}</a>
+    </div>
+    <div class="input-group">
+      {{ form.password }}
+      <button class="btn btn-outline-secondary" type="button" data-toggle-password="{{ form.password.id_for_label }}" aria-label="{% translate 'Show password' %}"><i class="bi bi-eye"></i></button>
+    </div>
+    {% for error in form.password.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+  </div>
+  {% include "partials/_field.html" with field=form.remember_me %}
+  <input type="hidden" name="next" value="{{ next }}">
+  <button class="btn btn-primary w-100" type="submit">{% translate "Login" %}</button>
+</form>
+{% endblock %}
