@@ -38,6 +38,7 @@ MEDICINES = _("Medicines")
 BUYING = _("Stock & purchases")
 SELLING = _("Sales & customers")
 INVENTORY = _("Inventory control")
+REPORTS = _("Reports")
 
 MODULES = (
     # "pos.create" = sell at the counter (and open/close your own cash register).
@@ -73,6 +74,9 @@ MODULES = (
     Module("deposit_withdraw", _("Deposits, withdrawals & transfers"), ACCOUNTS, (LIST, CREATE, DELETE)),
     # "accounting.list" = the books and reports; "create" = manual journal entries; "edit" = the chart of accounts.
     Module("accounting", _("Accounting books & reports"), ACCOUNTS, (LIST, CREATE, EDIT)),
+    # "report.list" = sales, stock, ledger and staff reports. Profit reports show costs, so they have their own switch.
+    Module("report", _("Reports"), REPORTS, (LIST,)),
+    Module("profit_report", _("Profit reports (costs & margins)"), REPORTS, (LIST,)),
     Module("employee", _("Employees"), PEOPLE, (LIST, CREATE, EDIT, DELETE)),
     Module("role", _("Roles & permissions"), PEOPLE, (LIST, CREATE, EDIT, DELETE)),
 )

@@ -1,0 +1,142 @@
+{% extends "layouts/app.html" %}
+{% load i18n shop report_tags %}
+{% block title %}{{ report.title }}{% endblock %}
+{% block page_title %}{{ report.title }}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle no-print"><a href="{% url 'reports:index' %}"><i class="bi bi-chevron-left"></i> {% translate "All reports" %}</a> · {{ report.description }}</p>{% endblock %}
+{% block page_actions %}
+{% if result %}
+<div class="d-flex gap-2 no-print">
+  <a class="btn btn-outline-primary" href="?{% if query %}{{ query }}&{% endif %}export=xlsx"><i class="bi bi-file-earmark-excel"></i> {% translate "Excel" %}</a>
+  <button class="btn btn-outline-secondary" type="button" data-print title="{% translate 'Print, or choose “Save as PDF” as the printer' %}"><i class="bi bi-printer"></i> {% translate "Print / PDF" %}</button>
+</div>
+{% endif %}
+{% endblock %}
+{% block content %}
+<form class="card mb-4 no-print" method="get"><div class="card-body report-filters">
+  {% if "period" in report.filters %}{% include "accounting/_period.html" with start=f.start end=f.end %}{% endif %}
+  {% if "outlet" in report.filters and outlets|length > 1 %}
+  <div class="report-filter">
+    <label class="form-label" for="f-outlet">{% translate "Outlet" %}</label>
+    <select id="f-outlet" name="outlet" class="form-select" data-mp-select data-no-search>
+      <option value="">{% translate "All my outlets" %}</option>
+      {% for o in outlets %}<option value="{{ o.pk }}" {% if f.outlet and o.pk == f.outlet.pk %}selected{% endif %}>{{ o.name }}</option>{% endfor %}
+    </select>
+  </div>
+  {% endif %}
+  {% if "customer" in report.filters %}
+  <div class="report-filter">
+    <label class="form-label" for="f-customer">{% translate "Customer" %}</label>
+    <select id="f-customer" name="customer" class="form-select" data-mp-select data-allow-clear data-placeholder="{% translate 'All customers' %}" data-ajax-url="{% url 'customers:lookup' %}">
+      <option></option>{% if f.customer %}<option value="{{ f.customer.pk }}" selected>{{ f.customer }}</option>{% endif %}
+    </select>
+  </div>
+  {% endif %}
+  {% if "supplier" in report.filters %}
+  <div class="report-filter">
+    <label class="form-label" for="f-supplier">{% translate "Supplier" %}</label>
+    <select id="f-supplier" name="supplier" class="form-select" data-mp-select data-allow-clear data-placeholder="{% translate 'All suppliers' %}" data-ajax-url="{% url 'suppliers:lookup' %}">
+      <option></option>{% if f.supplier %}<option value="{{ f.supplier.pk }}" selected>{{ f.supplier.name }}</option>{% endif %}
+    </select>
+  </div>
+  {% endif %}
+  {% if "medicine" in report.filters %}
+  <div class="report-filter report-filter-wide">
+    <label class="form-label" for="f-medicine">{% translate "Medicine" %}</label>
+    <select id="f-medicine" name="medicine" class="form-select" data-mp-select data-allow-clear data-placeholder="{% if report.needs == 'medicine' %}{% translate 'Choose a medicine' %}{% else %}{% translate 'All medicines' %}{% endif %}" data-ajax-url="{% url 'items:lookup' 'medicines' %}">
+      <option></option>{% if f.medicine %}<option value="{{ f.medicine.pk }}" selected>{{ f.medicine.display_name }}</option>{% endif %}
+    </select>
+  </div>
+  {% endif %}
+  {% if "category" in report.filters %}
+  <div class="report-filter">
+    <label class="form-label" for="f-category">{% translate "Category" %}</label>
+    <select id="f-category" name="category" class="form-select" data-mp-select data-allow-clear data-placeholder="{% translate 'All categories' %}" data-ajax-url="{% url 'items:lookup' 'categories' %}">
+      <option></option>{% if f.category %}<option value="{{ f.category }}" selected>{{ f.category }}</option>{% endif %}
+    </select>
+  </div>
+  {% endif %}
+  {% if "cashier" in report.filters %}
+  <div class="report-filter">
+    <label class="form-label" for="f-cashier">{% translate "Cashier" %}</label>
+    <select id="f-cashier" name="cashier" class="form-select" data-mp-select data-allow-clear data-placeholder="{% translate 'Everyone' %}">
+      <option></option>{% for u in cashiers %}<option value="{{ u.pk }}" {% if f.cashier and u.pk == f.cashier.pk %}selected{% endif %}>{{ u }}</option>{% endfor %}
+    </select>
+  </div>
+  {% endif %}
+  {% if "group" in report.filters %}
+  <div class="report-filter">
+    <label class="form-label" for="f-group">{% translate "Group by" %}</label>
+    <select id="f-group" name="group" class="form-select" data-mp-select data-no-search>
+      {% for value, label in report.groupings %}<option value="{{ value }}" {% if f.group == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+  </div>
+  {% endif %}
+  {% if "option" in report.filters %}
+  <div class="report-filter">
+    <label class="form-label" for="f-option">{{ report.option_label }}</label>
+    <select id="f-option" name="option" class="form-select" data-mp-select data-no-search>
+      {% for value, label in report.options %}<option value="{{ value }}" {% if f.option == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+  </div>
+  {% endif %}
+  <div class="report-filter report-filter-submit"><button class="btn btn-primary" type="submit"><i class="bi bi-funnel"></i> {% translate "Show" %}</button></div>
+</div></form>
+
+<div class="print-only report-print-head">
+  <strong>{{ current_tenant.name }}</strong> · {{ report.title }}
+  {% if "period" in report.filters %} · {{ period }}{% endif %}{% if f.outlet %} · {{ f.outlet.name }}{% endif %}
+  {% if f.customer %} · {{ f.customer.name }}{% endif %}{% if f.supplier %} · {{ f.supplier.name }}{% endif %}{% if f.medicine %} · {{ f.medicine.display_name }}{% endif %}
+</div>
+
+{% if missing %}
+<div class="card"><div class="card-body text-center py-5">
+  <i class="bi bi-hand-index display-6 text-body-secondary"></i>
+  <p class="mt-3 mb-0">{% if report.needs == "customer" %}{% translate "Choose a customer above to see their ledger." %}{% elif report.needs == "supplier" %}{% translate "Choose a supplier above to see their ledger." %}{% else %}{% translate "Choose a medicine above to see its price history." %}{% endif %}</p>
+</div></div>
+{% else %}
+{% if result.tiles %}
+<div class="row g-3 mb-4">
+  {% for label, value, kind in result.tiles %}
+  <div class="col-6 col-xl-3"><div class="card stat-tile tone-{% cycle 'violet' 'teal' 'orange' 'rose' %} h-100"><div class="card-body">
+    <div class="stat-label">{{ label }}</div><div class="stat-figure">{% cell value kind %}</div>
+  </div></div></div>
+  {% endfor %}
+</div>
+{% endif %}
+<div class="card"><div class="card-body">
+  {% if cut %}<div class="alert alert-info no-print">{% blocktranslate with n=limit %}Showing the first {{ n }} rows. The Excel file has all of them.{% endblocktranslate %}</div>{% endif %}
+  <div class="table-responsive">
+    <table id="report-table" class="table table-hover align-middle w-100 report-table" data-mp-table>
+      <thead><tr>{% for c in result.columns %}<th class="{% if c.numeric %}text-end{% endif %}">{{ c.label }}</th>{% endfor %}</tr></thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          {% for c in result.columns %}{% with value=row|get_item:c.key %}
+          <td class="{% if c.numeric %}text-end amount{% endif %}{% if c.kind == 'date' %} text-nowrap{% endif %}" {% if c.numeric %}data-order="{{ value|default_if_none:'' }}"{% elif c.kind == 'date' %}data-order="{{ value|date:'Y-m-d' }}"{% endif %}>{% cell value c.kind %}</td>
+          {% endwith %}{% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+      {% if result.totals %}
+      <tfoot><tr class="report-total">
+        {% for c in result.columns %}<td class="{% if c.numeric %}text-end amount{% endif %}">{% if forloop.first %}{% translate "Total" %}{% elif c.key in result.totals %}{% cell result.totals|get_item:c.key c.kind %}{% endif %}</td>{% endfor %}
+      </tr></tfoot>
+      {% endif %}
+    </table>
+  </div>
+  {% if result.note %}<p class="form-text mb-0 mt-3">{{ result.note }}</p>{% endif %}
+</div></div>
+{% endif %}
+{% endblock %}
+{% block extra_js %}
+<script>
+  (function () {
+    // Print every row, not just the table page on screen.
+    function showAll() { var t = document.getElementById("report-table"); if (t && window.jQuery && $.fn.dataTable && $.fn.dataTable.isDataTable(t)) $(t).DataTable().page.len(-1).draw(); }
+    window.addEventListener("beforeprint", showAll);
+    var button = document.querySelector("[data-print]");
+    if (button) button.addEventListener("click", function () { showAll(); window.print(); });
+    {% if auto_print %}window.addEventListener("load", function () { showAll(); window.print(); });{% endif %}
+  })();
+</script>
+{% endblock %}

@@ -62,6 +62,7 @@ apps/purchases/    purchases (draft → received), purchase returns
 apps/customers/    customers, customer ledger, due collection
 apps/sales/        cash registers, POS, sales, held carts, sale returns, promotions, quotations
 apps/inventory/    transfers between outlets, damage/expired write-offs, stock counts
+apps/reports/      report engine + 19 reports (sales, profit, stock, ledgers, staff), dashboard figures
 locale/bn/         Bangla translations (django.po source, django.mo compiled)
 templates/         layouts, partials, pages
 static/            css/app.css (theme tokens, dark mode), js/app.js, js/pos.js, js/stock_lines.js
@@ -126,6 +127,12 @@ Use a list ThingBD has the right to use, such as DGDA's registered-drug list.
 venv/Scripts/python.exe manage.py rebuild_books            # every pharmacy
 venv/Scripts/python.exe manage.py rebuild_books --tenant lazz-pharma-demo
 ```
+
+## Reports
+
+- A report is a class in `apps/reports/sales_reports.py` or `other_reports.py`: set `key`, `title`, `group`, `permission`, `filters`, and return `Result(columns, rows, totals, tiles)` from `run(f)`. Add it to `REPORTS` in `apps/reports/views.py`; the page, Excel export and print view come for free.
+- Cells are plain values (Decimal, int, date, str) or `Link(text, url)`; columns say how to format them (`money`, `int`, `pct`, `date`).
+- Reports that show cost or margin use `permission = "profit_report.list"`.
 
 ## Forms and dates
 

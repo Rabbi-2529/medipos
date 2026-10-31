@@ -1,0 +1,38 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+{% block title %}{% translate "Reports" %}{% endblock %}
+{% block page_title %}{% translate "Reports" %}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% translate "Every report can be filtered by dates and outlet, downloaded to Excel, or printed / saved as PDF." %}</p>{% endblock %}
+{% block content %}
+{% for group in groups %}
+<section class="report-group tone-{{ group.tone }} mb-4">
+  <h2 class="report-group-title"><i class="bi {{ group.icon }}"></i> {{ group.label }}</h2>
+  <div class="row g-3">
+    {% for r in group.reports %}
+    <div class="col-sm-6 col-xl-4">
+      <a class="card report-card h-100" href="{% url 'reports:report' r.key %}">
+        <span class="report-card-icon"><i class="bi {{ r.icon }}"></i></span>
+        <span><strong>{{ r.title }}</strong><small>{{ r.description }}</small></span>
+      </a>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endfor %}
+<section class="report-group tone-slate">
+  <h2 class="report-group-title"><i class="bi bi-link-45deg"></i> {% translate "More reports elsewhere" %}</h2>
+  <div class="d-flex flex-wrap gap-2">
+    {% if can.stock.list %}
+    <a class="btn btn-soft tone-orange" href="{% url 'stock:list' %}"><i class="bi bi-box-seam"></i> {% translate "Current stock" %}</a>
+    <a class="btn btn-soft tone-orange" href="{% url 'stock:low' %}"><i class="bi bi-graph-down-arrow"></i> {% translate "Low stock" %}</a>
+    <a class="btn btn-soft tone-orange" href="{% url 'stock:expiring' %}"><i class="bi bi-hourglass-split"></i> {% translate "Expiring soon" %}</a>
+    {% endif %}
+    {% if can.accounting.list %}
+    <a class="btn btn-soft tone-teal" href="{% url 'accounting:profit_loss' %}"><i class="bi bi-graph-up"></i> {% translate "Profit & loss" %}</a>
+    <a class="btn btn-soft tone-teal" href="{% url 'accounting:balance_sheet' %}"><i class="bi bi-columns-gap"></i> {% translate "Balance sheet" %}</a>
+    <a class="btn btn-soft tone-teal" href="{% url 'accounting:cash_flow' %}"><i class="bi bi-arrow-down-up"></i> {% translate "Cash flow" %}</a>
+    {% endif %}
+    {% if can.pos.create %}<a class="btn btn-soft tone-rose" href="{% url 'sales:registers' %}"><i class="bi bi-cash-stack"></i> {% translate "Z-reports" %}</a>{% endif %}
+  </div>
+</section>
+{% endblock %}

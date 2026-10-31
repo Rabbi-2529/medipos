@@ -7,6 +7,14 @@
       "runtimeArgs": ["manage.py", "runserver", "8000", "--noreload"],
       "port": 8000,
       "url": "http://localhost:8000"
+    },
+    {
+      "name": "medipos-alt",
+      "runtimeExecutable": "E:\\medipos\\venv\\Scripts\\python.exe",
+      "runtimeArgs": ["manage.py", "runserver", "8002", "--noreload"],
+      "port": 8002,
+      "url": "http://localhost:8002",
+      "autoPort": false
     }
   ]
 }

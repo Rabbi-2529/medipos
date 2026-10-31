@@ -749,3 +749,50 @@ span.flatpickr-weekday { background: transparent; color: var(--mp-muted); font-s
 .category-rename { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; }
 .category-rename input[name=name] { flex: 1 1 160px; }
 .category-rename input[name=description] { flex: 2 1 200px; }
+
+/* Reports: hub cards, filter row, print header */
+:where(.report-group) { --tone: var(--mp-primary); }
+.report-group-title { display: flex; align-items: center; gap: .5rem; margin-bottom: .75rem; font-size: .8125rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--tone); }
+.report-card {
+  display: flex; flex-direction: row; gap: .85rem; align-items: flex-start; padding: 1rem 1.1rem; text-decoration: none; color: var(--mp-text);
+  border: 1px solid var(--mp-border); border-left: 4px solid var(--tone); transition: box-shadow .12s, transform .12s;
+}
+.report-card:hover { color: var(--mp-text); box-shadow: 0 4px 14px color-mix(in srgb, var(--tone) 25%, transparent); transform: translateY(-1px); }
+.report-card strong { display: block; color: var(--mp-heading); margin-bottom: .15rem; }
+.report-card small { display: block; color: var(--mp-muted); font-size: .8125rem; line-height: 1.35; }
+.report-card-icon { width: 40px; height: 40px; flex: none; border-radius: 10px; display: grid; place-items: center; font-size: 1.2rem; color: var(--tone); background: color-mix(in srgb, var(--tone) 12%, transparent); }
+.report-filters { display: flex; flex-wrap: wrap; gap: .75rem 1rem; align-items: flex-end; }
+.report-filter { min-width: 190px; flex: 0 1 230px; }
+.report-filter-wide { flex-basis: 320px; }
+.report-filter-submit { min-width: 0; flex: none; }
+.print-only { display: none; }
+.report-print-head { margin-bottom: .75rem; font-size: .9rem; }
+@media print {
+  .print-only { display: block; }
+  .report-table { font-size: 11px; }
+  .dt-layout-row:not(.dt-layout-table) { display: none !important; }
+}
+
+/* Dashboard chart (single series: violet, a lighter step in dark mode) and share bars */
+:root { --chart-1: #6d5dfc; }
+[data-bs-theme="dark"] { --chart-1: #8b7dff; }
+.mp-chart-box { position: relative; }
+.mp-chart { display: block; width: 100%; height: auto; overflow: visible; }
+.mp-chart-grid { stroke: var(--mp-border); stroke-width: 1; }
+.mp-chart-axis { stroke: var(--mp-muted); stroke-width: 1; opacity: .5; }
+.mp-chart-tick { fill: var(--mp-muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.mp-chart-bar { fill: var(--chart-1); transition: opacity .12s; }
+.mp-chart-hit { fill: transparent; }
+.mp-chart-col { cursor: default; outline: none; }
+.mp-chart-col.is-active .mp-chart-bar { opacity: .75; }
+.mp-chart-col.is-active .mp-chart-hit, .mp-chart-col:focus-visible .mp-chart-hit { fill: color-mix(in srgb, var(--chart-1) 8%, transparent); }
+.mp-chart-tip {
+  position: absolute; transform: translate(-50%, -100%); pointer-events: none; white-space: nowrap; z-index: 2;
+  padding: .35rem .6rem; border-radius: 8px; background: var(--mp-surface); border: 1px solid var(--mp-border); box-shadow: var(--mp-shadow);
+  font-size: .8125rem; color: var(--mp-muted);
+}
+.mp-chart-tip strong { display: block; color: var(--mp-heading); font-size: .95rem; }
+.share-row { margin-bottom: .85rem; }
+.share-row:last-child { margin-bottom: 0; }
+.share-track { height: 8px; margin: .35rem 0 .15rem; border-radius: 999px; background: color-mix(in srgb, var(--chart-1) 14%, transparent); overflow: hidden; }
+.share-track span { display: block; height: 100%; border-radius: 999px; background: var(--chart-1); }

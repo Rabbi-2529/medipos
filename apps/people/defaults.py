@@ -10,7 +10,7 @@ from apps.core.permissions import ALL_CODES, CRUD
 _LATER_MODULES = (
     "item", "item_setup", "stock", "pos", "sale", "sale_return", "quotation", "customer", "customer_receive",
     "purchase", "purchase_return", "supplier", "supplier_payment", "transfer", "damage", "adjustment", "promotion",
-    "income", "expense", "deposit_withdraw", "accounting", "report",
+    "income", "expense", "deposit_withdraw", "accounting", "report", "profit_report",
 )
 
 

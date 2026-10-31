@@ -197,15 +197,19 @@ Later: returning expired stock to a supplier without the original purchase, and 
 
 Simplifications: VAT on returned sales stays in sales returns; transfers between outlets don't move value between outlets (stock is one account); purchase discounts lower the inventory value of the purchase as a whole.
 
-### Phase 8 — Reports and dashboard
-- Reports, each with date, outlet and filter options, exportable to Excel, PDF or print:
-  - Sales: daily summary, sale, detailed sale, product sale, due sales.
-  - Profit: product profit, price history.
-  - Stock: purchase, stock, item tracking.
-  - Ledgers: supplier and customer ledger and balance.
-  - Staff: employee sales.
-  - Register and Z-report.
-- Dashboard with KPIs, revenue chart, top sellers, recent transactions, due customers, supplier payables, and expiry alerts.
+### Phase 8 — Reports and dashboard ✅
+- **Report engine** (`apps/reports/engine.py`): a report declares its filters (dates with quick ranges, outlet, customer, supplier, medicine, category, cashier, group-by, an extra choice) and returns columns, rows, totals and headline tiles. One page renders every report: sortable/searchable table with a totals row, **Excel** download (all rows), and **Print / PDF** (prints every row; "Save as PDF" in the print dialog keeps Bangla text intact).
+- **19 reports** on the Reports page (`/reports/`):
+  - Sales: daily sales summary, sales (invoice list, "only with money due"), detailed sales, product sales (by medicine, category, maker or generic, returns taken off), due sales (age in days), sales by payment method.
+  - Profit (own permission, `profit_report.list`): product profit (after discounts, without VAT, returns taken off), profit by invoice, price history (cost per supplier and MRP set per purchase).
+  - Stock & purchases: purchases (paid, returned, due), product purchases (units, free units, cost/unit, last supplier), stock value by category/maker/outlet (cost, MRP, margin, expired value), stock movements (every unit in/out).
+  - Customers & suppliers: customer balances, customer ledger, supplier balances, supplier ledger (running balances).
+  - Staff & registers: sales by employee, cash registers (expected vs counted, short/over).
+  - Links to the reports that live elsewhere: current/low/expiring stock, P&L, balance sheet, cash flow, Z-reports.
+- **Dashboard:** sales today and this month (net of returns), average bill, gross profit and margin (with the profit permission), customers' dues, supplier payables, stock value; a 30-day sales chart (single series, hover/keyboard tooltip, table view); how customers paid this month; top sellers; recent sales; biggest dues. Every block shows only to people allowed to see it.
+- Demo seed adds four weeks of counter sales before today, so the dashboard and reports have a shape.
+- `.claude/launch.json` gains `medipos-alt` (port 8002) for previews when another dev server holds port 8000.
+- 235 tests.
 
 ### Phase 9 — HR and payroll
 - Employees, attendance (FullCalendar), salary and payroll, advance payments, sales commission.

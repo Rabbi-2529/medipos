@@ -27,8 +27,8 @@ from apps.people.models import Employee, Role
 from apps.purchases.models import Purchase
 from apps.purchases.services import clean_lines, receive, save_draft
 from apps.sales.models import Promotion, Quotation, Sale
-from apps.sales.services import complete_sale, create_quotation, create_return, start_register
-from apps.setup.services import provision_tenant
+from apps.sales.services import clean_cart, complete_sale, create_quotation, create_return, start_register, totals
+from apps.setup.services import get_business_settings, provision_tenant
 from apps.stock.models import BatchStock, StockMovement
 from apps.stock.services import batch_on_hand, get_or_create_batch, post_movement
 from apps.suppliers.models import Supplier
@@ -122,6 +122,7 @@ class Command(BaseCommand):
                 self._lazz_staff(tenant, password)
                 self._lazz_medicines(tenant)
                 self._lazz_stock(tenant)
+                self._lazz_history(tenant)
                 self._lazz_sales(tenant)
                 self._lazz_inventory(tenant)
                 self._lazz_accounts(tenant)
@@ -191,10 +192,31 @@ class Command(BaseCommand):
                            account=PaymentAccount.objects.get(name="Cash"), date=today - timedelta(days=3), purchase=received)
             save_draft(tenant=tenant, outlet=main, supplier=beximco, date=today, lines=lines(["Napa", "Tofen"], 3), user=owner)
 
+    def _lazz_history(self, tenant):
+        """Four weeks of walk-in counter sales before today, so the dashboard and reports have a shape (once)."""
+        with tenant_context(tenant), transaction.atomic():
+            if Sale.objects.exists():
+                return
+            owner, main = tenant.owner, Outlet.objects.get(code="0001")
+            cash, bkash = PaymentAccount.objects.get(name="Cash"), PaymentAccount.objects.get(name="bKash")
+            medicines = list(Medicine.objects.filter(catalog_ref__isnull=False, dosage_form__in=["tablet", "capsule"]).order_by("name"))
+            settings, now = get_business_settings(tenant), timezone.now()
+            for days_back in range(28, 0, -1):
+                day = timezone.localtime(now - timedelta(days=days_back))
+                for k in range(2 + (days_back * 7) % 4):  # 2–5 sales a day
+                    seed = days_back * 31 + k * 17
+                    lines = [{"medicine": medicines[(seed + j * 5) % len(medicines)].pk, "unit": "strip" if (seed + j) % 2 else "piece",
+                              "qty": 1 + (seed + j) % 3} for j in range(1 + seed % 3)]
+                    total = totals(clean_cart(lines, "retail"), cart_discount=0, settings=settings)["total"]
+                    account = bkash if seed % 4 == 0 else cash
+                    complete_sale(tenant=tenant, outlet=main, user=owner, lines=lines, rx_checked=True,
+                                  payments=[{"account": account.pk, "amount": str(total)}],
+                                  now=day.replace(hour=9 + 2 * k, minute=(seed * 7) % 60))
+
     def _lazz_sales(self, tenant):
         """Customers, an open register for the owner and a few of today's sales (one on due, partly returned)."""
         with tenant_context(tenant), transaction.atomic():
-            if Sale.objects.exists():
+            if Customer.objects.filter(phone="01711223344").exists():
                 return
             owner, main = tenant.owner, Outlet.objects.get(code="0001")
             cash, bkash = PaymentAccount.objects.get(name="Cash"), PaymentAccount.objects.get(name="bKash")

@@ -1,5 +1,5 @@
 {% extends "layouts/app.html" %}
-{% load i18n money billing_tags %}
+{% load i18n static money billing_tags shop %}
 {% block title %}{% translate "Dashboard" %}{% endblock %}
 {% block page_title %}{% translate "Dashboard" %}{% endblock %}
 {% block page_subtitle %}<p class="page-subtitle">{% now "l, d F Y" %}</p>{% endblock %}
@@ -81,6 +81,133 @@
   <div class="col-6 col-xl-3"><a class="card expiry-tile tone-rose w-100" href="{% url 'stock:expiring' %}?days=0"><span class="expiry-tile-label"><i class="bi bi-hourglass-bottom"></i> {% translate "Expired, still on the shelf" %}</span><span class="expiry-tile-value">{{ stock_alerts.expired }}</span><small>{% translate "batches to write off or return" %}</small></a></div>
 </div>
 {% endif %}
+{% if kpi or receivable or payable or stock %}
+<div class="row g-3 mb-4">
+  {% if kpi %}
+  <div class="col-6 col-xl-3"><div class="card stat-tile tone-violet h-100"><div class="card-body">
+    <div class="stat-label">{% translate "Sales today" %}</div><div class="stat-figure">{% money kpi.today %}</div>
+    <small class="text-body-secondary">{% blocktranslate count n=kpi.today_count %}{{ n }} invoice{% plural %}{{ n }} invoices{% endblocktranslate %}</small>
+  </div></div></div>
+  <div class="col-6 col-xl-3"><div class="card stat-tile tone-sky h-100"><div class="card-body">
+    <div class="stat-label">{% translate "Sales this month" %}</div><div class="stat-figure">{% money kpi.month %}</div>
+    <small class="text-body-secondary">{% translate "Average bill" %} {% money kpi.avg_bill %}</small>
+  </div></div></div>
+  {% if "profit" in kpi %}
+  <div class="col-6 col-xl-3"><div class="card stat-tile tone-teal h-100"><div class="card-body">
+    <div class="stat-label">{% translate "Gross profit this month" %}</div><div class="stat-figure">{% money kpi.profit %}</div>
+    {% if kpi.margin is not None %}<small class="text-body-secondary">{% blocktranslate with m=kpi.margin %}{{ m }}% margin{% endblocktranslate %}</small>{% endif %}
+  </div></div></div>
+  {% endif %}
+  {% endif %}
+  {% if receivable %}
+  <div class="col-6 col-xl-3"><a class="card stat-tile tone-orange h-100 text-decoration-none" href="{% url 'customers:list' %}"><div class="card-body">
+    <div class="stat-label">{% translate "Customers owe you" %}</div><div class="stat-figure">{% money receivable.total %}</div>
+    <small class="text-body-secondary">{% blocktranslate count n=receivable.count %}{{ n }} customer{% plural %}{{ n }} customers{% endblocktranslate %}</small>
+  </div></a></div>
+  {% endif %}
+  {% if payable %}
+  <div class="col-6 col-xl-3"><a class="card stat-tile tone-rose h-100 text-decoration-none" href="{% url 'suppliers:list' %}"><div class="card-body">
+    <div class="stat-label">{% translate "You owe suppliers" %}</div><div class="stat-figure">{% money payable.total %}</div>
+    <small class="text-body-secondary">{% blocktranslate count n=payable.count %}{{ n }} supplier{% plural %}{{ n }} suppliers{% endblocktranslate %}</small>
+  </div></a></div>
+  {% endif %}
+  {% if stock %}
+  <div class="col-6 col-xl-3"><a class="card stat-tile tone-slate h-100 text-decoration-none" href="{% url 'stock:list' %}"><div class="card-body">
+    <div class="stat-label">{% translate "Stock value (cost)" %}</div><div class="stat-figure">{% money stock.value %}</div>
+    <small class="text-body-secondary">{% translate "in your outlets" %}</small>
+  </div></a></div>
+  {% endif %}
+</div>
+{% endif %}
+{% if chart %}
+<div class="row g-4 mb-4">
+  <div class="col-xl-8">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center gap-2">
+        <h2 class="card-title">{% translate "Sales, last 30 days" %}</h2>
+        <button class="btn btn-sm btn-link" type="button" data-chart-table-toggle aria-expanded="false">{% translate "Show as table" %}</button>
+      </div>
+      <div class="card-body">
+        <div class="mp-chart-box" data-sales-chart></div>
+        <div class="table-responsive mt-3" data-chart-table hidden>
+          <table class="table table-sm mb-0 report-table">
+            <thead><tr><th>{% translate "Date" %}</th><th class="text-end">{% translate "Invoices" %}</th><th class="text-end">{% translate "Sales" %}</th></tr></thead>
+            <tbody>{% for p in chart reversed %}<tr><td>{{ p.long }}</td><td class="text-end amount">{{ p.count }}</td><td class="text-end amount">{% money p.total %}</td></tr>{% endfor %}</tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-xl-4">
+    <div class="card h-100">
+      <div class="card-header"><h2 class="card-title">{% translate "How customers paid this month" %}</h2></div>
+      <div class="card-body">
+        {% for row in payment_split %}
+        <div class="share-row">
+          <div class="d-flex justify-content-between"><span>{{ row.name }}</span><strong>{% money row.value %}</strong></div>
+          <div class="share-track" role="presentation"><span style="width: {{ row.share|floatformat:1 }}%"></span></div>
+          <small class="text-body-secondary">{{ row.share|floatformat:0 }}%</small>
+        </div>
+        {% empty %}<p class="text-body-secondary mb-0">{% translate "No payments yet this month." %}</p>{% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+<div class="row g-4 mb-4">
+  <div class="col-xl-4">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center"><h2 class="card-title">{% translate "Top sellers this month" %}</h2>{% if can.report.list %}<a class="small" href="{% url 'reports:report' 'product-sales' %}">{% translate "All" %}</a>{% endif %}</div>
+      <div class="card-body">
+        {% for row in top_sellers %}
+        <div class="share-row">
+          <div class="d-flex justify-content-between gap-2"><span class="text-truncate">{{ forloop.counter }}. {{ row.name }}</span><strong>{% money row.value %}</strong></div>
+          <small class="text-body-secondary">{% blocktranslate with n=row.units %}{{ n }} units{% endblocktranslate %}</small>
+        </div>
+        {% empty %}<p class="text-body-secondary mb-0">{% translate "Nothing sold yet this month." %}</p>{% endfor %}
+      </div>
+    </div>
+  </div>
+  <div class="col-xl-4">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center"><h2 class="card-title">{% translate "Recent sales" %}</h2><a class="small" href="{% url 'sales:list' %}">{% translate "All" %}</a></div>
+      <div class="card-body p-0">
+        <table class="table align-middle mb-0">
+          <tbody>
+            {% for row in recent_sales %}
+            <tr>
+              <td class="ps-3"><a href="{% url 'sales:detail' row.sale.pk %}"><code>{{ row.sale.number }}</code></a><small class="d-block text-body-secondary">{% if row.sale.customer %}{{ row.sale.customer.name }}{% else %}{% translate "Walk-in" %}{% endif %} · {{ row.sale.sold_at|date:"h:i A" }}</small></td>
+              <td class="text-end pe-3 text-nowrap"><strong>{% money row.sale.total %}</strong>{% if row.due %}<small class="d-block text-danger">{% translate "Due" %} {% money row.due %}</small>{% endif %}</td>
+            </tr>
+            {% empty %}<tr><td class="ps-3 text-body-secondary">{% translate "No sales yet." %}</td></tr>{% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="col-xl-4">
+    <div class="card h-100">
+      <div class="card-header"><h2 class="card-title">{% translate "Biggest dues" %}</h2></div>
+      <div class="card-body p-0">
+        <table class="table align-middle mb-0">
+          <tbody>
+            {% if receivable %}
+            <tr class="report-section"><td colspan="2" class="ps-3">{% translate "Customers owe you" %}</td></tr>
+            {% for c in receivable.top %}<tr><td class="ps-3"><a href="{% url 'customers:detail' c.pk %}">{{ c.name }}</a></td><td class="text-end pe-3 text-nowrap">{% money c.balance %}</td></tr>
+            {% empty %}<tr><td colspan="2" class="ps-3 text-body-secondary">{% translate "Nobody owes you." %}</td></tr>{% endfor %}
+            {% endif %}
+            {% if payable %}
+            <tr class="report-section"><td colspan="2" class="ps-3">{% translate "You owe suppliers" %}</td></tr>
+            {% for sup in payable.top %}<tr><td class="ps-3"><a href="{% url 'suppliers:detail' sup.pk %}">{{ sup.name }}</a></td><td class="text-end pe-3 text-nowrap">{% money sup.balance %}</td></tr>
+            {% empty %}<tr><td colspan="2" class="ps-3 text-body-secondary">{% translate "You owe nobody." %}</td></tr>{% endfor %}
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{{ chart|json_script:"sales-chart-data" }}
+{% endif %}
 <div class="row g-4">
   {% if checklist %}
   <div class="col-lg-6">
@@ -118,5 +245,31 @@
     </div>
   </div>
 </div>
+{% endif %}
+{% endblock %}
+{% block extra_js %}
+{% if chart %}
+<script src="{% static 'js/charts.js' %}?v=1"></script>
+<script>
+  (function () {
+    var box = document.querySelector("[data-sales-chart]");
+    var points = JSON.parse(document.getElementById("sales-chart-data").textContent);
+    var currency = "{{ currency|escapejs }}";
+    var nf = new Intl.NumberFormat("en-US", { maximumFractionDigits: 2, minimumFractionDigits: 2 });
+    MP.columnChart(box, points, {
+      title: "{% filter escapejs %}{% translate "Sales, last 30 days" %}{% endfilter %}",
+      money: function (v) { return currency + nf.format(v); },
+      compact: function (v) { return v >= 1000 ? (Math.round(v / 100) / 10) + "K" : String(Math.round(v)); },
+      texts: { invoices: "{% filter escapejs %}{% translate "invoices" %}{% endfilter %}" }
+    });
+    var toggle = document.querySelector("[data-chart-table-toggle]"), table = document.querySelector("[data-chart-table]");
+    var showText = toggle.textContent, hideText = "{% filter escapejs %}{% translate "Hide table" %}{% endfilter %}";
+    toggle.addEventListener("click", function () {
+      table.hidden = !table.hidden;
+      toggle.textContent = table.hidden ? showText : hideText;
+      toggle.setAttribute("aria-expanded", String(!table.hidden));
+    });
+  })();
+</script>
 {% endif %}
 {% endblock %}

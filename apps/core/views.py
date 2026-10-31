@@ -37,6 +37,9 @@ def dashboard(request):
             if not all(step["done"] for step in checklist):
                 context["checklist"] = checklist
         context.update(_stock_alerts(request))
+        from apps.reports.dashboard import dashboard_context
+
+        context.update(dashboard_context(request))
     return render(request, "core/dashboard.html", context)
 
 
