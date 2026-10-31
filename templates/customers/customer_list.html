@@ -1,0 +1,45 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+{% block title %}{% translate "Customers" %}{% endblock %}
+{% block page_title %}{% translate "Customers" %}{% endblock %}
+{% block page_actions %}
+{% if can.customer_receive.create %}<a class="btn btn-outline-primary" href="{% url 'customers:receipt_create' %}"><i class="bi bi-cash-coin"></i> {% translate "Collect due" %}</a>{% endif %}
+{% if can.customer.create %}<a class="btn btn-primary" href="{% url 'customers:create' %}"><i class="bi bi-person-plus"></i> {% translate "Add customer" %}</a>{% endif %}
+{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <div class="table-filters">
+      <div class="table-filter">
+        <label class="form-label" for="f-due">{% translate "Show" %}</label>
+        <select id="f-due" class="form-select" data-mp-select data-no-search>
+          <option value="">{% translate "All customers" %}</option>
+          <option value="yes">{% translate "Only ones who owe" %}</option>
+        </select>
+      </div>
+      <div class="table-filter">
+        <label class="form-label" for="f-status">{% translate "Status" %}</label>
+        <select id="f-status" class="form-select" data-mp-select data-no-search>
+          <option value="active">{% translate "Active" %}</option><option value="inactive">{% translate "Inactive" %}</option><option value="">{% translate "All" %}</option>
+        </select>
+      </div>
+    </div>
+    <table id="customer-table" class="table table-hover align-middle w-100">
+      <thead><tr><th>{% translate "Customer" %}</th><th class="text-center">{% translate "Sales" %}</th><th>{% translate "Last sale" %}</th><th class="text-end">{% translate "Owes" %}</th><th class="text-end">{% translate "Credit limit" %}</th><th></th></tr></thead>
+    </table>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+  (function () {
+    var table = MP.dataTable("#customer-table", {
+      ajax: { url: "{% url 'customers:data' %}", data: function (d) { d.due = $("#f-due").val(); d.status = $("#f-status").val(); } },
+      order: [[0, "asc"]],
+      columnDefs: [{ targets: 1, className: "text-center" }, { targets: [3, 4], className: "text-end" }, { targets: 5, orderable: false, className: "text-end" }],
+      language: { searchPlaceholder: "{% filter escapejs %}{% translate "Name or phone…" %}{% endfilter %}" }
+    });
+    $("#f-due, #f-status").on("change", function () { table.ajax.reload(); });
+  })();
+</script>
+{% endblock %}

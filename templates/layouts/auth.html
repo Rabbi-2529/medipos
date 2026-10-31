@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load i18n %}
 {% block body_class %}auth-page{% endblock %}
 {% block body %}
 <div class="auth-wrap">
@@ -12,5 +13,12 @@
       {% block auth_content %}{% endblock %}
     </div>
   </div>
+  {% get_current_language as LANG %}{% get_available_languages as LANGS %}
+  <form class="auth-languages" method="post" action="{% url 'accounts:language' %}">
+    {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+    {% for code, name in LANGS %}
+      <button type="submit" name="language" value="{{ code }}" lang="{{ code }}" class="{% if code == LANG %}is-current{% endif %}" {% if code == LANG %}aria-current="true"{% endif %}>{{ name }}</button>
+    {% endfor %}
+  </form>
 </div>
 {% endblock %}

@@ -1,0 +1,67 @@
+{% extends "layouts/app.html" %}
+{% load i18n shop %}
+{% block title %}{% translate "Sale return" %}{% endblock %}
+{% block page_title %}{% translate "Return items from" %} {{ sale.number }}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle"><a href="{% url 'sales:detail' sale.pk %}"><i class="bi bi-chevron-left"></i> {{ sale.number }}</a> · {% if sale.customer %}{{ sale.customer }}{% else %}{% translate "Walk-in" %}{% endif %} · {% translate "Stock goes back to" %} {{ sale.outlet.name }}</p>{% endblock %}
+{% block content %}
+<form method="post" novalidate>
+  {% csrf_token %}
+  {% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
+  <div class="card mb-4">
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table align-middle mb-0">
+          <thead><tr><th>{% translate "Medicine" %}</th><th class="text-center">{% translate "Sold (units)" %}</th><th class="text-center">{% translate "Can return" %}</th><th class="text-end">{% translate "Refund / unit" %}</th><th style="width:140px">{% translate "Returning (units)" %}</th></tr></thead>
+          <tbody>
+            {% for row in lines %}
+            <tr>
+              <td class="fw-semibold">{{ row.line.medicine.display_name }}</td>
+              <td class="text-center">{{ row.line.quantity }}</td>
+              <td class="text-center">{{ row.left }}</td>
+              <td class="text-end" data-price="{{ row.price }}">{% money row.price %}</td>
+              <td>{% if row.left %}<input type="number" class="form-control form-control-sm" name="qty_{{ row.line.pk }}" min="0" max="{{ row.left }}" step="1" value="{{ row.posted }}" data-qty aria-label="{% translate 'Units returning' %}">{% else %}<span class="text-body-secondary">—</span>{% endif %}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-body">
+      <div class="row align-items-end">
+        <div class="col-md-3 mb-3"><label class="form-label">{% translate "Return value" %}</label><div class="balance-figure" data-return-total></div></div>
+        <div class="col-md-3 mb-3"><label class="form-label" for="refund_amount">{% translate "Refund now" %}</label>
+          <input id="refund_amount" name="refund_amount" type="number" min="0" step="0.01" class="form-control" value="{{ posted.refund_amount|default:'' }}" data-refund></div>
+        <div class="col-md-3 mb-3"><label class="form-label" for="refund_account">{% translate "Refund from" %}</label>
+          <select id="refund_account" name="refund_account" class="form-select" data-mp-select data-no-search>
+            {% for a in accounts %}<option value="{{ a.pk }}" {% if posted.refund_account == a.pk|stringformat:'s' %}selected{% endif %}>{{ a.name }}</option>{% endfor %}
+          </select></div>
+        <div class="col-md-3 mb-3"><label class="form-label" for="reason">{% translate "Reason" %}</label><input id="reason" name="reason" class="form-control" maxlength="255" value="{{ posted.reason|default:'' }}"></div>
+      </div>
+      <p class="form-text">{% if sale.customer %}{% translate "Whatever isn't refunded now is taken off the customer's due." %}{% else %}{% translate "Walk-in sale: the full value is refunded." %}{% endif %}</p>
+      <button class="btn btn-primary" type="submit"><i class="bi bi-arrow-return-left"></i> {% translate "Save return" %}</button>
+    </div>
+  </div>
+</form>
+{% endblock %}
+{% block extra_js %}
+<script>
+  (function () {
+    var walkIn = {{ sale.customer|yesno:"false,true" }}, currency = "{{ currency|escapejs }}";
+    var refund = document.querySelector("[data-refund]"), out = document.querySelector("[data-return-total]");
+    function update() {
+      var total = 0;
+      document.querySelectorAll("[data-qty]").forEach(function (input) {
+        var price = parseFloat(input.closest("tr").querySelector("[data-price]").dataset.price) || 0;
+        total += price * (parseInt(input.value, 10) || 0);
+      });
+      total = Math.round(total * 100) / 100;
+      out.textContent = currency + total.toFixed(2);
+      if (walkIn || !refund.value) refund.value = total ? total.toFixed(2) : "";
+    }
+    document.querySelectorAll("[data-qty]").forEach(function (i) { i.addEventListener("input", update); });
+    update();
+  })();
+</script>
+{% endblock %}

@@ -1,0 +1,20 @@
+{% load i18n %}{% get_current_language as LANG %}{% get_available_languages as LANGS %}
+<div class="dropdown">
+  <button class="btn-icon lang-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="{% translate 'Language' %}" title="{% translate 'Language' %}">
+    <i class="bi bi-translate"></i><span class="lang-code">{{ LANG|upper }}</span>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    {% for code, name in LANGS %}
+    <li>
+      <form method="post" action="{% url 'accounts:language' %}">
+        {% csrf_token %}
+        <input type="hidden" name="language" value="{{ code }}">
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+        <button class="dropdown-item{% if code == LANG %} active{% endif %}" type="submit" lang="{{ code }}">
+          <i class="bi {% if code == LANG %}bi-check2{% else %}bi-globe2{% endif %}"></i> {{ name }}
+        </button>
+      </form>
+    </li>
+    {% endfor %}
+  </ul>
+</div>

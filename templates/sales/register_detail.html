@@ -1,0 +1,52 @@
+{% extends "layouts/app.html" %}
+{% load i18n shop %}
+{% block title %}{% translate "Cash register" %}{% endblock %}
+{% block page_title %}{% if register.is_open %}{% translate "Close register" %}{% else %}{% translate "Z-report" %}{% endif %}
+  {% if register.is_open %}<span class="state-badge state-active">{% translate "Open" context "register state" %}</span>{% else %}<span class="state-badge state-suspended">{% translate "Closed" %}</span>{% endif %}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle no-print">{{ register.outlet.name }}{% if register.counter %} · {{ register.counter.name }}{% endif %} · {{ register.opened_by }} · {{ register.opened_at|date:"d M Y, h:i A" }}{% if register.closed_at %} → {{ register.closed_at|date:"d M Y, h:i A" }}{% endif %}</p>{% endblock %}
+{% block page_actions %}<div class="no-print d-flex gap-2"><a class="btn btn-outline-primary" href="{% url 'sales:registers' %}">{% translate "All registers" %}</a><button class="btn btn-outline-secondary" type="button" onclick="window.print()"><i class="bi bi-printer"></i> {% translate "Print" %}</button></div>{% endblock %}
+{% block content %}
+<div class="row g-4">
+  <div class="col-lg-7">
+    <div class="card">
+      <div class="card-body">
+        <dl class="totals">
+          <dt>{% translate "Sales" %}</dt><dd>{{ summary.sale_count }}</dd>
+          <dt>{% translate "Sales value" %}</dt><dd>{% money summary.sales_total %}</dd>
+          <dt>{% translate "Discounts given" %}</dt><dd>{% money summary.discounts %}</dd>
+          <dt>{% translate "VAT" %}</dt><dd>{% money summary.vat %}</dd>
+          <dt>{% translate "Given on due" %}</dt><dd>{% money summary.dues_given %}</dd>
+          <dt>{% translate "Returns" %}</dt><dd>{% money summary.returns %}</dd>
+        </dl>
+        <h2 class="form-section-title mt-4">{% translate "Money by account" %}</h2>
+        <dl class="totals">
+          {% for name, amount in summary.by_account %}<dt>{{ name }}</dt><dd>{% money amount %}</dd>{% empty %}<dt>—</dt><dd></dd>{% endfor %}
+        </dl>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-5">
+    <div class="card">
+      <div class="card-body">
+        <dl class="totals">
+          <dt>{% translate "Opening cash" %}</dt><dd>{% money register.opening_cash %}</dd>
+          <dt class="totals-grand">{% translate "Cash expected" %}</dt><dd class="totals-grand">{% money summary.expected_cash %}</dd>
+          {% if not register.is_open %}
+          <dt>{% translate "Cash counted" %}</dt><dd>{% money register.counted_cash %}</dd>
+          <dt>{% translate "Difference" %}</dt><dd class="{% if difference < 0 %}text-danger{% elif difference > 0 %}text-success{% endif %} fw-semibold">{% money difference %}</dd>
+          {% endif %}
+        </dl>
+        {% if register.is_open and register.opened_by_id == user.pk %}
+        <form method="post" class="mt-4 no-print" data-confirm="{% translate 'Close the register? You will need to open a new one to sell again.' %}">
+          {% csrf_token %}
+          <div class="mb-3"><label class="form-label" for="counted_cash">{% translate "Cash you counted in the drawer" %}</label>
+            <input id="counted_cash" name="counted_cash" type="number" min="0" step="0.01" class="form-control form-control-lg" required></div>
+          <div class="mb-3"><label class="form-label" for="note">{% translate "Note" %}</label><input id="note" name="note" class="form-control" maxlength="255"></div>
+          <button class="btn btn-primary w-100" type="submit"><i class="bi bi-lock"></i> {% translate "Close register" %}</button>
+        </form>
+        {% elif register.note %}<p class="form-text mt-3 mb-0">{{ register.note }}</p>{% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

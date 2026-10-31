@@ -50,7 +50,7 @@
       ajax: { url: "{% url 'items:catalog_data' %}", data: function (d) { d.manufacturer = maker.value; d.form = $("#f-form").val() || ""; } },
       columnDefs: [{ targets: [0, 4], orderable: false }, { targets: 5, className: "text-end" }],
       order: [[1, "asc"]],
-      language: { searchPlaceholder: "Brand or generic…" }
+      language: { searchPlaceholder: "{% filter escapejs %}{% translate "Brand or generic…" %}{% endfilter %}" }
     });
     var timer;
     maker.addEventListener("input", function () { clearTimeout(timer); timer = setTimeout(function () { table.ajax.reload(); }, 350); });

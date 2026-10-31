@@ -68,7 +68,7 @@ Custom user (email/phone login), Tenant model, fail-closed tenant scoping and mi
 - **Subscription page** is limited to staff with `subscription.show`. Others see a plain notice when the account is locked.
 - 124 tests.
 
-Deferred: "default customer" moves to Phase 5, when customers exist.
+Deferred: "default customer" moves to Phase 5, when customers exist (resolved there: no-customer sales are walk-in sales).
 
 ### Phase 3 — Medicine master ✅
 - **Setup lists** (`items` app): categories, generics, manufacturers, units and racks, each unique per pharmacy.
@@ -135,18 +135,37 @@ Moved to Phase 4: **opening-stock import** (needs the stock engine).
 
 Later: low-stock / expiring reports, adjustments, transfers and damage (Phase 6); journals for payments and purchases (Phase 7); cash refunds from suppliers (Phase 7).
 
-### Phase 5 — POS and sales
-- POS: search by barcode, name, generic or brand.
-- FEFO batch pick with manual override, selling by box or by piece, retail or wholesale price.
-- Line and cart discount, VAT.
-- Expired-stock block and a prescription warning.
-- Quick-add customer with credit limit, split payment, due sale, hold/recall, cash register open/close and Z-report, keyboard shortcuts.
-- Print on 58mm or 80mm thermal, or A4.
-- Sale list, sale returns into the same batch, customer due collection, customer ledger, promotions, quotations.
-- Done when: a full sale, including a due sale, leaves stock, cash and the customer's balance consistent.
+### Phase 5 — POS and sales (+ language switching) ✅
+- **Language switching (user request, 2026-10-31):**
+  - English ⇄ বাংলা switcher in the top bar and on the login/sign-up pages. A logged-in user's choice is saved on their account (`User.language`); visitors get a cookie.
+  - Each pharmacy's business settings set the default language for staff who haven't picked one.
+  - Every screen built so far is translated (1,094 strings in `locale/bn`). Medicine names stay as entered.
+  - `manage.py translations extract|compile|stats` uses Babel, so no GNU gettext is needed on Windows.
+  - Optional Bangla digits on receipts.
+- **Cash registers:** open with a float per outlet and user; the POS asks for one first. The Z-report shows sales, discounts, VAT, due given, returns, money by account and expected cash; close it by entering the counted cash. Managers see all registers, others only their own.
+- **POS** (`/sales/pos/`), a full-screen page with its own slim bar (back to dashboard, register, sales, close register, outlet, language, full screen):
+  - Before any search it shows best sellers (last 90 days in the outlet, topped up with what's on the shelf). Buttons switch to a dosage form (Tablet, Capsule, Syrup…), a category, or all medicines (user request, 2026-10-31).
+  - Search by name, generic, code or barcode; an exact scan adds straight to the cart.
+  - Sell by piece, strip or box at retail (MRP) or wholesale price.
+  - FEFO batch pick with a manual batch override. Expired batches are never sold; stock is checked before payment.
+  - Line and cart discount (amount or %), VAT %, and rounding to whole taka (both in settings).
+  - Customer search with quick-add (name, phone, credit limit); a customer's default discount applies automatically.
+  - Split payment across the pharmacy's payment accounts (Cash, bKash, Nagad, bank); change is shown for cash.
+  - Due sales need a customer and respect their credit limit. A prescription confirmation is required for Rx medicines.
+  - Hold/recall carts. Shortcuts: F2 search, F4 pay, F8 hold, F9 held carts.
+  - Receipts on 58 mm or 80 mm thermal paper, or an A4 invoice.
+- **Sales** (`INV` numbers from the invoice sequence): list with outlet, date and due filters, plus a detail page with batches, payments and returns.
+- **Sale returns** (`SRT-`): limited to what's still returnable. Stock goes back to the batches it came from, at the price actually paid after discounts. Walk-in returns are refunded in full; a customer's return first reduces their due, and any cash refund is recorded.
+- **Customers:** list with balances, detail page with a running ledger (debit = owes), opening due, credit limit and default discount. Due collection (`RCV-`) on account or against a sale.
+- **Default customer** (deferred from Phase 2): not needed. A sale with no customer is a walk-in sale.
+- Demo seed: two customers, an open register and four sales, including a due sale with a return.
+- 204 tests.
+
+Moved to Phase 6: promotions and quotations.
 
 ### Phase 6 — Inventory operations and expiry control
 - Stock page with per-batch breakdown and stock value.
+- Promotions (discount rules) and quotations (from Phase 5).
 - Low-stock and expiring-soon (30/60/90 days) reports.
 - Damage and expired write-offs, and returns of expired stock to suppliers.
 - Transfers between outlets (dispatch → receive), and stock count/adjustment.
@@ -178,7 +197,8 @@ Later: low-stock / expiring reports, adjustments, transfers and damage (Phase 6)
 
 ### Phase 11 — Settings polish, printing, Bangla
 - Invoice designer settings (fields, labels, logo/letterhead, terms, QR code), printer and POS settings.
-- Full Bangla translation, and per-tenant data export/backup.
+- Translate the screens added after Phase 5 into Bangla, plus Bangla invoice labels. The language switcher itself ships in Phase 5.
+- Per-tenant data export/backup.
 
 ### Phase 12 — Production deploy
 - Docker Compose (web, PostgreSQL, Redis, Celery, Nginx) and HTTPS.

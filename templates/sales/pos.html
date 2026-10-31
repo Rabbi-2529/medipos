@@ -1,0 +1,173 @@
+{% extends "layouts/pos.html" %}
+{% load i18n %}
+{% block title %}{% translate "POS" %}{% endblock %}
+{% block body_class %}pos-mode{% endblock %}
+{% block pos_bar_info %}
+<span class="pos-bar-info"><i class="bi bi-cash-stack"></i> {% translate "Register opened" %} {{ register.opened_at|date:"h:i A" }}{% if register.counter %} · {{ register.counter.name }}{% endif %}</span>
+{% endblock %}
+{% block pos_bar_links %}
+{% if can.sale.list %}<a class="btn btn-sm btn-outline-secondary d-none d-lg-inline-block" href="{% url 'sales:list' %}"><i class="bi bi-receipt"></i> {% translate "Sales" %}</a>{% endif %}
+<a class="btn btn-sm btn-outline-danger" href="{% url 'sales:register_close' %}" title="{% translate 'Close register (Z-report)' %}"><i class="bi bi-door-closed"></i><span class="d-none d-xl-inline"> {% translate "Close register" %}</span></a>
+{% endblock %}
+{% block content %}
+<div class="pos">
+  <section class="card pos-left">
+    <div class="card-body">
+      <div class="pos-search">
+        <i class="bi bi-upc-scan"></i>
+        <input id="pos-search" type="search" class="form-control form-control-lg" autocomplete="off" autofocus
+               placeholder="{% translate 'Scan a barcode or type a medicine / generic name' %}" aria-label="{% translate 'Search medicines' %}">
+        <kbd>F2</kbd>
+      </div>
+      <div class="pos-toolbar">
+        <div class="kind-switch" role="radiogroup" aria-label="{% translate 'Price' %}">
+          <label class="kind-option"><input type="radio" name="price_type" value="retail" checked> <span>{% translate "Retail (MRP)" %}</span></label>
+          <label class="kind-option"><input type="radio" name="price_type" value="wholesale"> <span>{% translate "Wholesale" %}</span></label>
+        </div>
+        <span class="text-body-secondary small d-none d-md-inline">{% translate "Scanning a barcode adds it straight to the cart." %}</span>
+      </div>
+      <div class="pos-cats" data-cats role="group" aria-label="{% translate 'Categories' %}">
+        <button class="pos-cat tone-rose is-active" type="button" data-category="top"><i class="bi bi-fire"></i> {% translate "Best sellers" %}</button>
+        {% for shelf in shelves %}<button class="pos-cat tone-{{ shelf.tone }}" type="button" data-category="{{ shelf.key }}"><i class="bi {{ shelf.icon }}"></i> {{ shelf.name }}</button>{% endfor %}
+        <button class="pos-cat tone-slate" type="button" data-category="all"><i class="bi bi-grid"></i> {% translate "All medicines" %}</button>
+      </div>
+      <div class="pos-results" data-results role="listbox" aria-label="{% translate 'Medicines' %}"></div>
+    </div>
+  </section>
+
+  <section class="card pos-right">
+    <div class="card-body">
+      <div class="pos-customer">
+        <select id="pos-customer" class="form-select" aria-label="{% translate 'Customer' %}"><option></option></select>
+        {% if config.canAddCustomer %}<button class="btn btn-outline-primary" type="button" data-new-customer title="{% translate 'New customer' %}" aria-label="{% translate 'New customer' %}"><i class="bi bi-person-plus"></i></button>{% endif %}
+      </div>
+      <p class="pos-customer-info" data-customer-info></p>
+
+      <div class="pos-cart">
+        <table class="table table-sm align-middle mb-0">
+          <thead><tr><th>{% translate "Item" %}</th><th style="width:96px">{% translate "Unit" %}</th><th style="width:118px">{% translate "Qty" %}</th><th style="width:84px">{% translate "Disc." %}</th><th class="text-end">{% translate "Total" %}</th><th></th></tr></thead>
+          <tbody data-cart></tbody>
+        </table>
+        <p class="pos-hint text-center" data-cart-empty>{% translate "The cart is empty." %}</p>
+      </div>
+
+      <dl class="totals pos-totals">
+        <dt>{% translate "Subtotal" %}</dt><dd data-t="subtotal"></dd>
+        <dt>{% translate "Item discounts" %}</dt><dd data-t="lineDiscount"></dd>
+        <dt>
+          <span class="d-inline-flex align-items-center gap-2">{% translate "Discount" %}
+            <select class="form-select form-select-sm pos-discount-mode" data-discount-mode aria-label="{% translate 'Discount type' %}">
+              <option value="amount">{{ config.currency }}</option><option value="percent">%</option>
+            </select>
+          </span>
+        </dt>
+        <dd><input type="number" min="0" step="0.01" class="form-control form-control-sm" data-discount aria-label="{% translate 'Cart discount' %}"></dd>
+        <dt data-vat-row>{% translate "VAT" %} ({{ config.vatPercent }}%)</dt><dd data-vat-row data-t="vat"></dd>
+        <dt data-rounding-row>{% translate "Rounding" %}
+          <i class="bi bi-info-circle text-body-secondary" tabindex="0" title="{% translate 'The total is rounded to the nearest whole taka. Turn this off in Business settings → “Round sale totals to whole taka”.' %}"></i>
+          <small class="pos-rounding-note" data-rounding-note></small>
+        </dt><dd data-rounding-row data-t="rounding"></dd>
+        <dt class="totals-grand">{% translate "Total" %}</dt><dd class="totals-grand" data-t="total"></dd>
+      </dl>
+
+      <div class="pos-actions">
+        <button class="btn btn-soft tone-amber" type="button" data-hold><i class="bi bi-pause-circle"></i> {% translate "Hold" %} <kbd>F8</kbd></button>
+        <button class="btn btn-soft tone-sky" type="button" data-held><i class="bi bi-collection"></i> {% translate "Held" %} <kbd>F9</kbd></button>
+        <button class="btn btn-soft tone-red" type="button" data-clear><i class="bi bi-x-circle"></i> {% translate "Clear" %}</button>
+        <button class="btn btn-lg pos-pay" type="button" data-pay><i class="bi bi-cash-coin"></i> {% translate "Pay" %} <kbd>F4</kbd></button>
+      </div>
+    </div>
+  </section>
+</div>
+
+{# ---- Pay ---- #}
+<div class="modal fade" id="payModal" tabindex="-1" aria-labelledby="payTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header"><h2 class="modal-title fs-5" id="payTitle">{% translate "Payment" %}</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% translate 'Close' %}"></button></div>
+      <div class="modal-body">
+        <div class="pay-total"><span>{% translate "To pay" %}</span><strong data-pay-total></strong></div>
+        <div data-payments></div>
+        <button class="btn btn-sm btn-link px-0" type="button" data-add-payment><i class="bi bi-plus"></i> {% translate "Split: add another payment method" %}</button>
+        <div class="row g-2 mt-1">
+          <div class="col-6">
+            <label class="form-label" for="cash-tendered">{% translate "Cash received" %}</label>
+            <input id="cash-tendered" type="number" min="0" step="0.01" class="form-control" data-tendered>
+          </div>
+          <div class="col-6"><label class="form-label">{% translate "Change" %}</label><div class="pay-change" data-change>—</div></div>
+        </div>
+        <div class="alert alert-warning py-2 mt-3 d-none" data-due-note></div>
+        <div class="form-check mt-3 d-none" data-rx-row>
+          <input class="form-check-input" type="checkbox" id="rx-checked" data-rx>
+          <label class="form-check-label" for="rx-checked"><span class="badge text-bg-danger">Rx</span> {% translate "I checked the prescription for the prescription-only medicines." %}</label>
+        </div>
+        <div class="alert alert-danger py-2 mt-3 d-none" data-pay-error></div>
+      </div>
+      <div class="modal-footer"><button type="button" class="btn btn-link" data-bs-dismiss="modal">{% translate "Back" %}</button><button type="button" class="btn btn-primary" data-complete><i class="bi bi-check2-circle"></i> {% translate "Complete sale" %}</button></div>
+    </div>
+  </div>
+</div>
+
+{# ---- Done ---- #}
+<div class="modal fade" id="doneModal" tabindex="-1" aria-labelledby="doneTitle" aria-hidden="true" data-bs-backdrop="static">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content text-center">
+      <div class="modal-body pt-4">
+        <i class="bi bi-check-circle-fill text-success display-5"></i>
+        <h2 class="fs-5 mt-2" id="doneTitle">{% translate "Sale complete" %}</h2>
+        <p class="mb-1"><code data-done-number></code></p>
+        <p class="pay-change mb-1 d-none" data-done-change></p>
+        <p class="text-danger mb-0 d-none" data-done-due></p>
+      </div>
+      <div class="modal-footer justify-content-center border-0 pb-4">
+        <button type="button" class="btn btn-outline-primary" data-print><i class="bi bi-printer"></i> {% translate "Print receipt" %}</button>
+        <button type="button" class="btn btn-primary" data-new-sale>{% translate "New sale" %} <kbd>F2</kbd></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ---- Choose batch ---- #}
+<div class="modal fade" id="batchModal" tabindex="-1" aria-labelledby="batchTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header"><h2 class="modal-title fs-5" id="batchTitle">{% translate "Sell from which batch?" %}</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% translate 'Close' %}"></button></div>
+      <div class="modal-body"><div class="list-group" data-batches></div></div>
+    </div>
+  </div>
+</div>
+
+{# ---- Held carts ---- #}
+<div class="modal fade" id="heldModal" tabindex="-1" aria-labelledby="heldTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header"><h2 class="modal-title fs-5" id="heldTitle">{% translate "Held carts" %}</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% translate 'Close' %}"></button></div>
+      <div class="modal-body"><div class="list-group" data-held-list></div></div>
+    </div>
+  </div>
+</div>
+
+{# ---- New customer ---- #}
+<div class="modal fade" id="customerModal" tabindex="-1" aria-labelledby="customerTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <form class="modal-content" data-customer-form novalidate>
+      <div class="modal-header"><h2 class="modal-title fs-5" id="customerTitle">{% translate "New customer" %}</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% translate 'Close' %}"></button></div>
+      <div class="modal-body">
+        <div class="mb-3"><label class="form-label" for="nc-name">{% translate "Name" %} <span class="text-danger">*</span></label><input id="nc-name" name="name" class="form-control" required></div>
+        <div class="mb-3"><label class="form-label" for="nc-phone">{% translate "Phone" %}</label><input id="nc-phone" name="phone" class="form-control" inputmode="tel"></div>
+        <div class="mb-1"><label class="form-label" for="nc-limit">{% translate "Credit limit" %}</label><input id="nc-limit" name="credit_limit" type="number" min="0" step="1" class="form-control"><div class="form-text">{% translate "Empty = no limit." %}</div></div>
+        <div class="alert alert-danger py-2 mt-2 d-none" data-customer-error></div>
+      </div>
+      <div class="modal-footer"><button type="submit" class="btn btn-primary">{% translate "Add customer" %}</button></div>
+    </form>
+  </div>
+</div>
+
+<div class="toast-container position-fixed bottom-0 end-0 p-3"><div class="toast text-bg-dark" role="status" data-toast><div class="toast-body"></div></div></div>
+{{ config|json_script:"pos-config" }}
+{{ texts|json_script:"pos-i18n" }}
+{% endblock %}
+{% block extra_js %}
+{% load static %}
+<script src="{% static 'js/pos.js' %}?v=3"></script>
+{% endblock %}

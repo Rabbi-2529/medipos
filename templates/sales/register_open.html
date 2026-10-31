@@ -1,0 +1,33 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+{% block title %}{% translate "Open register" %}{% endblock %}
+{% block page_title %}{% translate "Open your cash register" %}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% blocktranslate with outlet=request.outlet.name %}Count the cash in your drawer before your first sale at {{ outlet }}.{% endblocktranslate %}</p>{% endblock %}
+{% block content %}
+<div class="row">
+  <div class="col-lg-6 col-xl-5">
+    <form class="card" method="post" action="{% url 'sales:register_open' %}">
+      {% csrf_token %}
+      <div class="card-body">
+        <div class="mb-3">
+          <label class="form-label" for="opening_cash">{% translate "Opening cash (float)" %}</label>
+          <input id="opening_cash" name="opening_cash" type="number" min="0" step="0.01" class="form-control form-control-lg" value="0" autofocus>
+        </div>
+        {% if counters %}
+        <div class="mb-3">
+          <label class="form-label" for="counter">{% translate "Counter" %}</label>
+          <select id="counter" name="counter" class="form-select" data-mp-select data-no-search>
+            {% for c in counters %}<option value="{{ c.pk }}">{{ c.name }}</option>{% endfor %}
+          </select>
+        </div>
+        {% endif %}
+        <div class="mb-3">
+          <label class="form-label" for="note">{% translate "Note" %}</label>
+          <input id="note" name="note" class="form-control" maxlength="255">
+        </div>
+        <button class="btn btn-primary w-100" type="submit"><i class="bi bi-unlock"></i> {% translate "Open register and start selling" %}</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -36,8 +36,16 @@ PEOPLE = _("People")
 ACCOUNTS = _("Accounts")
 MEDICINES = _("Medicines")
 BUYING = _("Stock & purchases")
+SELLING = _("Sales & customers")
 
 MODULES = (
+    # "pos.create" = sell at the counter (and open/close your own cash register).
+    Module("pos", _("POS (sell)"), SELLING, (CREATE,)),
+    Module("sale", _("Sales"), SELLING, (LIST,)),
+    Module("sale_return", _("Sale returns"), SELLING, (LIST, CREATE)),
+    Module("register", _("Cash registers of all staff"), SELLING, (LIST,)),
+    Module("customer", _("Customers"), SELLING, (LIST, CREATE, EDIT, DELETE)),
+    Module("customer_receive", _("Due collection"), SELLING, (LIST, CREATE)),
     # "stock.create" = opening-stock import. "purchase.create" also receives purchases; edit/delete apply to drafts.
     Module("stock", _("Stock"), BUYING, (LIST, CREATE)),
     Module("purchase", _("Purchases"), BUYING, (LIST, CREATE, EDIT, DELETE)),

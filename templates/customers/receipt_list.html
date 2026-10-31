@@ -1,0 +1,23 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+{% block title %}{% translate "Due collections" %}{% endblock %}
+{% block page_title %}{% translate "Due collections" %}{% endblock %}
+{% block page_actions %}{% if can.customer_receive.create %}<a class="btn btn-primary" href="{% url 'customers:receipt_create' %}"><i class="bi bi-cash-coin"></i> {% translate "Collect due" %}</a>{% endif %}{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <table id="receipt-table" class="table table-hover align-middle w-100">
+      <thead><tr><th>{% translate "No." %}</th><th>{% translate "Date" %}</th><th>{% translate "Customer" %}</th><th>{% translate "Sale" %}</th><th>{% translate "Received in" %}</th><th>{% translate "Reference" %}</th><th class="text-end">{% translate "Amount" %}</th></tr></thead>
+    </table>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+  MP.dataTable("#receipt-table", {
+    ajax: { url: "{% url 'customers:receipt_data' %}" },
+    order: [[1, "desc"]],
+    columnDefs: [{ targets: [3, 5], orderable: false }, { targets: 6, className: "text-end" }]
+  });
+</script>
+{% endblock %}

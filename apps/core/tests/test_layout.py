@@ -56,7 +56,7 @@ class MenuTests(TestCase):
         for expected in ("Dashboard", "Medicine list", "Current stock", "Opening stock", "Add purchase", "Purchase list",
                          "Purchase returns", "Supplier list", "Supplier payments", "Employees", "Business settings", "Subscription"):
             self.assertIn(expected, labels)
-        for unbuilt in ("POS", "Sale list", "Low stock", "Transfers", "Reports"):
+        for unbuilt in ("Quotations", "Low stock", "Transfers", "Reports", "Payroll"):
             self.assertNotIn(unbuilt, labels)
         self.assertEqual(labels[0], "Dashboard")
         self.assertLess(labels.index("Current stock"), labels.index("Add purchase"))

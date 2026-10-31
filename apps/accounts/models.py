@@ -45,6 +45,10 @@ class User(AbstractUser):
     is_owner = models.BooleanField(
         default=False, help_text=_("The pharmacy's owner account. Owners always have full access.")
     )
+    language = models.CharField(
+        _("language"), max_length=5, blank=True, choices=[("en", "English"), ("bn", "বাংলা")],
+        help_text=_("Empty = the pharmacy's default language."),
+    )
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []

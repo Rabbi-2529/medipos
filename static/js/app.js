@@ -2,6 +2,14 @@
   "use strict";
 
   var root = document.documentElement;
+  // Words for tables and dialogs, translated by the server (see core.context_processors.js_texts).
+  var textsEl = document.getElementById("mp-i18n");
+  var T = Object.assign({
+    search: "Search…", perPage: "_MENU_ per page", info: "_START_–_END_ of _TOTAL_", infoEmpty: "No records",
+    infoFiltered: "(filtered from _MAX_)", zeroRecords: "Nothing matches your search.", emptyTable: "No records yet.",
+    nothingHere: "Nothing here yet.", cancel: "Cancel", confirm: "Yes, continue", searching: "Searching…",
+    noResults: "No results found", loadingMore: "Loading more…", typeMore: "Type to search"
+  }, textsEl ? JSON.parse(textsEl.textContent) : {});
 
   function setTheme(theme) {
     root.setAttribute("data-bs-theme", theme);
@@ -86,6 +94,9 @@
       document.body.classList.remove("sidebar-open");
     } else if (t.closest("[data-command-open]")) {
       openPalette();
+    } else if (t.closest("[data-fullscreen-toggle]")) {
+      if (document.fullscreenElement) document.exitFullscreen();
+      else if (root.requestFullscreen) root.requestFullscreen().catch(function () {});
     } else if (t.closest("[data-toggle-password]")) {
       var btn = t.closest("[data-toggle-password]");
       var field = document.getElementById(btn.getAttribute("data-toggle-password"));
@@ -103,6 +114,18 @@
 
   // ---- Shared widgets (Select2, DataTables) --------------------------------
   var MP = window.MP = window.MP || {};
+  MP.t = T;
+  MP.select2Language = {
+    searching: function () { return T.searching; },
+    noResults: function () { return T.noResults; },
+    loadingMore: function () { return T.loadingMore; },
+    inputTooShort: function () { return T.typeMore; }
+  };
+  MP.tableLanguage = {
+    search: "", searchPlaceholder: T.search, lengthMenu: T.perPage, info: T.info, infoEmpty: T.infoEmpty,
+    infoFiltered: T.infoFiltered, zeroRecords: T.zeroRecords, emptyTable: T.emptyTable,
+    processing: '<span class="spinner-border spinner-border-sm text-primary" role="status"></span>'
+  };
 
   // <select data-mp-select [data-no-search] [data-allow-clear] [data-placeholder="…"]>
   // (Not "data-select2": jQuery would expose it as .data("select2"), the key Select2 keeps its instance under.)
@@ -119,7 +142,8 @@
         allowClear: $el.is("[data-allow-clear]"),
         minimumResultsForSearch: $el.is("[data-no-search]") ? Infinity : 0,
         dropdownParent: $modal.length ? $modal : jQuery(document.body),
-        tags: $el.is("[data-tags]")  // lets people type a value that isn't in the list yet
+        tags: $el.is("[data-tags]"),  // lets people type a value that isn't in the list yet
+        language: MP.select2Language
       };
       // data-ajax-url="…": search the server as you type ({results, pagination} JSON).
       if ($el.data("ajaxUrl")) {
@@ -137,24 +161,16 @@
 
   // Server-side DataTable with the app's defaults; pass DataTables options to override.
   MP.dataTable = function (selector, options) {
+    options = options || {};
+    // Page-specific language bits (e.g. a search placeholder) are layered on the translated defaults.
+    var language = Object.assign({}, MP.tableLanguage, options.language || {});
     return new DataTable(selector, Object.assign({
       processing: true,
       serverSide: true,
       pageLength: 25,
       lengthMenu: [10, 25, 50, 100],
-      searchDelay: 350,
-      language: {
-        search: "",
-        searchPlaceholder: "Search…",
-        lengthMenu: "_MENU_ per page",
-        info: "_START_–_END_ of _TOTAL_",
-        infoEmpty: "No records",
-        infoFiltered: "(filtered from _MAX_)",
-        zeroRecords: "Nothing matches your search.",
-        emptyTable: "No records yet.",
-        processing: '<span class="spinner-border spinner-border-sm text-primary" role="status"></span>'
-      }
-    }, options || {}));
+      searchDelay: 350
+    }, options, { language: language }));
   };
 
   // Client-side DataTable for short lists rendered in the page: <table data-mp-table>.
@@ -171,10 +187,7 @@
         info: rows > 25,
         order: [],
         columnDefs: [{ targets: "no-sort", orderable: false, searchable: false }],
-        language: {
-          search: "", searchPlaceholder: "Search…", lengthMenu: "_MENU_ per page",
-          info: "_START_–_END_ of _TOTAL_", zeroRecords: "Nothing matches your search.", emptyTable: "Nothing here yet."
-        }
+        language: Object.assign({}, MP.tableLanguage, { emptyTable: T.nothingHere })
       });
     });
   };
@@ -192,8 +205,10 @@
       wrap.innerHTML =
         '<div class="modal-dialog modal-dialog-centered modal-sm"><div class="modal-content">' +
         '<div class="modal-body pt-4"><p class="mb-0" data-confirm-text></p></div>' +
-        '<div class="modal-footer border-0"><button type="button" class="btn btn-link" data-bs-dismiss="modal">Cancel</button>' +
-        '<button type="button" class="btn btn-danger" data-confirm-ok>Yes, continue</button></div></div></div>';
+        '<div class="modal-footer border-0"><button type="button" class="btn btn-link" data-bs-dismiss="modal" data-confirm-cancel></button>' +
+        '<button type="button" class="btn btn-danger" data-confirm-ok></button></div></div></div>';
+      wrap.querySelector("[data-confirm-cancel]").textContent = T.cancel;
+      wrap.querySelector("[data-confirm-ok]").textContent = T.confirm;
       document.body.appendChild(wrap);
       confirmModal = { el: wrap, modal: new bootstrap.Modal(wrap) };
     }

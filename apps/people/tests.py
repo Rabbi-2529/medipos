@@ -31,7 +31,7 @@ class PermissionTests(TestCase):
         self.assertEqual(user_permissions(self.owner), ALL_CODES)
 
     def test_staff_get_their_roles_codes_and_future_codes_are_ignored(self):
-        user = add_staff(self.tenant, "a@x.test", ["outlet.list", "pos.create"])
+        user = add_staff(self.tenant, "a@x.test", ["outlet.list", "transfer.create"])  # transfers arrive in Phase 6
         self.assertEqual(user_permissions(user), {"outlet.list"})
 
     def test_no_role_or_platform_admin_means_nothing(self):
@@ -45,10 +45,14 @@ class PermissionTests(TestCase):
         self.assertIn("outlet.create", manager.codes)
         self.assertNotIn("role.create", manager.codes)
         self.assertNotIn("subscription.show", manager.codes)
-        # Stored codes switch on as their modules arrive: medicine list and stock now, POS later.
-        self.assertEqual(cashier.codes, {"item.list", "stock.list"})
+        # Stored codes switch on as their modules arrive.
+        self.assertEqual(cashier.codes, {
+            "item.list", "stock.list", "pos.create", "sale.list", "sale_return.list", "sale_return.create",
+            "customer.list", "customer.create", "customer_receive.create",
+        })
+        self.assertIn("pos.list", cashier.permissions)  # not a real action: kept but ignored
         self.assertIn("purchase.create", manager.codes)
-        self.assertIn("pos.create", cashier.permissions)
+        self.assertIn("register.list", manager.codes)
         self.assertIn("item_setup.create", manager.codes)
 
     def test_menu_follows_permissions(self):
@@ -201,7 +205,8 @@ class RoleTests(TestCase):
             cashier = Role.objects.get(template_key="cashier")
         self.client.post(reverse("people:role_edit", args=[cashier.pk]), {"name": "Cashier", "description": "", "perms": ["outlet.list"]})
         cashier.refresh_from_db()
-        self.assertIn("pos.create", cashier.permissions)
+        self.assertIn("pos.list", cashier.permissions)  # unknown to the grid, so untouched
+        self.assertNotIn("pos.create", cashier.permissions)  # on the grid and unticked
         self.assertIn("outlet.list", cashier.permissions)
 
     def test_duplicate_name_is_a_form_error_per_pharmacy(self):

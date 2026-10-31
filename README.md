@@ -27,6 +27,8 @@ Open http://localhost:8000. `seed_demo` creates:
 
 All of them use the `DEMO_PASSWORD` from `.env`. New pharmacies sign up at `/signup/`, or the platform admin adds them under **Pharmacies → Add pharmacy**.
 
+Lazz Pharma also gets two customers, an open cash register for the owner and a few sales, so the POS (`/sales/pos/`) works straight away.
+
 ## Subscriptions
 
 - Trial length, grace days and the "how to pay" text are set in `.env` (`TRIAL_DAYS`, `SUBSCRIPTION_GRACE_DAYS`, `SUBSCRIPTION_PAYMENT_INSTRUCTIONS`).
@@ -57,9 +59,27 @@ apps/catalog/      platform-wide medicine catalog (fixtures/sample_catalog.csv =
 apps/stock/        batches, per-outlet stock, movement ledger, opening-stock import
 apps/suppliers/    suppliers, supplier ledger, payments
 apps/purchases/    purchases (draft → received), purchase returns
+apps/customers/    customers, customer ledger, due collection
+apps/sales/        cash registers, POS, sales, held carts, sale returns
+locale/bn/         Bangla translations (django.po source, django.mo compiled)
 templates/         layouts, partials, pages
-static/            css/app.css (theme tokens, dark mode), js/app.js
+static/            css/app.css (theme tokens, dark mode), js/app.js, js/pos.js
 ```
+
+## Languages (English ⇄ বাংলা)
+
+- Logged-in users pick a language in the top bar; it's saved on their account. Otherwise the pharmacy's default from Business settings applies.
+- Wrap every user-facing string: `{% translate %}` / `{% blocktranslate %}` in templates, `gettext` in Python. Use `context` when one English word means two things, e.g. `{% translate "Open" context "register state" %}`.
+- For JavaScript strings, build a dict in the view and pass it with `json_script` (see `js_texts()` and `pos_texts()`).
+- After changing strings:
+
+```bash
+venv/Scripts/python.exe manage.py translations extract   # update locale/bn/LC_MESSAGES/django.po
+venv/Scripts/python.exe manage.py translations stats     # how many are still untranslated
+venv/Scripts/python.exe manage.py translations compile   # build django.mo (checks %(name)s placeholders)
+```
+
+Fill in the empty `msgstr ""` entries in `django.po` before compiling. The command uses Babel, so GNU gettext isn't needed.
 
 ## Tenancy rules (read before adding models)
 
@@ -88,8 +108,10 @@ Use a list ThingBD has the right to use, such as DGDA's registered-drug list.
 - Change stock **only** through `apps.stock.services.post_movement()`.
   - It locks the outlet × batch row, refuses to go below zero (`StockError`) and writes a `StockMovement`.
   - Quantities are always in sale units, e.g. pieces.
-- Document numbers come from `apps.setup.services.next_code(tenant, key, prefix=…)`: PUR-, PRT-, SPY-, and later INV-.
+- Sales take stock earliest-expiry-first (`apps.sales.services.allocate()`) and never from expired batches. Returns put it back into the batches it came from.
+- Document numbers come from `apps.setup.services.next_code(tenant, key, prefix=…)`: INV (invoice sequence from settings), PUR-, PRT-, SPY-, SRT-, RCV-.
 - Supplier balances come from `SupplierLedgerEntry` (credit = owed, debit = paid/returned). Post entries with `suppliers.services.post_entry()`.
+- Customer balances come from `CustomerLedgerEntry` (debit = owes, credit = paid/returned). Post entries with `customers.services.post_entry()`.
 
 ## Permissions
 

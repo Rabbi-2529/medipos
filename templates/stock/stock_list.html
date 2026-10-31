@@ -48,7 +48,7 @@
       } },
       order: [[1, "asc"]],
       columnDefs: [{ targets: 4, className: "text-center" }, { targets: [6, 7], className: "text-end text-nowrap" }, { targets: 7, orderable: false }],
-      language: { searchPlaceholder: "Name, generic, code or barcode…" }
+      language: { searchPlaceholder: "{% filter escapejs %}{% translate "Name, generic, code or barcode…" %}{% endfilter %}" }
     });
     var stats = document.querySelectorAll(".stat-value");
     table.on("xhr", function () {

@@ -1,7 +1,6 @@
 from pathlib import Path
 
 import environ
-from django.utils.translation import gettext_lazy as _
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
@@ -35,6 +34,8 @@ INSTALLED_APPS = [
     "apps.stock",
     "apps.suppliers",
     "apps.purchases",
+    "apps.customers",
+    "apps.sales",
 ]
 
 MIDDLEWARE = [
@@ -46,6 +47,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     # Must come after AuthenticationMiddleware: it reads request.user.tenant.
     "apps.core.middleware.TenantMiddleware",
+    "apps.core.middleware.UserLanguageMiddleware",
     # Locks out pharmacies whose trial/subscription has lapsed. Needs request.tenant.
     "apps.billing.middleware.SubscriptionGateMiddleware",
     "apps.outlets.middleware.CurrentOutletMiddleware",
@@ -92,7 +94,8 @@ LOGIN_REDIRECT_URL = "core:dashboard"
 LOGOUT_REDIRECT_URL = "accounts:login"
 
 LANGUAGE_CODE = "en"
-LANGUAGES = [("en", _("English")), ("bn", _("Bangla"))]
+# Each language is named in itself, so people can always find their own.
+LANGUAGES = [("en", "English"), ("bn", "বাংলা")]
 LOCALE_PATHS = [BASE_DIR / "locale"]
 TIME_ZONE = "Asia/Dhaka"
 USE_I18N = True

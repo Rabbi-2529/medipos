@@ -1,4 +1,5 @@
 from django import forms
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm, PasswordResetForm, SetPasswordForm
 from django.utils.translation import gettext_lazy as _
@@ -30,7 +31,11 @@ class LoginForm(BootstrapFormMixin, AuthenticationForm):
 class ProfileForm(BootstrapFormMixin, forms.ModelForm):
     class Meta:
         model = User
-        fields = ["first_name", "last_name", "email", "phone"]
+        fields = ["first_name", "last_name", "email", "phone", "language"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["language"].choices = [("", _("Same as the pharmacy"))] + list(settings.LANGUAGES)
 
     def clean_phone(self):
         # Phone is a login identifier, so it must point at exactly one account.

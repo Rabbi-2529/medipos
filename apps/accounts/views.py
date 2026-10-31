@@ -1,5 +1,9 @@
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import views as auth_views
+from django.http import HttpResponseBadRequest, HttpResponseRedirect
+from django.utils.http import url_has_allowed_host_and_scheme
+from django.views.decorators.http import require_POST
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
 from django.urls import reverse_lazy
@@ -29,6 +33,23 @@ class LoginView(auth_views.LoginView):
 
 class LogoutView(auth_views.LogoutView):
     pass
+
+
+@require_POST
+def switch_language(request):
+    """Change the interface language: saved on the account when logged in, else in a cookie."""
+    language = request.POST.get("language", "")
+    if language not in dict(settings.LANGUAGES):
+        return HttpResponseBadRequest("Unknown language")
+    if request.user.is_authenticated:
+        request.user.language = language
+        request.user.save(update_fields=["language"])
+    target = request.POST.get("next", "")
+    if not url_has_allowed_host_and_scheme(target, allowed_hosts={request.get_host()}, require_https=request.is_secure()):
+        target = "/"
+    response = HttpResponseRedirect(target)
+    response.set_cookie(settings.LANGUAGE_COOKIE_NAME, language, max_age=365 * 24 * 3600, samesite="Lax")
+    return response
 
 
 class ProfileView(LoginRequiredMixin, SuccessMessageMixin, UpdateView):

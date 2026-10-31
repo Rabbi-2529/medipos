@@ -6,6 +6,7 @@ from pathlib import Path
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.management.base import BaseCommand, CommandError
+from django.db import transaction
 from django.utils import timezone
 
 from apps.accounting.models import PaymentAccount
@@ -14,11 +15,14 @@ from apps.billing.models import Plan
 from apps.catalog.models import CatalogMedicine
 from apps.catalog.services import adopt, import_catalog
 from apps.core.tenancy import tenant_context
+from apps.customers.models import Customer
 from apps.items.models import Medicine, Unit
 from apps.outlets.models import Counter, Outlet
 from apps.people.models import Employee, Role
 from apps.purchases.models import Purchase
 from apps.purchases.services import clean_lines, receive, save_draft
+from apps.sales.models import Sale
+from apps.sales.services import complete_sale, create_return, start_register
 from apps.setup.services import provision_tenant
 from apps.stock.models import StockMovement
 from apps.stock.services import get_or_create_batch, post_movement
@@ -113,6 +117,7 @@ class Command(BaseCommand):
                 self._lazz_staff(tenant, password)
                 self._lazz_medicines(tenant)
                 self._lazz_stock(tenant)
+                self._lazz_sales(tenant)
 
         self.stdout.write(self.style.SUCCESS(
             "Demo ready: admin@medipos.local (platform), owner@lazzpharma.local (paid), "
@@ -178,6 +183,35 @@ class Command(BaseCommand):
             record_payment(supplier=square, amount=(received.total / 2).quantize(Decimal("1")), user=owner,
                            account=PaymentAccount.objects.get(name="Cash"), date=today - timedelta(days=3), purchase=received)
             save_draft(tenant=tenant, outlet=main, supplier=beximco, date=today, lines=lines(["Napa", "Tofen"], 3), user=owner)
+
+    def _lazz_sales(self, tenant):
+        """Customers, an open register for the owner and a few of today's sales (one on due, partly returned)."""
+        with tenant_context(tenant), transaction.atomic():
+            if Sale.objects.exists():
+                return
+            owner, main = tenant.owner, Outlet.objects.get(code="0001")
+            cash, bkash = PaymentAccount.objects.get(name="Cash"), PaymentAccount.objects.get(name="bKash")
+            rahim = Customer.objects.create(name="Rahim Uddin", phone="01711223344", credit_limit=Decimal("5000"), default_discount=Decimal("5"))
+            Customer.objects.create(name="Fatema Begum", phone="01822334455")
+            register = start_register(owner, main, "2000")
+            medicines = {m.name: m for m in Medicine.objects.filter(catalog_ref__isnull=False)}
+
+            def sell(items, payments, **kw):
+                return complete_sale(tenant=tenant, outlet=main, register=register, user=owner, payments=payments,
+                                     lines=[{"medicine": medicines[name].pk, "unit": unit, "qty": qty} for name, unit, qty in items], **kw)
+
+            def pay_all(items, account=cash):
+                sale_total = sum(medicines[n].sale_price * qty * (medicines[n].strip_size or 1 if u == "strip" else 1) for n, u, qty in items)
+                return [{"account": account.pk, "amount": str(sale_total.quantize(Decimal("1")))}]
+
+            sell([("Napa", "strip", 2), ("Ceevit", "piece", 10)], pay_all([("Napa", "strip", 2), ("Ceevit", "piece", 10)]))
+            sell([("Seclo", "strip", 1)], pay_all([("Seclo", "strip", 1)], bkash))
+            on_due = sell([("Monas", "piece", 10), ("Fexo", "piece", 10)], [{"account": cash.pk, "amount": "100"}], customer=rahim)
+            sell([("Alatrol", "strip", 1)], pay_all([("Alatrol", "strip", 1)]))
+            fexo = on_due.lines.get(medicine=medicines["Fexo"])
+            # Rahim brings back 4 Fexo: credited to his account (nothing paid out).
+            create_return(on_due, {fexo.pk: 4}, date=timezone.localdate(), reason="Doctor changed the prescription",
+                          register=register, user=owner)
 
     def _lazz_staff(self, tenant, password):
         """Second outlet, a counter, a manager (all outlets) and a cashier (Main branch only)."""

@@ -1,8 +1,20 @@
 from django.conf import settings
+from django.utils.translation import gettext as _
 
 from apps.billing.services import subscription_banner
 
 from .menu import build_menu, flatten_menu
+
+
+def js_texts():
+    """Words shown by app.js (tables, dialogs), in the page's language."""
+    return {
+        "search": _("Search…"), "perPage": _("_MENU_ per page"), "info": _("_START_–_END_ of _TOTAL_"),
+        "infoEmpty": _("No records"), "infoFiltered": _("(filtered from _MAX_)"), "zeroRecords": _("Nothing matches your search."),
+        "emptyTable": _("No records yet."), "nothingHere": _("Nothing here yet."), "cancel": _("Cancel"), "confirm": _("Yes, continue"),
+        "searching": _("Searching…"), "noResults": _("No results found"), "loadingMore": _("Loading more…"),
+        "typeMore": _("Type to search"),
+    }
 
 
 def app_context(request):
@@ -10,6 +22,7 @@ def app_context(request):
         "APP_NAME": settings.APP_NAME,
         "APP_COMPANY": settings.APP_COMPANY,
         "APP_PRODUCT": settings.APP_PRODUCT,
+        "JS_TEXTS": js_texts(),
     }
     user = getattr(request, "user", None)
     if user is not None and user.is_authenticated:

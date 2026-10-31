@@ -22,13 +22,13 @@ class BusinessSettingsForm(TenantModelForm):
         fields = [
             "logo", "drug_license_no", "vat_number",
             "currency_symbol", "currency_code", "currency_position", "decimal_places", "date_format",
-            "invoice_footer",
+            "invoice_footer", "vat_percent", "round_total", "receipt_size", "default_language", "receipt_bangla_digits",
         ]
         widgets = {"invoice_footer": forms.Textarea(attrs={"rows": 3})}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        for name in ("currency_position", "date_format"):
+        for name in ("currency_position", "date_format", "receipt_size", "default_language"):
             self.fields[name].widget.attrs.update({"data-mp-select": "", "data-no-search": ""})
         self.fields["logo"].widget.attrs["accept"] = "image/png,image/jpeg,image/webp"
 

@@ -1,0 +1,48 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+{% block title %}{% translate "Sales" %}{% endblock %}
+{% block page_title %}{% translate "Sales" %}{% endblock %}
+{% block page_actions %}{% if can.pos.create %}<a class="btn btn-primary" href="{% url 'sales:pos' %}"><i class="bi bi-cart3"></i> {% translate "New sale (POS)" %}</a>{% endif %}{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <div class="table-filters">
+      <div class="table-filter">
+        <label class="form-label" for="f-date">{% translate "Date" %}</label>
+        <input id="f-date" type="date" class="form-control">
+      </div>
+      {% if outlets|length > 1 %}
+      <div class="table-filter">
+        <label class="form-label" for="f-outlet">{% translate "Outlet" %}</label>
+        <select id="f-outlet" class="form-select" data-mp-select data-no-search data-allow-clear data-placeholder="{% translate 'All my outlets' %}">
+          <option></option>{% for o in outlets %}<option value="{{ o.pk }}">{{ o.name }}</option>{% endfor %}
+        </select>
+      </div>
+      {% endif %}
+      <div class="table-filter">
+        <label class="form-label" for="f-due">{% translate "Show" %}</label>
+        <select id="f-due" class="form-select" data-mp-select data-no-search>
+          <option value="">{% translate "All sales" %}</option>
+          <option value="yes">{% translate "Sold on due" %}</option>
+        </select>
+      </div>
+    </div>
+    <table id="sale-table" class="table table-hover align-middle w-100">
+      <thead><tr><th>{% translate "Invoice" %}</th><th>{% translate "Time" %}</th><th>{% translate "Customer" %}</th><th>{% translate "Outlet" %}</th><th>{% translate "Cashier" %}</th><th class="text-end">{% translate "Total" %}</th><th class="text-end">{% translate "Paid" %}</th><th class="text-end">{% translate "Due" %}</th></tr></thead>
+    </table>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+  (function () {
+    var table = MP.dataTable("#sale-table", {
+      ajax: { url: "{% url 'sales:data' %}", data: function (d) { d.date = $("#f-date").val() || ""; d.outlet = $("#f-outlet").val() || ""; d.due = $("#f-due").val() || ""; } },
+      order: [[1, "desc"]],
+      columnDefs: [{ targets: [4, 7], orderable: false }, { targets: [5, 6, 7], className: "text-end text-nowrap" }],
+      language: { searchPlaceholder: "{% filter escapejs %}{% translate "Invoice, customer or phone…" %}{% endfilter %}" }
+    });
+    $("#f-date, #f-outlet, #f-due").on("change", function () { table.ajax.reload(); });
+  })();
+</script>
+{% endblock %}

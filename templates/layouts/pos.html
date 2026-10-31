@@ -1,0 +1,35 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+{# The POS takes the whole screen: no sidebar, just a slim bar with the way back and the till's own links. #}
+{% block body %}
+<div class="pos-shell">
+  <header class="pos-bar">
+    <a class="pos-brand" href="{% url 'core:dashboard' %}" title="{% translate 'Back to dashboard' %}">
+      <span class="brand-mark"><i class="bi bi-capsule-pill"></i></span>
+      <span class="brand-text d-none d-md-block"><small>{{ APP_COMPANY }}</small>{{ APP_PRODUCT }}</span>
+    </a>
+    <a class="btn btn-sm btn-outline-secondary" href="{% url 'core:dashboard' %}"><i class="bi bi-arrow-left"></i><span class="d-none d-sm-inline"> {% translate "Dashboard" %}</span></a>
+    {% block pos_bar_info %}{% endblock %}
+    <div class="pos-bar-actions">
+      {% block pos_bar_links %}{% endblock %}
+      {% include "partials/_outlet_switch.html" %}
+      {% include "partials/_language_switch.html" %}
+      <button class="btn-icon d-none d-sm-inline-grid" type="button" data-fullscreen-toggle title="{% translate 'Full screen' %}" aria-label="{% translate 'Full screen' %}">
+        <i class="bi bi-arrows-fullscreen"></i>
+      </button>
+      <button class="btn-icon" type="button" data-theme-toggle aria-label="{% translate 'Toggle dark mode' %}">
+        <i class="bi bi-moon-stars theme-icon-to-dark"></i>
+        <i class="bi bi-sun theme-icon-to-light"></i>
+      </button>
+      {% include "partials/_user_menu.html" %}
+    </div>
+  </header>
+  <main class="pos-main">
+    {% include "partials/_subscription_banner.html" %}
+    {% include "partials/_messages.html" %}
+    {% block content %}{% endblock %}
+  </main>
+</div>
+{% include "partials/_command_palette.html" %}
+{{ nav_search|json_script:"nav-search-data" }}
+{% endblock %}

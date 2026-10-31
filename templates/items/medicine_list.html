@@ -81,7 +81,7 @@
         { targets: [5, 6], className: "text-end text-nowrap" },
         { targets: 9, className: "text-end" }
       ],
-      language: { searchPlaceholder: "Name, generic, code or barcode…" }
+      language: { searchPlaceholder: "{% filter escapejs %}{% translate "Name, generic, code or barcode…" %}{% endfilter %}" }
     });
     $("[data-filter]").on("change", function () { table.ajax.reload(); });
     document.querySelector("[data-export]").addEventListener("click", function (ev) {

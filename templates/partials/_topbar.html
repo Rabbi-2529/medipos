@@ -9,59 +9,12 @@
     <kbd class="d-none d-md-inline">Ctrl K</kbd>
   </button>
   <div class="topbar-actions">
-    {% if current_tenant %}
-    <div class="dropdown">
-      <button class="outlet-chip" type="button" {% if allowed_outlets|length > 1 %}data-bs-toggle="dropdown" aria-expanded="false"{% else %}disabled{% endif %}
-              title="{% translate 'Outlet you are working in' %}">
-        <i class="bi bi-shop"></i>
-        <span class="d-none d-md-inline">{% if current_outlet %}{{ current_outlet.name }}{% else %}{% translate "No outlet" %}{% endif %}</span>
-        {% if allowed_outlets|length > 1 %}<i class="bi bi-chevron-down small"></i>{% endif %}
-      </button>
-      {% if allowed_outlets|length > 1 %}
-      <ul class="dropdown-menu dropdown-menu-end">
-        <li><h6 class="dropdown-header">{% translate "Switch outlet" %}</h6></li>
-        {% for outlet in allowed_outlets %}
-        <li>
-          <form method="post" action="{% url 'outlets:enter' outlet.pk %}">
-            {% csrf_token %}
-            <input type="hidden" name="next" value="{{ request.get_full_path }}">
-            <button class="dropdown-item{% if outlet.pk == current_outlet.pk %} active{% endif %}" type="submit">
-              <i class="bi {% if outlet.pk == current_outlet.pk %}bi-check2{% else %}bi-shop{% endif %}"></i> {{ outlet.name }}
-            </button>
-          </form>
-        </li>
-        {% endfor %}
-      </ul>
-      {% endif %}
-    </div>
-    {% endif %}
+    {% include "partials/_outlet_switch.html" %}
+    {% include "partials/_language_switch.html" %}
     <button class="btn-icon" type="button" data-theme-toggle aria-label="{% translate 'Toggle dark mode' %}">
       <i class="bi bi-moon-stars theme-icon-to-dark"></i>
       <i class="bi bi-sun theme-icon-to-light"></i>
     </button>
-    <div class="dropdown">
-      <button class="user-chip" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-        <span class="avatar">{% if user.first_name %}{{ user.first_name|first|upper }}{{ user.last_name|first|upper }}{% else %}{{ user.email|first|upper }}{% endif %}</span>
-        <span class="user-meta d-none d-sm-flex">
-          <strong>{{ user }}</strong>
-          <small>{% if user.is_platform_admin %}{% translate "Platform admin" %}{% elif current_tenant %}{{ current_tenant.name }}{% endif %}</small>
-        </span>
-      </button>
-      <ul class="dropdown-menu dropdown-menu-end">
-        <li><h6 class="dropdown-header">{{ user.email }}</h6></li>
-        <li><a class="dropdown-item" href="{% url 'accounts:profile' %}"><i class="bi bi-person"></i> {% translate "My profile" %}</a></li>
-        <li><a class="dropdown-item" href="{% url 'accounts:password_change' %}"><i class="bi bi-key"></i> {% translate "Change password" %}</a></li>
-        {% if user.is_platform_admin %}
-        <li><a class="dropdown-item" href="{% url 'admin:index' %}"><i class="bi bi-tools"></i> {% translate "Django admin" %}</a></li>
-        {% endif %}
-        <li><hr class="dropdown-divider"></li>
-        <li>
-          <form method="post" action="{% url 'accounts:logout' %}">
-            {% csrf_token %}
-            <button class="dropdown-item text-danger" type="submit"><i class="bi bi-box-arrow-right"></i> {% translate "Logout" %}</button>
-          </form>
-        </li>
-      </ul>
-    </div>
+    {% include "partials/_user_menu.html" %}
   </div>
 </header>

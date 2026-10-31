@@ -85,14 +85,16 @@ MENU = (
     )),
     MenuSection(_("Sales & customers"), (
         MenuItem("pos", _("POS"), "sales:pos", "bi-cart3"),
-        MenuItem("sale", _("Sales"), icon="bi-receipt", children=(
+        MenuItem("sale", _("Sales"), icon="bi-receipt", perm=None, children=(
             _item("sale", _("Sale list"), "sales:list"),
             _item("sale_return", _("Sale returns"), "sales:returns"),
+            MenuItem("pos", _("Cash registers"), "sales:registers"),
             _item("quotation", _("Quotations"), "sales:quotations"),
         )),
-        MenuItem("customer", _("Customers"), icon="bi-people", children=(
+        MenuItem("customer", _("Customers"), icon="bi-people", perm=None, children=(
             _item("customer", _("Customer list"), "customers:list"),
-            _item("customer_receive", _("Due collection"), "customers:receipts"),
+            MenuItem("customer_receive", _("Collect due"), "customers:receipt_create", perm="customer_receive.create"),
+            _item("customer_receive", _("Collections"), "customers:receipts"),
         )),
     )),
     MenuSection(_("Purchases & suppliers"), (

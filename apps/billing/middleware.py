@@ -5,6 +5,7 @@ from django.shortcuts import redirect
 ALWAYS_ALLOWED = frozenset({
     "billing:subscription",
     "accounts:logout",
+    "accounts:language",
     "accounts:profile",
     "accounts:password_change",
     "set_language",

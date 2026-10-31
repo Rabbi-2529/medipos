@@ -1,0 +1,28 @@
+{% extends "layouts/app.html" %}
+{% load i18n shop %}
+{% block title %}{% translate "Cash registers" %}{% endblock %}
+{% block page_title %}{% translate "Cash registers" %}{% endblock %}
+{% block page_actions %}<a class="btn btn-primary" href="{% url 'sales:pos' %}"><i class="bi bi-cart3"></i> {% translate "Go to POS" %}</a>{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <table class="table table-hover align-middle w-100" data-mp-table>
+      <thead><tr><th>{% translate "Opened" %}</th><th>{% translate "Cashier" %}</th><th>{% translate "Outlet" %}</th><th>{% translate "Status" %}</th><th class="text-end">{% translate "Opening" %}</th><th class="text-end">{% translate "Expected" %}</th><th class="text-end">{% translate "Counted" %}</th><th class="no-sort"></th></tr></thead>
+      <tbody>
+        {% for r in registers %}
+        <tr>
+          <td data-order="{{ r.opened_at|date:'U' }}">{{ r.opened_at|date:"d M Y, h:i A" }}</td>
+          <td>{{ r.opened_by }}</td>
+          <td>{{ r.outlet.name }}{% if r.counter %} · {{ r.counter.name }}{% endif %}</td>
+          <td>{% if r.is_open %}<span class="state-badge state-active">{% translate "Open" context "register state" %}</span>{% else %}<span class="state-badge state-suspended">{% translate "Closed" %}</span>{% endif %}</td>
+          <td class="text-end">{% money r.opening_cash %}</td>
+          <td class="text-end">{% if r.expected_cash is not None %}{% money r.expected_cash %}{% else %}—{% endif %}</td>
+          <td class="text-end">{% if r.counted_cash is not None %}{% money r.counted_cash %}{% else %}—{% endif %}</td>
+          <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="{% url 'sales:register' r.pk %}">{% if r.is_open %}{% translate "Open" %}{% else %}{% translate "Z-report" %}{% endif %}</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,50 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+{% block title %}{% translate "Collect due" %}{% endblock %}
+{% block page_title %}{% translate "Collect due" %}{% endblock %}
+{% block page_subtitle %}{% if can.customer_receive.list %}<p class="page-subtitle"><a href="{% url 'customers:receipts' %}"><i class="bi bi-chevron-left"></i> {% translate "All collections" %}</a></p>{% endif %}{% endblock %}
+{% block content %}
+<div class="row">
+  <div class="col-xl-7">
+    <form class="card" method="post" novalidate>
+      {% csrf_token %}
+      <div class="card-body">
+        {% if form.non_field_errors %}<div class="alert alert-danger py-2">{% for e in form.non_field_errors %}{{ e }}{% endfor %}</div>{% endif %}
+        <div class="row">
+          <div class="col-md-6">{% include "partials/_field.html" with field=form.customer %}</div>
+          <div class="col-md-6">{% include "partials/_field.html" with field=form.sale %}</div>
+          <div class="col-md-6">{% include "partials/_field.html" with field=form.amount %}<p class="form-text mt-n2" data-due-hint></p></div>
+          <div class="col-md-6">{% include "partials/_field.html" with field=form.account %}</div>
+          <div class="col-md-6">{% include "partials/_field.html" with field=form.date %}</div>
+          <div class="col-md-6">{% include "partials/_field.html" with field=form.reference %}</div>
+          <div class="col-12">{% include "partials/_field.html" with field=form.note %}</div>
+        </div>
+        <button class="btn btn-primary" type="submit"><i class="bi bi-check2"></i> {% translate "Save collection" %}</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+  (function () {
+    var $customer = $("[name=customer]"), $sale = $("[name=sale]"), amount = document.querySelector("[name=amount]"), hint = document.querySelector("[data-due-hint]");
+    var dues = {};
+    function load(keep) {
+      var id = $customer.val();
+      if (!id) return;
+      fetch("{% url 'customers:due_sales' %}?customer=" + encodeURIComponent(id)).then(function (r) { return r.json(); }).then(function (data) {
+        var current = keep ? $sale.val() : "";
+        dues = {};
+        $sale.empty().append(new Option("", ""));
+        data.results.forEach(function (s) { dues[s.id] = s.due; $sale.append(new Option(s.text, s.id, false, String(s.id) === current)); });
+        $sale.trigger("change");
+        hint.textContent = data.balance_text;
+      });
+    }
+    $customer.on("change", function () { load(false); });
+    $sale.on("change", function () { var due = dues[$sale.val()]; if (due && !amount.value) amount.value = due; });
+    load(true);
+  })();
+</script>
+{% endblock %}

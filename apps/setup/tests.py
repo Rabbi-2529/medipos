@@ -65,6 +65,7 @@ class SettingsPageTests(TestCase):
             "shop-drug_license_no": "DL-123", "shop-vat_number": "", "shop-currency_symbol": "Tk", "shop-currency_code": "BDT",
             "shop-currency_position": "before", "shop-decimal_places": "0", "shop-date_format": "d/m/Y", "shop-invoice_footer": "",
             "invoice-prefix": "LZ-", "invoice-next_value": "100", "invoice-padding": "4",
+            "shop-vat_percent": "0", "shop-round_total": "on", "shop-receipt_size": "80", "shop-default_language": "en",
         }
         data.update(overrides)
         return self.client.post(reverse("setup:settings"), data)
