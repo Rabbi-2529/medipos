@@ -17,6 +17,7 @@
           <dt>{% translate "VAT" %}</dt><dd>{% money summary.vat %}</dd>
           <dt>{% translate "Given on due" %}</dt><dd>{% money summary.dues_given %}</dd>
           <dt>{% translate "Returns" %}</dt><dd>{% money summary.returns %}</dd>
+          {% if summary.expenses %}<dt>{% translate "Expenses paid from the drawer" %}</dt><dd>{% money summary.expenses %}</dd>{% endif %}
         </dl>
         <h2 class="form-section-title mt-4">{% translate "Money by account" %}</h2>
         <dl class="totals">

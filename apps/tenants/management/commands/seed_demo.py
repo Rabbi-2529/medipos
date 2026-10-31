@@ -9,7 +9,10 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from django.utils import timezone
 
-from apps.accounting.models import PaymentAccount
+from apps.accounting.chart import ensure_chart
+from apps.accounting.models import Account, CashEntry, FundMovement, PaymentAccount
+from apps.accounting.posting import rebuild
+from apps.accounting.services import move_funds, record_cash_entry
 from apps.accounts.models import User
 from apps.billing.models import Plan
 from apps.catalog.models import CatalogMedicine
@@ -121,6 +124,7 @@ class Command(BaseCommand):
                 self._lazz_stock(tenant)
                 self._lazz_sales(tenant)
                 self._lazz_inventory(tenant)
+                self._lazz_accounts(tenant)
 
         self.stdout.write(self.style.SUCCESS(
             "Demo ready: admin@medipos.local (platform), owner@lazzpharma.local (paid), "
@@ -264,6 +268,37 @@ class Command(BaseCommand):
             old = create_quotation(tenant=tenant, outlet=main, user=owner, lines=[{"medicine": seclo.pk, "unit": "strip", "qty": 2}],
                                    valid_days=3)
             Quotation.objects.filter(pk=old.pk).update(date=today - timedelta(days=10), valid_until=today - timedelta(days=7))
+
+    def _lazz_accounts(self, tenant):
+        """A bank account, this month's bills and a little other income, money moved around; then the books from scratch."""
+        with tenant_context(tenant), transaction.atomic():
+            if not CashEntry.objects.exists():
+                owner, main = tenant.owner, Outlet.objects.get(code="0001")
+                # The money the shop already had when it started using the app.
+                PaymentAccount.objects.filter(name="Cash").update(opening_balance=Decimal("20000"))
+                PaymentAccount.objects.filter(name="bKash").update(opening_balance=Decimal("5000"))
+                cash, bkash = PaymentAccount.objects.get(name="Cash"), PaymentAccount.objects.get(name="bKash")
+                bank, _created = PaymentAccount.objects.get_or_create(name="Dutch-Bangla Bank", defaults={
+                    "kind": PaymentAccount.Kind.BANK, "provider": "Dutch-Bangla Bank", "account_number": "103-110-55821",
+                    "opening_balance": Decimal("50000"), "sort_order": 3})
+                ensure_chart()
+                today = timezone.localdate()
+                category = {a.code: a for a in Account.objects.filter(code__in=["6020", "6030", "6040", "6060", "4910"])}
+                for code, account, amount, note, days in (
+                    ("6020", bank, "850", "DESCO electricity bill", 3), ("6030", bkash, "500", "Internet, October", 2),
+                    ("6060", cash, "250", "Medicine bags and labels", 1), ("6040", cash, "120", "Rickshaw for a delivery", 0),
+                ):
+                    record_cash_entry(tenant=tenant, kind=CashEntry.Kind.EXPENSE, date=today - timedelta(days=days), account=category[code],
+                                      payment_account=account, amount=amount, outlet=main, note=note, user=owner)
+                record_cash_entry(tenant=tenant, kind=CashEntry.Kind.INCOME, date=today, account=category["4910"], payment_account=bank,
+                                  amount="300", note="Square: target bonus", user=owner)
+                move_funds(tenant=tenant, kind=FundMovement.Kind.DEPOSIT, date=today - timedelta(days=4), amount="10000", to_account=bank,
+                           note="Owner added working capital", user=owner)
+                move_funds(tenant=tenant, kind=FundMovement.Kind.TRANSFER, date=today, amount="300", from_account=cash, to_account=bank,
+                           note="Cash deposited at the bank", user=owner)
+                move_funds(tenant=tenant, kind=FundMovement.Kind.WITHDRAW, date=today, amount="200", from_account=bkash,
+                           note="Owner's personal use", user=owner)
+            rebuild()
 
     def _lazz_staff(self, tenant, password):
         """Second outlet, a counter, a manager (all outlets) and a cashier (Main branch only)."""

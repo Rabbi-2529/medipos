@@ -180,11 +180,22 @@ Moved to Phase 6: promotions and quotations.
 
 Later: returning expired stock to a supplier without the original purchase, and transfer requests (ask another outlet for stock) can come with Phase 8 reports if needed.
 
-### Phase 7 — Accounting
-- Chart of accounts per tenant, with journals posted automatically from purchases, sales, returns, payments and write-offs.
-- Income and expense with categories, deposits and withdrawals.
-- Account balance and statement, transaction history, trial balance, balance sheet, P&L, cash flow.
-- Done when: the trial balance balances and cash in the books matches the register.
+### Phase 7 — Accounting ✅
+- **Chart of accounts** per pharmacy (`apps.accounting.chart`): system accounts the app posts to (receivable, inventory, payable, VAT, owner's capital, opening balances, drawings, sales, sales returns, other income, cost of medicines sold, stock loss), one ledger account per payment account (codes 11xx), and starter expense/income categories (rent, salaries, utilities…) created in the pharmacy's language. System account names show in the reader's language; people add their own accounts (loans, furniture, new expense types).
+- **Automatic journals** (`apps.accounting.posting`), one balanced entry per document, re-posted if the document changes:
+  - sales (money in or customer due / sales + VAT; cost of medicines sold / stock), sale returns (with refunds), due collections, customer opening dues;
+  - received purchases, purchase returns, supplier payments, supplier opening balances;
+  - opening stock, write-offs, stock counts, payment accounts' opening balances.
+  - `manage.py rebuild_books` re-posts everything from the documents (manual entries are kept); the demo seed ends with it.
+- **Expenses and other income** (EXP-/INC-) by category, from any payment account, with outlet and reference. Categories are the pharmacy's own: **Expense categories** / **Income categories** pages (add, rename, hide) and a "+ New category" box on the entry form; each category is an account in the chart (codes assigned automatically). **Deposits, withdrawals & transfers** (FND-): move money between accounts, owner puts money in (capital), owner takes money out (drawings).
+- **Cash register agrees with the books:** expenses, income and owner movements in cash are tied to the open register, so the Z-report's expected cash includes them (and shows "Expenses paid from the drawer").
+- **Manual journal entries** (balanced lines, for loans, furniture, corrections) and the **journal** of every entry with links back to the document.
+- **Reports:** account statement (opening, running balance, closing), trial balance, profit & loss (net sales, cost, gross margin, other income, expenses; per outlet), balance sheet (assets = liabilities + equity, profit kept in the business), cash flow (by cause and by account), payment accounts with live balances. Period filter with quick ranges; all printable.
+- Money is now shown "−৳1,500.00" (minus before the currency) everywhere.
+- Demo: a bank account, opening cash, this month's bills, supplier bonus, owner deposit, cash deposited at the bank, owner withdrawal.
+- 230 tests (sub-ledgers match the books, cash matches the register, trial balance and balance sheet balance, rebuild gives the same books).
+
+Simplifications: VAT on returned sales stays in sales returns; transfers between outlets don't move value between outlets (stock is one account); purchase discounts lower the inventory value of the purchase as a whole.
 
 ### Phase 8 — Reports and dashboard
 - Reports, each with date, outlet and filter options, exportable to Excel, PDF or print:

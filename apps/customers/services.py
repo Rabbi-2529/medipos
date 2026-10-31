@@ -6,6 +6,7 @@ from django.db.models.functions import Coalesce
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
+from apps.accounting import posting
 from apps.setup.services import next_code
 
 from .models import CustomerLedgerEntry, CustomerReceipt
@@ -44,6 +45,7 @@ def with_balances(queryset):
 def set_opening_balance(customer):
     entry = customer.ledger.filter(kind=CustomerLedgerEntry.Kind.OPENING).first()
     amount = customer.opening_balance or ZERO
+    posting.post_customer_opening(customer)
     if amount == 0:
         if entry:
             entry.delete()
@@ -91,6 +93,7 @@ def collect(customer, *, amount, account, date, sale=None, outlet=None, register
                                              created_by=user)
     post_entry(customer, date=date, kind=CustomerLedgerEntry.Kind.PAYMENT, credit=amount, ref=("customer_receipt", receipt.pk, number),
                note=(_("For %(sale)s") % {"sale": sale.number}) if sale else note)
+    posting.post_customer_receipt(receipt)
     return receipt
 
 

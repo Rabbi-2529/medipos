@@ -1,0 +1,118 @@
+{% extends "layouts/app.html" %}
+{% load i18n shop %}
+{% block title %}{% if kind == "income" %}{% translate "Other income" %}{% else %}{% translate "Expenses" %}{% endif %}{% endblock %}
+{% block page_title %}{% if kind == "income" %}{% translate "Other income" %}{% else %}{% translate "Expenses" %}{% endif %}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% if kind == "income" %}{% translate "Money received that isn't a sale: supplier bonus, commission, scrap…" %}{% else %}{% translate "Rent, salaries, electricity and other running costs. Cash paid from the drawer is counted in the open register." %}{% endif %}</p>{% endblock %}
+{% block content %}
+<div class="row g-4">
+  {% if can_create %}
+  <div class="col-xl-4">
+    <div class="card voucher-card {% if kind == 'income' %}tone-teal{% else %}tone-rose{% endif %}">
+      <div class="card-header"><h2 class="card-title">{% if kind == "income" %}{% translate "Record income" %}{% else %}{% translate "Record an expense" %}{% endif %}</h2></div>
+      <div class="card-body">
+        <form method="post" novalidate>
+          {% csrf_token %}
+          {% if form.non_field_errors %}<div class="alert alert-danger">{% for e in form.non_field_errors %}<div>{{ e }}</div>{% endfor %}</div>{% endif %}
+          {% include "partials/_field.html" with field=form.account %}
+          <div class="d-flex justify-content-between mt-n2 mb-3 small">
+            <button class="btn btn-link btn-sm p-0" type="button" data-bs-toggle="modal" data-bs-target="#categoryModal"><i class="bi bi-plus-circle"></i> {% translate "New category" %}</button>
+            <a href="{% if kind == 'income' %}{% url 'accounting:income_categories' %}{% else %}{% url 'accounting:expense_categories' %}{% endif %}">{% translate "Manage categories" %}</a>
+          </div>
+          <div class="row">
+            <div class="col-sm-6 col-xl-12 col-xxl-6">{% include "partials/_field.html" with field=form.amount %}</div>
+            <div class="col-sm-6 col-xl-12 col-xxl-6">{% include "partials/_field.html" with field=form.date %}</div>
+          </div>
+          {% include "partials/_field.html" with field=form.payment_account %}
+          {% include "partials/_field.html" with field=form.outlet %}
+          {% include "partials/_field.html" with field=form.reference %}
+          {% include "partials/_field.html" with field=form.note %}
+          <button class="btn btn-primary w-100" type="submit"><i class="bi bi-check2-circle"></i> {% translate "Save" %}</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+  <div class="{% if can_create %}col-xl-8{% else %}col-12{% endif %}">
+    <form class="card mb-4" method="get"><div class="card-body">{% include "accounting/_period.html" %}</div></form>
+    <div class="row g-3 mb-4">
+      <div class="col-md-4">
+        <div class="card stat-tile {% if kind == 'income' %}tone-teal{% else %}tone-rose{% endif %} h-100"><div class="card-body">
+          <div class="stat-label">{% translate "Total for the period" %}</div>
+          <div class="stat-figure">{% money total %}</div>
+        </div></div>
+      </div>
+      <div class="col-md-8">
+        <div class="card h-100"><div class="card-body">
+          <div class="stat-label mb-2">{% translate "By category" %}</div>
+          {% for name, amount in by_category %}
+          <div class="category-bar"><span>{{ name }}</span><strong>{% money amount %}</strong><i style="width: {% widthratio amount total 100 %}%"></i></div>
+          {% empty %}<p class="text-body-secondary mb-0">{% translate "Nothing in this period." %}</p>{% endfor %}
+        </div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-body">
+        <table class="table table-hover align-middle w-100" data-mp-table>
+          <thead><tr><th>{% translate "No." %}</th><th>{% translate "Date" %}</th><th>{% translate "Category" %}</th><th>{% if kind == "income" %}{% translate "Received in" %}{% else %}{% translate "Paid from" %}{% endif %}</th><th>{% translate "Note" %}</th><th class="text-end">{% translate "Amount" %}</th><th class="no-sort"></th></tr></thead>
+          <tbody>
+            {% for e in entries %}
+            <tr>
+              <td class="text-nowrap"><code>{{ e.number }}</code></td>
+              <td class="text-nowrap" data-order="{{ e.date|date:'Y-m-d' }}">{% shop_date e.date %}</td>
+              <td class="fw-semibold">{{ e.account.label }}{% if e.outlet %}<small class="d-block text-body-secondary">{{ e.outlet.name }}</small>{% endif %}</td>
+              <td>{{ e.payment_account.name }}</td>
+              <td>{{ e.note|default:"—" }}{% if e.reference %}<small class="d-block text-body-secondary">{{ e.reference }}</small>{% endif %}</td>
+              <td class="text-end fw-semibold" data-order="{{ e.amount }}">{% money e.amount %}</td>
+              <td class="text-end">
+                {% if can_delete %}
+                <form method="post" action="{% if kind == 'income' %}{% url 'accounting:income_delete' e.pk %}{% else %}{% url 'accounting:expense_delete' e.pk %}{% endif %}" data-confirm="{% translate 'Delete this entry? Its amount goes back to the account.' %}">
+                  {% csrf_token %}<button class="btn btn-sm btn-link text-danger" type="submit" aria-label="{% translate 'Delete' %}"><i class="bi bi-trash3"></i></button>
+                </form>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% if can_create %}
+<div class="modal fade" id="categoryModal" tabindex="-1" aria-labelledby="categoryTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <form class="modal-content" data-category-form data-url="{% if kind == 'income' %}{% url 'accounting:income_category_quick' %}{% else %}{% url 'accounting:expense_category_quick' %}{% endif %}">
+      <div class="modal-header"><h2 class="modal-title fs-5" id="categoryTitle">{% translate "New category" %}</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% translate 'Close' %}"></button></div>
+      <div class="modal-body">
+        <label class="form-label" for="new-category">{% translate "Name" %}</label>
+        <input id="new-category" class="form-control" maxlength="100" required>
+        <div class="invalid-feedback d-block" data-category-error></div>
+      </div>
+      <div class="modal-footer"><button type="submit" class="btn btn-primary">{% translate "Add category" %}</button></div>
+    </form>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+{% block extra_js %}
+<script>
+  (function () {
+    var form = document.querySelector("[data-category-form]");
+    if (!form) return;
+    var input = form.querySelector("#new-category"), error = form.querySelector("[data-category-error]");
+    var csrf = (document.querySelector("meta[name=csrf-token]") || {}).content;
+    document.getElementById("categoryModal").addEventListener("shown.bs.modal", function () { input.value = ""; error.textContent = ""; input.focus(); });
+    form.addEventListener("submit", function (ev) {
+      ev.preventDefault();
+      fetch(form.dataset.url, { method: "POST", headers: { "Content-Type": "application/json", "X-CSRFToken": csrf }, body: JSON.stringify({ name: input.value }) })
+        .then(function (r) { return r.json().then(function (data) { if (!r.ok) throw new Error(data.error); return data; }); })
+        .then(function (category) {
+          // Add the new category to the form's list and pick it.
+          $("#{{ form.account.id_for_label }}").append(new Option(category.text, category.id, true, true)).trigger("change");
+          bootstrap.Modal.getInstance(document.getElementById("categoryModal")).hide();
+        })
+        .catch(function (err) { error.textContent = err.message; });
+    });
+  })();
+</script>
+{% endblock %}

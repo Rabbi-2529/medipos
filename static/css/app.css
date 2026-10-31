@@ -710,3 +710,42 @@ span.flatpickr-weekday { background: transparent; color: var(--mp-muted); font-s
 .promo-facts { list-style: none; padding: 0; margin: 0 0 1rem; font-size: .8125rem; color: var(--mp-text); }
 .promo-facts li { display: flex; gap: .45rem; margin-bottom: .25rem; }
 .promo-facts i { color: var(--tone); }
+
+/* Accounting: report tables, period filter, vouchers, chart groups */
+.report-period { display: flex; flex-wrap: wrap; gap: .75rem; align-items: flex-end; }
+.report-period > div:not(.report-presets) { min-width: 170px; }
+.report-presets { display: flex; flex-wrap: wrap; gap: .35rem; }
+.report-account { min-width: 280px; flex: 0 1 380px; }
+.report-table td.amount, .report-table th.amount, .report-table .amount { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.report-table .report-section td {
+  padding-top: .9rem; font-size: .75rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--mp-primary); border-bottom-color: color-mix(in srgb, var(--mp-primary) 25%, transparent);
+}
+.report-table .report-subtotal td { font-weight: 600; color: var(--mp-heading); background: color-mix(in srgb, var(--mp-primary) 4%, var(--mp-surface)); }
+.report-table .report-total td {
+  font-size: 1.05rem; font-weight: 700; color: var(--mp-heading); border-top: 2px solid var(--mp-heading); border-bottom: 0;
+  background: color-mix(in srgb, var(--mp-primary) 8%, var(--mp-surface));
+}
+.report-table .report-total.is-negative td { color: #e5484d; }
+:where(.chart-group, .voucher-card) { --tone: var(--mp-primary); }
+.chart-group, .voucher-card { border-top: 3px solid var(--tone); }
+.chart-group .card-header .card-title, .voucher-card .card-header .card-title { color: var(--tone); }
+.chart-group .table td { padding-left: 1rem; padding-right: 1rem; }
+.category-bar { position: relative; display: flex; justify-content: space-between; gap: 1rem; padding: .3rem .6rem; margin-bottom: .35rem; border-radius: 7px; font-size: .875rem; overflow: hidden; }
+.category-bar span, .category-bar strong { position: relative; z-index: 1; }
+.category-bar i { position: absolute; inset: 0 auto 0 0; background: color-mix(in srgb, var(--mp-primary) 12%, transparent); border-radius: 7px; }
+.fund-kinds { display: grid; grid-template-columns: repeat(3, 1fr); gap: .5rem; }
+:where(.fund-kind) { --tone: var(--mp-primary); }
+.fund-kind {
+  display: flex; flex-direction: column; align-items: center; gap: .3rem; padding: .7rem .4rem; margin: 0; cursor: pointer; text-align: center;
+  border: 1px solid var(--mp-border); border-radius: 10px; font-size: .8125rem; font-weight: 500; color: var(--mp-text);
+}
+.fund-kind input { position: absolute; opacity: 0; pointer-events: none; }
+.fund-kind i { font-size: 1.3rem; color: var(--tone); }
+.fund-kind:has(input:checked) { border-color: var(--tone); background: color-mix(in srgb, var(--tone) 10%, transparent); box-shadow: 0 0 0 .15rem color-mix(in srgb, var(--tone) 25%, transparent); }
+.fund-kind:has(input:focus-visible) { outline: 2px solid var(--tone); }
+.entry-lines td { vertical-align: top; }
+@media (max-width: 575.98px) { .fund-kinds { grid-template-columns: 1fr; } .report-account { min-width: 100%; } }
+.category-rename { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; }
+.category-rename input[name=name] { flex: 1 1 160px; }
+.category-rename input[name=description] { flex: 2 1 200px; }

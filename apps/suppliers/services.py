@@ -6,6 +6,7 @@ from django.db.models.functions import Coalesce
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
+from apps.accounting import posting
 from apps.setup.services import next_code
 
 from .models import SupplierLedgerEntry, SupplierPayment
@@ -48,6 +49,7 @@ def set_opening_balance(supplier):
     """Keep the single opening-balance ledger line in step with supplier.opening_balance."""
     entry = supplier.ledger.filter(kind=SupplierLedgerEntry.Kind.OPENING).first()
     amount = supplier.opening_balance or ZERO
+    posting.post_supplier_opening(supplier)
     if amount == 0:
         if entry:
             entry.delete()
@@ -80,6 +82,7 @@ def record_payment(*, supplier, amount, account, date, purchase=None, reference=
     post_entry(supplier, date=date, kind=SupplierLedgerEntry.Kind.PAYMENT, debit=amount,
                ref=("supplier_payment", payment.pk, number),
                note=(_("For %(purchase)s") % {"purchase": purchase.number}) if purchase else note)
+    posting.post_supplier_payment(payment)
     return payment
 
 

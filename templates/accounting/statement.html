@@ -1,0 +1,46 @@
+{% extends "layouts/app.html" %}
+{% load i18n shop %}
+{% block title %}{% translate "Account statement" %}{% endblock %}
+{% block page_title %}{% translate "Account statement" %}{% endblock %}
+{% block page_actions %}<button class="btn btn-outline-secondary no-print" type="button" onclick="window.print()"><i class="bi bi-printer"></i> {% translate "Print" %}</button>{% endblock %}
+{% block content %}
+<form class="card mb-4 no-print" method="get"><div class="card-body d-flex flex-wrap gap-3 align-items-end">
+  <div class="report-account">
+    <label class="form-label" for="f-account">{% translate "Account" %}</label>
+    <select id="f-account" name="account" class="form-select" data-mp-select onchange="this.form.submit()">
+      {% for a in accounts %}<option value="{{ a.pk }}" {% if a.pk == account.pk %}selected{% endif %}>{{ a }}</option>{% endfor %}
+    </select>
+  </div>
+  {% include "accounting/_period.html" %}
+  <button class="btn btn-primary" type="submit">{% translate "Show" %}</button>
+</div></form>
+<div class="row g-3 mb-4">
+  <div class="col-sm-4"><div class="card stat-tile tone-slate h-100"><div class="card-body"><div class="stat-label">{% translate "Opening balance" %} · {% shop_date start %}</div><div class="stat-figure">{% money report.opening %}</div></div></div></div>
+  <div class="col-sm-4"><div class="card stat-tile tone-sky h-100"><div class="card-body"><div class="stat-label">{% translate "In the period" %}</div><div class="stat-figure fs-5">+{% money report.debit %} / −{% money report.credit %}</div><small class="text-body-secondary">{% translate "debits / credits" %}</small></div></div></div>
+  <div class="col-sm-4"><div class="card stat-tile tone-violet h-100"><div class="card-body"><div class="stat-label">{% translate "Closing balance" %} · {% shop_date end %}</div><div class="stat-figure">{% money report.closing %}</div></div></div></div>
+</div>
+<div class="card"><div class="card-body">
+  <h2 class="h6 mb-3">{{ account }} <span class="text-body-secondary fw-normal">· {{ account.get_type_display }}</span></h2>
+  <div class="table-responsive">
+    <table class="table align-middle mb-0 report-table">
+      <thead><tr><th>{% translate "Date" %}</th><th>{% translate "Entry" %}</th><th>{% translate "Description" %}</th><th class="text-end">{% translate "Debit" %}</th><th class="text-end">{% translate "Credit" %}</th><th class="text-end">{% translate "Balance" %}</th></tr></thead>
+      <tbody>
+        <tr class="report-section"><td colspan="5">{% translate "Opening balance" %}</td><td class="text-end amount">{% money report.opening %}</td></tr>
+        {% for row in report.rows %}
+        <tr>
+          <td class="text-nowrap">{% shop_date row.line.entry.date %}</td>
+          <td><a href="{% url 'accounting:entry' row.line.entry_id %}"><code>{{ row.line.entry.number }}</code></a></td>
+          <td>{{ row.line.entry.memo|default:"—" }}{% if row.line.entry.source_label %}<small class="d-block text-body-secondary">{{ row.line.entry.source_label }}</small>{% endif %}</td>
+          <td class="text-end amount">{% if row.line.debit %}{% money row.line.debit %}{% endif %}</td>
+          <td class="text-end amount">{% if row.line.credit %}{% money row.line.credit %}{% endif %}</td>
+          <td class="text-end amount fw-semibold">{% money row.balance %}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" class="text-body-secondary text-center py-4">{% translate "No entries in this period." %}</td></tr>
+        {% endfor %}
+      </tbody>
+      <tfoot><tr class="report-total"><td colspan="3">{% translate "Closing balance" %}</td><td class="text-end amount">{% money report.debit %}</td><td class="text-end amount">{% money report.credit %}</td><td class="text-end amount">{% money report.closing %}</td></tr></tfoot>
+    </table>
+  </div>
+</div></div>
+{% endblock %}

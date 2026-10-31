@@ -1,0 +1,98 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+{% block title %}{% translate "Journal entry" %}{% endblock %}
+{% block page_title %}{% translate "New journal entry" %}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle"><a href="{% url 'accounting:journal' %}"><i class="bi bi-chevron-left"></i> {% translate "Journal" %}</a> · {% translate "For things no other screen records: opening balances, loans, furniture, corrections. Debits must equal credits." %}</p>{% endblock %}
+{% block content %}
+<form method="post" novalidate data-entry-form>
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="alert alert-danger">{% for e in form.non_field_errors %}<div>{{ e }}</div>{% endfor %}</div>{% endif %}
+  <div class="card mb-4"><div class="card-body">
+    <div class="row">
+      <div class="col-md-3">{% include "partials/_field.html" with field=form.date %}</div>
+      <div class="col-md-9">{% include "partials/_field.html" with field=form.memo %}</div>
+    </div>
+  </div></div>
+  <div class="card mb-4"><div class="card-body">
+    <div class="table-responsive">
+      <table class="table align-middle mb-0 entry-lines">
+        <thead><tr><th style="min-width:260px">{% translate "Account" %}</th><th>{% translate "Note" %}</th><th style="width:150px" class="text-end">{% translate "Debit" %}</th><th style="width:150px" class="text-end">{% translate "Credit" %}</th><th style="width:40px"></th></tr></thead>
+        <tbody data-rows></tbody>
+        <tfoot>
+          <tr><td colspan="2"><button class="btn btn-sm btn-soft tone-violet" type="button" data-add-row><i class="bi bi-plus-lg"></i> {% translate "Add line" %}</button></td>
+            <td class="text-end fw-semibold" data-total="debit"></td><td class="text-end fw-semibold" data-total="credit"></td><td></td></tr>
+          <tr><td colspan="5" class="text-end small" data-difference></td></tr>
+        </tfoot>
+      </table>
+    </div>
+  </div></div>
+  <input type="hidden" name="lines">
+  <button class="btn btn-primary" type="submit"><i class="bi bi-check2-circle"></i> {% translate "Save entry" %}</button>
+  <a class="btn btn-link" href="{% url 'accounting:journal' %}">{% translate "Cancel" %}</a>
+</form>
+{{ accounts|json_script:"entry-accounts" }}{{ posted|json_script:"entry-posted" }}
+{% endblock %}
+{% block extra_js %}
+<script>
+  (function () {
+    var accounts = JSON.parse(document.getElementById("entry-accounts").textContent);
+    var posted = JSON.parse(document.getElementById("entry-posted").textContent);
+    var form = document.querySelector("[data-entry-form]"), body = form.querySelector("[data-rows]");
+    var currency = "{{ currency|escapejs }}";
+    var balancedText = "{% filter escapejs %}{% translate "Balanced" %}{% endfilter %}";
+    var offText = "{% filter escapejs %}{% translate "Off by %(amount)s" %}{% endfilter %}";
+    var pickText = "{% filter escapejs %}{% translate "Pick an account" %}{% endfilter %}";
+    function num(v) { var n = parseFloat(v); return isNaN(n) ? 0 : n; }
+    function money(v) { return currency + v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+
+    function addRow(data) {
+      data = data || {};
+      var tr = document.createElement("tr");
+      var select = document.createElement("select"); select.className = "form-select"; select.setAttribute("data-account", "");
+      select.appendChild(new Option("", ""));
+      accounts.forEach(function (a) { select.appendChild(new Option(a.text, a.id, false, String(a.id) === String(data.account))); });
+      var cells = [select];
+      ["memo", "debit", "credit"].forEach(function (key) {
+        var input = document.createElement("input"); input.className = "form-control" + (key === "memo" ? "" : " text-end");
+        if (key !== "memo") { input.type = "number"; input.min = 0; input.step = "0.01"; }
+        input.dataset.key = key; input.value = data[key] || "";
+        input.addEventListener("input", function () {
+          // A line is a debit or a credit: typing in one clears the other.
+          if (key !== "memo" && input.value) { var other = tr.querySelector("[data-key=" + (key === "debit" ? "credit" : "debit") + "]"); other.value = ""; }
+          totals();
+        });
+        cells.push(input);
+      });
+      var remove = document.createElement("button"); remove.type = "button"; remove.className = "btn btn-sm btn-link text-danger";
+      remove.innerHTML = '<i class="bi bi-x-lg"></i>';
+      remove.addEventListener("click", function () { tr.remove(); totals(); });
+      cells.push(remove);
+      cells.forEach(function (c) { var td = document.createElement("td"); td.appendChild(c); tr.appendChild(td); });
+      body.appendChild(tr);
+      $(select).select2({ theme: "bootstrap-5", width: "100%", placeholder: pickText, language: MP.select2Language });
+    }
+
+    function rows() {
+      return Array.prototype.map.call(body.rows, function (tr) {
+        return { account: $(tr.querySelector("[data-account]")).val(), memo: tr.querySelector("[data-key=memo]").value,
+                 debit: tr.querySelector("[data-key=debit]").value, credit: tr.querySelector("[data-key=credit]").value };
+      });
+    }
+
+    function totals() {
+      var d = 0, c = 0;
+      rows().forEach(function (r) { d += num(r.debit); c += num(r.credit); });
+      form.querySelector("[data-total=debit]").textContent = money(d);
+      form.querySelector("[data-total=credit]").textContent = money(c);
+      var diff = Math.round((d - c) * 100) / 100, out = form.querySelector("[data-difference]");
+      out.textContent = diff ? offText.replace("%(amount)s", money(Math.abs(diff))) : balancedText;
+      out.className = "text-end small fw-semibold " + (diff ? "text-danger" : "text-success");
+    }
+
+    form.querySelector("[data-add-row]").addEventListener("click", function () { addRow(); });
+    form.addEventListener("submit", function () { form.querySelector("[name=lines]").value = JSON.stringify(rows()); });
+    (posted.length ? posted : [{}, {}]).forEach(addRow);
+    totals();
+  })();
+</script>
+{% endblock %}

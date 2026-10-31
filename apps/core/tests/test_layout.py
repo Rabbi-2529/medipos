@@ -55,9 +55,9 @@ class MenuTests(TestCase):
         # Built screens show up (in menu order); later ones (POS, sales, …) stay hidden until their URLs exist.
         for expected in ("Dashboard", "Medicine list", "Current stock", "Opening stock", "Add purchase", "Purchase list",
                          "Purchase returns", "Supplier list", "Supplier payments", "Employees", "Business settings", "Subscription",
-                         "Quotations", "Low stock", "Transfers", "Stock counts"):
+                         "Quotations", "Low stock", "Transfers", "Stock counts", "Expenses", "Profit & loss", "Chart of accounts"):
             self.assertIn(expected, labels)
-        for unbuilt in ("Income", "Accounting reports", "Reports", "Payroll"):
+        for unbuilt in ("Reports", "Attendance", "Payroll"):
             self.assertNotIn(unbuilt, labels)
         self.assertEqual(labels[0], "Dashboard")
         self.assertLess(labels.index("Current stock"), labels.index("Add purchase"))

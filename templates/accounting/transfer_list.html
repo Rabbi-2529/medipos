@@ -1,0 +1,84 @@
+{% extends "layouts/app.html" %}
+{% load i18n shop %}
+{% block title %}{% translate "Deposit / withdraw" %}{% endblock %}
+{% block page_title %}{% translate "Deposits, withdrawals & transfers" %}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% translate "Cash taken to the bank, money moved between wallets, or the owner putting money in or taking it out." %}</p>{% endblock %}
+{% block content %}
+<div class="row g-4">
+  {% if can_create %}
+  <div class="col-xl-5">
+    <div class="card">
+      <div class="card-header"><h2 class="card-title">{% translate "New movement" %}</h2></div>
+      <div class="card-body">
+        <form method="post" novalidate data-fund-form>
+          {% csrf_token %}
+          {% if form.non_field_errors %}<div class="alert alert-danger">{% for e in form.non_field_errors %}<div>{{ e }}</div>{% endfor %}</div>{% endif %}
+          <div class="fund-kinds mb-3" role="radiogroup" aria-label="{% translate 'What happened' %}">
+            {% for value, label in form.fields.kind.choices %}
+            <label class="fund-kind tone-{% if value == 'transfer' %}sky{% elif value == 'deposit' %}teal{% else %}rose{% endif %}">
+              <input type="radio" name="kind" value="{{ value }}" {% if form.kind.value == value %}checked{% endif %}>
+              <i class="bi {% if value == 'transfer' %}bi-arrow-left-right{% elif value == 'deposit' %}bi-box-arrow-in-down{% else %}bi-box-arrow-up{% endif %}"></i>
+              <span>{{ label }}</span>
+            </label>
+            {% endfor %}
+          </div>
+          <div class="row">
+            <div class="col-sm-6" data-for="transfer withdraw">{% include "partials/_field.html" with field=form.from_account %}</div>
+            <div class="col-sm-6" data-for="transfer deposit">{% include "partials/_field.html" with field=form.to_account %}</div>
+          </div>
+          <div class="row">
+            <div class="col-sm-6">{% include "partials/_field.html" with field=form.amount %}</div>
+            <div class="col-sm-6">{% include "partials/_field.html" with field=form.date %}</div>
+          </div>
+          {% include "partials/_field.html" with field=form.note %}
+          <button class="btn btn-primary w-100" type="submit"><i class="bi bi-check2-circle"></i> {% translate "Save" %}</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+  <div class="{% if can_create %}col-xl-7{% else %}col-12{% endif %}">
+    <form class="card mb-4" method="get"><div class="card-body">{% include "accounting/_period.html" %}</div></form>
+    <div class="card">
+      <div class="card-body">
+        <table class="table table-hover align-middle w-100" data-mp-table>
+          <thead><tr><th>{% translate "No." %}</th><th>{% translate "Date" %}</th><th>{% translate "Type" %}</th><th>{% translate "From" %}</th><th>{% translate "To" %}</th><th class="text-end">{% translate "Amount" %}</th><th class="no-sort"></th></tr></thead>
+          <tbody>
+            {% for m in movements %}
+            <tr>
+              <td class="text-nowrap"><code>{{ m.number }}</code></td>
+              <td class="text-nowrap" data-order="{{ m.date|date:'Y-m-d' }}">{% shop_date m.date %}</td>
+              <td>{{ m.get_kind_display }}{% if m.note %}<small class="d-block text-body-secondary">{{ m.note }}</small>{% endif %}</td>
+              <td>{% if m.from_account %}{{ m.from_account.name }}{% else %}<span class="text-body-secondary">{% translate "Owner" %}</span>{% endif %}</td>
+              <td>{% if m.to_account %}{{ m.to_account.name }}{% else %}<span class="text-body-secondary">{% translate "Owner" %}</span>{% endif %}</td>
+              <td class="text-end fw-semibold" data-order="{{ m.amount }}">{% money m.amount %}</td>
+              <td class="text-end">
+                {% if can_delete %}
+                <form method="post" action="{% url 'accounting:transfer_delete' m.pk %}" data-confirm="{% translate 'Delete this movement? The accounts go back to how they were.' %}">
+                  {% csrf_token %}<button class="btn btn-sm btn-link text-danger" type="submit" aria-label="{% translate 'Delete' %}"><i class="bi bi-trash3"></i></button>
+                </form>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+  (function () {
+    var form = document.querySelector("[data-fund-form]");
+    if (!form) return;
+    function show() {
+      var kind = form.querySelector("[name=kind]:checked").value;
+      form.querySelectorAll("[data-for]").forEach(function (box) { box.hidden = box.dataset.for.split(" ").indexOf(kind) < 0; });
+    }
+    form.querySelectorAll("[name=kind]").forEach(function (r) { r.addEventListener("change", show); });
+    show();
+  })();
+</script>
+{% endblock %}

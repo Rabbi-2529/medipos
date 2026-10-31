@@ -31,7 +31,7 @@ class PermissionTests(TestCase):
         self.assertEqual(user_permissions(self.owner), ALL_CODES)
 
     def test_staff_get_their_roles_codes_and_future_codes_are_ignored(self):
-        user = add_staff(self.tenant, "a@x.test", ["outlet.list", "expense.create"])  # expenses arrive in Phase 7
+        user = add_staff(self.tenant, "a@x.test", ["outlet.list", "salary.create"])  # payroll arrives in Phase 9
         self.assertEqual(user_permissions(user), {"outlet.list"})
 
     def test_no_role_or_platform_admin_means_nothing(self):

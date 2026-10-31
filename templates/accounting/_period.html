@@ -1,0 +1,35 @@
+{% load i18n %}
+{# Date range for a report: two calendars plus quick ranges. Include inside a GET form. #}
+<div class="report-period">
+  <div>
+    <label class="form-label" for="period-start">{% translate "From" %}</label>
+    <input id="period-start" class="form-control" type="date" name="start" value="{{ start|date:'Y-m-d' }}">
+  </div>
+  <div>
+    <label class="form-label" for="period-end">{% translate "To" %}</label>
+    <input id="period-end" class="form-control" type="date" name="end" value="{{ end|date:'Y-m-d' }}">
+  </div>
+  <div class="report-presets" role="group" aria-label="{% translate 'Quick ranges' %}">
+    <button type="button" class="btn btn-sm btn-soft tone-violet" data-preset="today">{% translate "Today" %}</button>
+    <button type="button" class="btn btn-sm btn-soft tone-violet" data-preset="month">{% translate "This month" %}</button>
+    <button type="button" class="btn btn-sm btn-soft tone-violet" data-preset="last-month">{% translate "Last month" %}</button>
+    <button type="button" class="btn btn-sm btn-soft tone-violet" data-preset="year">{% translate "This year" %}</button>
+  </div>
+</div>
+<script>
+  (function () {
+    var box = document.currentScript.previousElementSibling;
+    function iso(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+    box.querySelectorAll("[data-preset]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var now = new Date(), start = new Date(now), end = new Date(now);
+        if (btn.dataset.preset === "month") start = new Date(now.getFullYear(), now.getMonth(), 1);
+        if (btn.dataset.preset === "last-month") { start = new Date(now.getFullYear(), now.getMonth() - 1, 1); end = new Date(now.getFullYear(), now.getMonth(), 0); }
+        if (btn.dataset.preset === "year") start = new Date(now.getFullYear(), 0, 1);
+        var s = box.querySelector("[name=start]"), e = box.querySelector("[name=end]");
+        if (s._flatpickr) { s._flatpickr.setDate(start); e._flatpickr.setDate(end); } else { s.value = iso(start); e.value = iso(end); }
+        box.closest("form").submit();
+      });
+    });
+  })();
+</script>

@@ -1,0 +1,45 @@
+{% extends "layouts/app.html" %}
+{% load i18n shop %}
+{% block title %}{{ entry.number }}{% endblock %}
+{% block page_title %}{% translate "Journal entry" %} {{ entry.number }}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle no-print"><a href="{% url 'accounting:journal' %}"><i class="bi bi-chevron-left"></i> {% translate "Journal" %}</a></p>{% endblock %}
+{% block page_actions %}
+<div class="d-flex gap-2 no-print">
+  {% if source_url %}<a class="btn btn-outline-primary" href="{{ source_url }}"><i class="bi bi-box-arrow-up-right"></i> {% translate "Open" %} {{ entry.source_label }}</a>{% endif %}
+  {% if entry.is_manual and can.accounting.create %}
+  <form method="post" action="{% url 'accounting:entry_delete' entry.pk %}" data-confirm="{% translate 'Delete this journal entry?' %}">
+    {% csrf_token %}<button class="btn btn-outline-danger" type="submit"><i class="bi bi-trash3"></i> {% translate "Delete" %}</button>
+  </form>
+  {% endif %}
+  <button class="btn btn-outline-secondary" type="button" onclick="window.print()"><i class="bi bi-printer"></i> {% translate "Print" %}</button>
+</div>
+{% endblock %}
+{% block content %}
+<div class="card mb-4"><div class="card-body">
+  <dl class="detail-list detail-grid mb-0">
+    <dt>{% translate "Date" %}</dt><dd>{% shop_date entry.date %}</dd>
+    <dt>{% translate "Type" %}</dt><dd>{{ source_name }}{% if entry.source_label %} · {{ entry.source_label }}{% endif %}</dd>
+    <dt>{% translate "Description" %}</dt><dd>{{ entry.memo|default:"—" }}</dd>
+    <dt>{% translate "Outlet" %}</dt><dd>{{ entry.outlet.name|default:"—" }}</dd>
+    <dt>{% translate "By" %}</dt><dd>{{ entry.created_by|default:"—" }}</dd>
+  </dl>
+</div></div>
+<div class="card"><div class="card-body">
+  <div class="table-responsive">
+    <table class="table align-middle mb-0 report-table">
+      <thead><tr><th>{% translate "Account" %}</th><th>{% translate "Note" %}</th><th class="text-end">{% translate "Debit" %}</th><th class="text-end">{% translate "Credit" %}</th></tr></thead>
+      <tbody>
+        {% for line in lines %}
+        <tr>
+          <td><a href="{% url 'accounting:statement' %}?account={{ line.account_id }}&start={{ entry.date|date:'Y-m-d' }}&end={{ entry.date|date:'Y-m-d' }}"><code>{{ line.account.code }}</code> {{ line.account.label }}</a></td>
+          <td class="text-body-secondary">{{ line.memo|default:"" }}</td>
+          <td class="text-end amount">{% if line.debit %}{% money line.debit %}{% endif %}</td>
+          <td class="text-end amount">{% if line.credit %}{% money line.credit %}{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot><tr class="report-total"><td colspan="2">{% translate "Total" %}</td><td class="text-end amount">{% money debit %}</td><td class="text-end amount">{% money credit %}</td></tr></tfoot>
+    </table>
+  </div>
+</div></div>
+{% endblock %}

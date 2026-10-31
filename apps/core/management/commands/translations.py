@@ -19,7 +19,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.utils.translation.template import templatize
 
 KEYWORDS = {
-    "_": None, "gettext": None, "gettext_lazy": None, "gettext_noop": None,
+    "_": None, "N_": None, "gettext": None, "gettext_lazy": None, "gettext_noop": None,
     "ngettext": (1, 2), "ngettext_lazy": (1, 2),
     "pgettext": ((1, "c"), 2), "pgettext_lazy": ((1, "c"), 2), "npgettext": ((1, "c"), 2, 3), "npgettext_lazy": ((1, "c"), 2, 3),
 }

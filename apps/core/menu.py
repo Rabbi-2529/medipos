@@ -115,12 +115,22 @@ MENU = (
     )),
     MenuSection(_("Accounts"), (
         MenuItem("payment_account", _("Payment accounts"), "accounting:payment_accounts", "bi-wallet2"),
-        MenuItem("expense", _("Income & expenses"), icon="bi-cash-stack", children=(
-            _item("income", _("Income"), "accounting:incomes"),
+        MenuItem("expense", _("Income & expenses"), icon="bi-cash-stack", perm=None, children=(
             _item("expense", _("Expenses"), "accounting:expenses"),
+            _item("expense", _("Expense categories"), "accounting:expense_categories"),
+            _item("income", _("Other income"), "accounting:incomes"),
+            _item("income", _("Income categories"), "accounting:income_categories"),
             _item("deposit_withdraw", _("Deposit / withdraw"), "accounting:transfers"),
         )),
-        MenuItem("accounting", _("Accounting reports"), "accounting:reports", "bi-journal-text"),
+        MenuItem("accounting", _("Accounting"), icon="bi-journal-text", perm=None, children=(
+            _item("accounting", _("Profit & loss"), "accounting:profit_loss"),
+            _item("accounting", _("Balance sheet"), "accounting:balance_sheet"),
+            _item("accounting", _("Cash flow"), "accounting:cash_flow"),
+            _item("accounting", _("Trial balance"), "accounting:trial_balance"),
+            _item("accounting", _("Account statement"), "accounting:statement"),
+            _item("accounting", _("Journal"), "accounting:journal"),
+            _item("accounting", _("Chart of accounts"), "accounting:chart"),
+        )),
     )),
     MenuSection(_("People"), (
         MenuItem("employee", _("Employees"), "people:employees", "bi-person-badge"),

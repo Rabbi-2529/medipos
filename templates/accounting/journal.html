@@ -1,0 +1,44 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+{% block title %}{% translate "Journal" %}{% endblock %}
+{% block page_title %}{% translate "Journal" %}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% translate "Every transaction in the books, newest first. Sales, purchases and other documents post their own entries." %}</p>{% endblock %}
+{% block page_actions %}{% if can.accounting.create %}<a class="btn btn-primary" href="{% url 'accounting:entry_create' %}"><i class="bi bi-journal-plus"></i> {% translate "Journal entry" %}</a>{% endif %}{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <form class="table-filters align-items-end" data-filters onsubmit="return false">
+      {% include "accounting/_period.html" %}
+      <div class="table-filter">
+        <label class="form-label" for="f-source">{% translate "Type" %}</label>
+        <select id="f-source" class="form-select" data-mp-select data-no-search>
+          <option value="__all__">{% translate "Everything" %}</option>
+          {% for value, label in sources %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+        </select>
+      </div>
+    </form>
+    <table id="journal-table" class="table table-hover align-middle w-100">
+      <thead><tr><th>{% translate "No." %}</th><th>{% translate "Date" %}</th><th>{% translate "Type" %}</th><th>{% translate "Description" %}</th><th class="text-end">{% translate "Amount" %}</th></tr></thead>
+    </table>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+  (function () {
+    var form = document.querySelector("[data-filters]");
+    var table = MP.dataTable("#journal-table", {
+      ajax: { url: "{% url 'accounting:journal_data' %}", data: function (d) {
+        d.start = form.querySelector("[name=start]").value; d.end = form.querySelector("[name=end]").value; d.source = $("#f-source").val();
+      } },
+      order: [[1, "desc"]],
+      columnDefs: [{ targets: [4], className: "text-end text-nowrap" }, { targets: [3], orderable: false }],
+      language: { searchPlaceholder: "{% filter escapejs %}{% translate "Number or description…" %}{% endfilter %}" }
+    });
+    // The quick ranges submit the form; here that means reloading the table.
+    form.submit = function () { table.ajax.reload(); };
+    $(form).on("change", "input, select", function () { table.ajax.reload(); });
+    $("#f-source").on("change", function () { table.ajax.reload(); });
+  })();
+</script>
+{% endblock %}

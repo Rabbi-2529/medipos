@@ -6,6 +6,7 @@ from django.db.models import Sum
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
+from apps.accounting import posting
 from apps.core.dates import parse_expiry
 from apps.items.models import Medicine
 from apps.setup.services import next_code
@@ -131,6 +132,7 @@ def receive(purchase, *, user=None):
     purchase.save(update_fields=["status", "received_at", "received_by", "updated_at"])
     if purchase.total > 0:
         post_entry(purchase.supplier, date=purchase.date, kind=SupplierLedgerEntry.Kind.PURCHASE, credit=purchase.total, ref=ref)
+    posting.post_purchase(purchase)
     return purchase
 
 
@@ -181,4 +183,5 @@ def create_return(purchase, quantities, *, date, reason="", user=None):
     purchase_return.save(update_fields=["total", "updated_at"])
     post_entry(purchase.supplier, date=date, kind=SupplierLedgerEntry.Kind.RETURN, debit=total, ref=ref,
                note=_("Return against %(number)s") % {"number": purchase.number})
+    posting.post_purchase_return(purchase_return)
     return purchase_return

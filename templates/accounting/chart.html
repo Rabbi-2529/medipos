@@ -1,0 +1,43 @@
+{% extends "layouts/app.html" %}
+{% load i18n shop %}
+{% block title %}{% translate "Chart of accounts" %}{% endblock %}
+{% block page_title %}{% translate "Chart of accounts" %}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% translate "Every amount in the books sits in one of these accounts. Accounts with a lock are kept by the app; add your own for new expense types, loans or fixed assets." %}</p>{% endblock %}
+{% block page_actions %}
+{% if can.accounting.create %}<a class="btn btn-outline-primary" href="{% url 'accounting:entry_create' %}"><i class="bi bi-journal-plus"></i> {% translate "Journal entry" %}</a>{% endif %}
+{% if can.accounting.edit %}<a class="btn btn-primary" href="{% url 'accounting:account_create' %}"><i class="bi bi-plus-lg"></i> {% translate "New account" %}</a>{% endif %}
+{% endblock %}
+{% block content %}
+<div class="row g-4">
+  {% for group in groups %}
+  <div class="col-xl-6">
+    <div class="card chart-group h-100 tone-{% if group.type == 'asset' %}sky{% elif group.type == 'liability' %}orange{% elif group.type == 'equity' %}violet{% elif group.type == 'income' %}teal{% else %}rose{% endif %}">
+      <div class="card-header"><h2 class="card-title">{{ group.label }}</h2></div>
+      <div class="card-body p-0">
+        <table class="table align-middle mb-0">
+          <tbody>
+            {% for row in group.rows %}
+            <tr class="{% if not row.account.is_active %}text-body-secondary{% endif %}">
+              <td style="width:72px"><code>{{ row.account.code }}</code></td>
+              <td>
+                <a class="fw-semibold" href="{% url 'accounting:statement' %}?account={{ row.account.pk }}">{{ row.account.label }}</a>
+                {% if row.account.is_locked %}<i class="bi bi-lock-fill text-body-secondary small" title="{% translate 'Kept by the app' %}"></i>{% endif %}
+                {% if not row.account.is_active %}<span class="state-badge state-suspended">{% translate "Inactive" %}</span>{% endif %}
+                {% if row.account.description %}<small class="d-block text-body-secondary">{{ row.account.description }}</small>{% endif %}
+              </td>
+              <td class="text-end text-nowrap fw-semibold {% if row.balance < 0 %}text-danger{% endif %}">{% money row.balance %}</td>
+              <td class="text-end" style="width:48px">
+                {% if can.accounting.edit and not row.account.is_locked %}<a class="btn btn-sm btn-link" href="{% url 'accounting:account_edit' row.account.pk %}" aria-label="{% translate 'Edit' %}"><i class="bi bi-pencil"></i></a>{% endif %}
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td class="text-body-secondary">{% translate "No accounts yet." %}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

@@ -39,6 +39,9 @@ def provision_tenant(tenant):
             Unit.objects.get_or_create(name=name)
         for name in DEFAULT_CATEGORIES:
             Category.objects.get_or_create(name=name)
+        from apps.accounting.chart import ensure_chart
+
+        ensure_chart(language=BusinessSettings.objects.get().default_language)
 
 
 def get_business_settings(tenant):
@@ -70,10 +73,11 @@ def next_code(tenant, key, prefix="", padding=5):
 
 def format_money(value, settings):
     amount = Decimal(value or 0)
-    text = f"{amount:,.{settings.decimal_places}f}"
+    text = f"{abs(amount):,.{settings.decimal_places}f}"
+    sign = "−" if amount < 0 and text.strip("0.,") else ""  # "−৳1,500.00", not "৳-1,500.00"
     if settings.currency_position == BusinessSettings.CurrencyPosition.AFTER:
-        return f"{text}{settings.currency_symbol}"
-    return f"{settings.currency_symbol}{text}"
+        return f"{sign}{text}{settings.currency_symbol}"
+    return f"{sign}{settings.currency_symbol}{text}"
 
 
 def format_shop_date(value, settings):

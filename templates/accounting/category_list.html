@@ -1,0 +1,91 @@
+{% extends "layouts/app.html" %}
+{% load i18n shop %}
+{% block title %}{% if kind == "income" %}{% translate "Income categories" %}{% else %}{% translate "Expense categories" %}{% endif %}{% endblock %}
+{% block page_title %}{% if kind == "income" %}{% translate "Income categories" %}{% else %}{% translate "Expense categories" %}{% endif %}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% if kind == "income" %}{% translate "The headings other income is recorded under. Add, rename or hide them any time." %}{% else %}{% translate "The headings expenses are recorded under, e.g. rent, salaries, electricity. Add, rename or hide them any time." %}{% endif %}</p>{% endblock %}
+{% block page_actions %}
+<a class="btn btn-outline-primary" href="{% if kind == 'income' %}{% url 'accounting:incomes' %}{% else %}{% url 'accounting:expenses' %}{% endif %}"><i class="bi bi-arrow-left"></i> {% if kind == "income" %}{% translate "Other income" %}{% else %}{% translate "Expenses" %}{% endif %}</a>
+{% endblock %}
+{% block content %}
+<div class="row g-4">
+  {% if can_manage %}
+  <div class="col-xl-4">
+    <div class="card voucher-card {% if kind == 'income' %}tone-teal{% else %}tone-rose{% endif %}">
+      <div class="card-header"><h2 class="card-title">{% translate "New category" %}</h2></div>
+      <div class="card-body">
+        <form method="post">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label class="form-label" for="cat-name">{% translate "Name" %} <span class="text-danger">*</span></label>
+            <input id="cat-name" class="form-control" name="name" maxlength="100" required placeholder="{% if kind == 'income' %}{% translate 'e.g. Rent from the upstairs room' %}{% else %}{% translate 'e.g. Security guard' %}{% endif %}">
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="cat-desc">{% translate "Description" %}</label>
+            <input id="cat-desc" class="form-control" name="description" maxlength="255">
+          </div>
+          <button class="btn btn-primary w-100" type="submit"><i class="bi bi-plus-lg"></i> {% translate "Add category" %}</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+  <div class="{% if can_manage %}col-xl-8{% else %}col-12{% endif %}">
+    <div class="card"><div class="card-body">
+      <table class="table align-middle w-100 mb-0" data-mp-table>
+        <thead><tr><th>{% translate "Category" %}</th><th class="text-center">{% translate "Entries" %}</th><th class="text-end">{% translate "This month" %}</th><th>{% translate "Status" %}</th><th class="no-sort"></th></tr></thead>
+        <tbody>
+          {% for c in categories %}
+          <tr class="{% if not c.is_active %}text-body-secondary{% endif %}">
+            <td>
+              <div data-show-row="{{ c.pk }}">
+                <span class="fw-semibold">{{ c.label }}</span>
+                {% if c.is_locked %}<i class="bi bi-lock-fill small text-body-secondary" title="{% translate 'Kept by the app' %}"></i>{% endif %}
+                {% if c.description %}<small class="d-block text-body-secondary">{{ c.description }}</small>{% endif %}
+              </div>
+              {% if can_manage and not c.is_locked %}
+              <form class="category-rename" method="post" action="{% if kind == 'income' %}{% url 'accounting:income_category_edit' c.pk %}{% else %}{% url 'accounting:expense_category_edit' c.pk %}{% endif %}" data-edit-row="{{ c.pk }}" hidden>
+                {% csrf_token %}
+                <input class="form-control form-control-sm" name="name" value="{{ c.name }}" maxlength="100" required aria-label="{% translate 'Name' %}">
+                <input class="form-control form-control-sm" name="description" value="{{ c.description }}" maxlength="255" placeholder="{% translate 'Description' %}" aria-label="{% translate 'Description' %}">
+                <button class="btn btn-sm btn-primary" type="submit">{% translate "Save" %}</button>
+                <button class="btn btn-sm btn-link" type="button" data-cancel-edit="{{ c.pk }}">{% translate "Cancel" %}</button>
+              </form>
+              {% endif %}
+            </td>
+            <td class="text-center" data-order="{{ c.entry_count }}">{{ c.entry_count }}</td>
+            <td class="text-end text-nowrap" data-order="{{ c.month_total }}">{% if c.month_total %}{% money c.month_total %}{% else %}—{% endif %}</td>
+            <td>{% if c.is_active %}<span class="state-badge state-active">{% translate "In use" %}</span>{% else %}<span class="state-badge state-suspended">{% translate "Hidden" %}</span>{% endif %}</td>
+            <td class="text-end text-nowrap">
+              {% if can_manage %}
+              {% if not c.is_locked %}<button class="btn btn-sm btn-link" type="button" data-start-edit="{{ c.pk }}" aria-label="{% translate 'Rename' %}"><i class="bi bi-pencil"></i></button>{% endif %}
+              <form class="d-inline" method="post" action="{% if kind == 'income' %}{% url 'accounting:income_category_toggle' c.pk %}{% else %}{% url 'accounting:expense_category_toggle' c.pk %}{% endif %}">
+                {% csrf_token %}<button class="btn btn-sm btn-outline-secondary" type="submit">{% if c.is_active %}{% translate "Hide" %}{% else %}{% translate "Show again" %}{% endif %}</button>
+              </form>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <p class="form-text mt-3 mb-0">{% translate "Hidden categories aren't offered for new entries; past entries and reports keep them. Each category is also an account in the chart of accounts." %}</p>
+    </div></div>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+  (function () {
+    function toggle(pk, editing) {
+      document.querySelector("[data-show-row='" + pk + "']").hidden = editing;
+      var form = document.querySelector("[data-edit-row='" + pk + "']");
+      form.hidden = !editing;
+      if (editing) form.querySelector("[name=name]").focus();
+    }
+    document.addEventListener("click", function (ev) {
+      var start = ev.target.closest("[data-start-edit]"), cancel = ev.target.closest("[data-cancel-edit]");
+      if (start) toggle(start.dataset.startEdit, true);
+      if (cancel) toggle(cancel.dataset.cancelEdit, false);
+    });
+  })();
+</script>
+{% endblock %}

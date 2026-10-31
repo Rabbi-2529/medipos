@@ -53,7 +53,7 @@ apps/console/      platform console for ThingBD staff (/platform/)
 apps/outlets/      outlets, counters, current-outlet middleware and switcher
 apps/people/       employees, roles, permission checks (access.py)
 apps/setup/        business settings, document numbering, tenant provisioning
-apps/accounting/   payment accounts (journals and reports in Phase 7)
+apps/accounting/   payment accounts, chart of accounts, journals, expenses/income, fund movements, reports
 apps/items/        medicines, setup lists, import/export, bulk prices, labels
 apps/catalog/      platform-wide medicine catalog (fixtures/sample_catalog.csv = demo sample)
 apps/stock/        batches, per-outlet stock, movement ledger, opening-stock import
@@ -114,6 +114,18 @@ Use a list ThingBD has the right to use, such as DGDA's registered-drug list.
 - Document numbers come from `apps.setup.services.next_code(tenant, key, prefix=…)`: INV (invoice sequence from settings), PUR-, PRT-, SPY-, SRT-, RCV-, TRF-, DMG-, ADJ-, QT-.
 - Supplier balances come from `SupplierLedgerEntry` (credit = owed, debit = paid/returned). Post entries with `suppliers.services.post_entry()`.
 - Customer balances come from `CustomerLedgerEntry` (debit = owes, credit = paid/returned). Post entries with `customers.services.post_entry()`.
+
+## Accounting rules
+
+- Every document that moves money or stock posts **one balanced journal entry** through `apps.accounting.posting` (e.g. `post_sale(sale)`), called at the end of its service. Posting again replaces the document's entry.
+- A new document type needs a `post_…` function, a call in its service, and a line in `posting.rebuild()`.
+- Use `chart.system_account("sales")` / `chart.money_account(payment_account)`; never look accounts up by code.
+- After changing posting rules, or on a database that has documents but no journals:
+
+```bash
+venv/Scripts/python.exe manage.py rebuild_books            # every pharmacy
+venv/Scripts/python.exe manage.py rebuild_books --tenant lazz-pharma-demo
+```
 
 ## Forms and dates
 

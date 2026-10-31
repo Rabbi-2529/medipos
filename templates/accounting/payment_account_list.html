@@ -14,6 +14,7 @@
           <th>{% translate "Type" %}</th>
           <th>{% translate "Account / wallet no." %}</th>
           <th class="text-end">{% translate "Opening balance" %}</th>
+          <th class="text-end">{% translate "Balance now" %}</th>
           <th>{% translate "Status" %}</th>
           <th class="no-sort"><span class="visually-hidden">{% translate "Actions" %}</span></th>
         </tr>
@@ -25,6 +26,7 @@
           <td>{{ account.get_kind_display }}</td>
           <td>{{ account.account_number|default:"—" }}</td>
           <td class="text-end" data-order="{{ account.opening_balance }}">{% money account.opening_balance %}</td>
+          <td class="text-end fw-semibold" data-order="{{ account.balance }}">{% if can.accounting.list %}<a href="{% url 'accounting:statement' %}?account={{ account.ledger_id }}">{% money account.balance %}</a>{% else %}{% money account.balance %}{% endif %}</td>
           <td>{% include "shop/_status.html" with active=account.is_active %}</td>
           <td class="text-end text-nowrap">
             {% if can.payment_account.edit %}<a class="btn btn-sm btn-outline-primary" href="{% url 'accounting:payment_account_edit' account.pk %}">{% translate "Edit" %}</a>{% endif %}

@@ -5,6 +5,7 @@ from django.db import transaction
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
+from apps.accounting import posting
 from apps.setup.services import next_code
 from apps.stock.models import Batch, BatchStock, StockMovement
 from apps.stock.services import StockError, batch_on_hand, get_or_create_batch, post_movement
@@ -78,6 +79,7 @@ def create_write_off(*, tenant, outlet, date, reason, lines, note="", user=None)
         total += line_total
     write_off.total_cost = total
     write_off.save(update_fields=["total_cost", "updated_at"])
+    posting.post_write_off(write_off)
     return write_off
 
 
@@ -208,4 +210,5 @@ def save_stock_count(*, tenant, outlet, date, lines, note="", user=None):
                 loss += batch.unit_cost * -difference
     count.gain_cost, count.loss_cost = gain.quantize(CENT, ROUND_HALF_UP), loss.quantize(CENT, ROUND_HALF_UP)
     count.save(update_fields=["gain_cost", "loss_cost", "updated_at"])
+    posting.post_stock_count(count)
     return count

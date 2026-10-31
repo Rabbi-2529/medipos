@@ -120,4 +120,7 @@ def run(outlet, rows, *, user=None):
         batch = get_or_create_batch(medicine, row["batch_no"], expiry, cost)
         post_movement(outlet=outlet, batch=batch, quantity=row["quantity"], kind=StockMovement.Kind.OPENING,
                       unit_cost=cost, ref=ref, user=user)
+    from apps.accounting import posting
+
+    posting.post_opening_stock(outlet)
     return len(rows)

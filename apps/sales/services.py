@@ -8,6 +8,7 @@ from django.db.models import Sum
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
+from apps.accounting import posting
 from apps.accounting.models import PaymentAccount
 from apps.customers.models import CustomerLedgerEntry
 from apps.customers.services import can_take_due
@@ -69,6 +70,18 @@ def register_summary(register):
         by_account[(row["account__name"], row["account__kind"])] += row["t"]
     for row in register.returns.exclude(refund_account=None).values("refund_account__name", "refund_account__kind").annotate(t=Sum("refund_amount")):
         by_account[(row["refund_account__name"], row["refund_account__kind"])] -= row["t"]
+    # Expenses paid from the drawer, other income put in it, and money moved in or out by the owner.
+    paid_out = ZERO
+    for row in register.cash_entries.values("payment_account__name", "payment_account__kind", "kind").annotate(t=Sum("amount")):
+        sign = 1 if row["kind"] == "income" else -1
+        by_account[(row["payment_account__name"], row["payment_account__kind"])] += sign * row["t"]
+        if sign < 0:
+            paid_out += row["t"]
+    for movement in register.fund_movements.select_related("from_account", "to_account"):
+        if movement.to_account:
+            by_account[(movement.to_account.name, movement.to_account.kind)] += movement.amount
+        if movement.from_account:
+            by_account[(movement.from_account.name, movement.from_account.kind)] -= movement.amount
     cash_in = sum((amount for (name, kind), amount in by_account.items() if kind == PaymentAccount.Kind.CASH), ZERO)
     return {
         "sale_count": sales.count(),
@@ -78,6 +91,7 @@ def register_summary(register):
         "vat": totals["vat"] or ZERO,
         "dues_given": (totals["total"] or ZERO) - (totals["paid"] or ZERO),
         "returns": register.returns.aggregate(t=Sum("total"))["t"] or ZERO,
+        "expenses": paid_out,
         "by_account": sorted(((name, amount) for (name, _kind), amount in by_account.items()), key=lambda x: x[0]),
         "expected_cash": register.opening_cash + cash_in,
     }
@@ -326,6 +340,7 @@ def complete_sale(*, tenant, outlet, user, lines, payments, register=None, custo
             customer_entry(customer, date=today, kind=CustomerLedgerEntry.Kind.PAYMENT, credit=paid, ref=ref)
     if quotation_id:
         Quotation.objects.filter(pk=quotation_id, status=Quotation.Status.OPEN).update(status=Quotation.Status.SOLD, sale=sale)
+    posting.post_sale(sale)
     return sale
 
 
@@ -435,6 +450,7 @@ def create_return(sale, quantities, *, date, refund_amount=0, refund_account=Non
         customer_entry(sale.customer, date=date, kind=CustomerLedgerEntry.Kind.RETURN, credit=total, ref=ref)
         if refund > 0:
             customer_entry(sale.customer, date=date, kind=CustomerLedgerEntry.Kind.REFUND, debit=refund, ref=ref)
+    posting.post_sale_return(sale_return)
     return sale_return
 
 

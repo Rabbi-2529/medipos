@@ -68,6 +68,11 @@ MODULES = (
     Module("counter", _("Counters"), SHOP, (LIST, CREATE, EDIT, DELETE)),
     Module("subscription", _("Subscription"), SHOP, (SHOW,)),
     Module("payment_account", _("Payment accounts"), ACCOUNTS, (LIST, CREATE, EDIT, DELETE)),
+    Module("expense", _("Expenses"), ACCOUNTS, (LIST, CREATE, DELETE)),
+    Module("income", _("Other income"), ACCOUNTS, (LIST, CREATE, DELETE)),
+    Module("deposit_withdraw", _("Deposits, withdrawals & transfers"), ACCOUNTS, (LIST, CREATE, DELETE)),
+    # "accounting.list" = the books and reports; "create" = manual journal entries; "edit" = the chart of accounts.
+    Module("accounting", _("Accounting books & reports"), ACCOUNTS, (LIST, CREATE, EDIT)),
     Module("employee", _("Employees"), PEOPLE, (LIST, CREATE, EDIT, DELETE)),
     Module("role", _("Roles & permissions"), PEOPLE, (LIST, CREATE, EDIT, DELETE)),
 )
