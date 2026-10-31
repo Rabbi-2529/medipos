@@ -1,0 +1,61 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+{% block title %}{% translate "Current stock" %}{% endblock %}
+{% block page_title %}{% translate "Current stock" %}{% endblock %}
+{% block page_actions %}{% if can.stock.create %}<a class="btn btn-outline-primary" href="{% url 'stock:opening' %}"><i class="bi bi-box-arrow-in-down"></i> {% translate "Opening stock" %}</a>{% endif %}{% if can.purchase.create %}<a class="btn btn-primary" href="{% url 'purchases:create' %}"><i class="bi bi-bag-plus"></i> {% translate "New purchase" %}</a>{% endif %}{% endblock %}
+{% block content %}
+<div class="row g-4 mb-4">
+  {% translate "Medicines in stock" as l_items %}{% translate "Stock value (cost)" as l_cost %}{% translate "Stock value (MRP)" as l_mrp %}
+  {% include "core/_stat.html" with label=l_items value="…" icon="bi-capsule" tone="primary" col="col-sm-4" %}
+  {% include "core/_stat.html" with label=l_cost value="…" icon="bi-cash-stack" tone="info" col="col-sm-4" %}
+  {% include "core/_stat.html" with label=l_mrp value="…" icon="bi-tag" tone="success" col="col-sm-4" %}
+</div>
+<div class="card">
+  <div class="card-body">
+    <div class="table-filters">
+      <div class="table-filter">
+        <label class="form-label" for="f-outlet">{% translate "Outlet" %}</label>
+        <select id="f-outlet" class="form-select" data-mp-select data-no-search>
+          {% if outlets|length > 1 %}<option value="">{% translate "All my outlets" %}</option>{% endif %}
+          {% for o in outlets %}<option value="{{ o.pk }}" {% if o.pk == current %}selected{% endif %}>{{ o.name }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="table-filter">
+        <label class="form-label" for="f-category">{% translate "Category" %}</label>
+        <select id="f-category" class="form-select" data-mp-select data-allow-clear data-placeholder="{% translate 'All' %}" data-ajax-url="{% url 'items:lookup' 'categories' %}"><option></option></select>
+      </div>
+      <div class="table-filter">
+        <label class="form-label" for="f-show">{% translate "Show" %}</label>
+        <select id="f-show" class="form-select" data-mp-select data-no-search>
+          <option value="in_stock">{% translate "In stock only" %}</option>
+          <option value="all">{% translate "All medicines" %}</option>
+        </select>
+      </div>
+    </div>
+    <table id="stock-table" class="table table-hover align-middle w-100">
+      <thead><tr><th>{% translate "Code" %}</th><th>{% translate "Medicine" %}</th><th>{% translate "Category" %}</th><th>{% translate "On hand" %}</th><th class="text-center">{% translate "Batches" %}</th><th>{% translate "Nearest expiry" %}</th><th class="text-end">{% translate "Value (cost)" %}</th><th class="text-end">{% translate "Value (MRP)" %}</th></tr></thead>
+    </table>
+    <p class="form-text mb-0">{% translate "Expiry dates in red are within 90 days. Click a medicine for its batches and history." %}</p>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+  (function () {
+    var table = MP.dataTable("#stock-table", {
+      ajax: { url: "{% url 'stock:data' %}", data: function (d) {
+        d.outlet = $("#f-outlet").val() || ""; d.category = $("#f-category").val() || ""; d.show = $("#f-show").val();
+      } },
+      order: [[1, "asc"]],
+      columnDefs: [{ targets: 4, className: "text-center" }, { targets: [6, 7], className: "text-end text-nowrap" }, { targets: 7, orderable: false }],
+      language: { searchPlaceholder: "Name, generic, code or barcode…" }
+    });
+    var stats = document.querySelectorAll(".stat-value");
+    table.on("xhr", function () {
+      var json = table.ajax.json();
+      if (json && json.summary) { stats[0].textContent = json.summary.items; stats[1].textContent = json.summary.cost; stats[2].textContent = json.summary.mrp; }
+    });
+    $("#f-outlet, #f-category, #f-show").on("change", function () { table.ajax.reload(); });
+  })();
+</script>
+{% endblock %}

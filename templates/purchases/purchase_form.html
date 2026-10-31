@@ -1,0 +1,184 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle"><a href="{% url 'purchases:list' %}"><i class="bi bi-chevron-left"></i> {% translate "All purchases" %}</a></p>{% endblock %}
+{% block content %}
+<form method="post" id="purchase-form" novalidate>
+  {% csrf_token %}
+  {{ form.lines_json }}
+  {% if form.non_field_errors %}<div class="alert alert-danger">{% for e in form.non_field_errors %}<div>{{ e }}</div>{% endfor %}</div>{% endif %}
+
+  <div class="card mb-4">
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-4">{% include "partials/_field.html" with field=form.supplier %}</div>
+        <div class="col-md-3">{% include "partials/_field.html" with field=form.outlet %}</div>
+        <div class="col-md-2">{% include "partials/_field.html" with field=form.date %}</div>
+        <div class="col-md-3">{% include "partials/_field.html" with field=form.supplier_invoice_no %}</div>
+      </div>
+      {% if can.supplier.create %}<p class="form-text mt-n2 mb-0">{% translate "New supplier?" %} <a href="{% url 'suppliers:create' %}" target="_blank">{% translate "Add it" %}</a> {% translate "then search again." %}</p>{% endif %}
+    </div>
+  </div>
+
+  <div class="card mb-4">
+    <div class="card-header d-flex flex-wrap gap-3 align-items-center justify-content-between">
+      <h2 class="card-title">{% translate "Medicines" %}</h2>
+      <div class="line-picker">
+        <select id="add-medicine" class="form-select" data-mp-select data-placeholder="{% translate 'Search a medicine to add (name, generic, barcode)' %}" data-ajax-url="{% url 'items:lookup' 'medicines' %}"><option></option></select>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table align-middle purchase-lines mb-0">
+          <thead>
+            <tr>
+              <th>{% translate "Medicine" %}</th>
+              <th>{% translate "Batch" %}</th>
+              <th>{% translate "Expiry" %}</th>
+              <th>{% translate "Qty" %}</th>
+              <th>{% translate "+ Loose" %}</th>
+              <th>{% translate "Free" %}</th>
+              <th>{% translate "Cost / pack" %}</th>
+              <th>{% translate "MRP / unit" %}</th>
+              <th class="text-end">{% translate "Total" %}</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody data-lines></tbody>
+        </table>
+      </div>
+      <p class="text-body-secondary text-center my-4" data-empty>{% translate "Search above to add the first medicine." %}</p>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-lg-6">
+      <div class="card h-100">
+        <div class="card-body">
+          {% include "partials/_field.html" with field=form.note %}
+          {% include "partials/_field.html" with field=form.update_prices %}
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="card h-100">
+        <div class="card-body">
+          <dl class="totals">
+            <dt>{% translate "Subtotal" %}</dt><dd data-subtotal>0.00</dd>
+            <dt><label for="{{ form.discount.id_for_label }}">{% translate "Discount" %}</label></dt><dd>{{ form.discount }}</dd>
+            <dt class="totals-grand">{% translate "Total" %}</dt><dd class="totals-grand" data-total>0.00</dd>
+            {% if not purchase or purchase.is_draft %}
+            <dt><label for="{{ form.paid_now.id_for_label }}">{% translate "Paid now" %}</label></dt><dd>{{ form.paid_now }}</dd>
+            <dt><label for="{{ form.account.id_for_label }}">{% translate "Paid from" %}</label></dt><dd class="totals-select">{{ form.account }}</dd>
+            <dt>{% translate "Due" %}</dt><dd data-due>0.00</dd>
+            {% endif %}
+          </dl>
+          {% for e in form.account.errors %}<div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}
+          {% for e in form.discount.errors %}<div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-actions">
+    {% if can.purchase.create %}<button class="btn btn-primary" type="submit" name="receive"><i class="bi bi-box-arrow-in-down"></i> {% translate "Receive stock now" %}</button>{% endif %}
+    <button class="btn btn-outline-primary" type="submit" name="save"><i class="bi bi-save"></i> {% translate "Save as draft" %}</button>
+    <a class="btn btn-link" href="{% if purchase %}{% url 'purchases:detail' purchase.pk %}{% else %}{% url 'purchases:list' %}{% endif %}">{% translate "Cancel" %}</a>
+    <span class="ms-auto form-text d-none d-md-inline">{% translate "Paid now is only recorded when you receive." %}</span>
+  </div>
+</form>
+{{ lines|json_script:"initial-lines" }}
+{% endblock %}
+{% block extra_js %}
+<script>
+  (function () {
+    var currency = "{{ currency|escapejs }}";
+    var rows = JSON.parse(document.getElementById("initial-lines").textContent);
+    var tbody = document.querySelector("[data-lines]"), empty = document.querySelector("[data-empty]");
+    var discount = document.querySelector("[name=discount]"), paid = document.querySelector("[name=paid_now]");
+    var num = function (v) { var n = parseFloat(v); return isNaN(n) ? 0 : n; };
+    var money = function (v) { return currency + v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
+
+    function lineTotal(r) {
+      var conv = r.conversion || 1;
+      return Math.round((num(r.packs) * num(r.pack_cost) + num(r.units) * num(r.pack_cost) / conv) * 100) / 100;
+    }
+
+    function input(row, key, attrs) {
+      var el = document.createElement("input");
+      el.className = "form-control form-control-sm";
+      Object.keys(attrs || {}).forEach(function (k) { el.setAttribute(k, attrs[k]); });
+      el.value = row[key] == null ? "" : row[key];
+      el.addEventListener("input", function () { row[key] = el.value; update(); });
+      return el;
+    }
+
+    function cell(child) { var td = document.createElement("td"); if (child) td.appendChild(child); return td; }
+
+    function render() {
+      tbody.replaceChildren();
+      empty.classList.toggle("d-none", rows.length > 0);
+      rows.forEach(function (r, i) {
+        var tr = document.createElement("tr");
+        var name = document.createElement("td");
+        var strong = document.createElement("div"); strong.className = "fw-semibold"; strong.textContent = r.text;
+        var meta = document.createElement("small"); meta.className = "text-body-secondary";
+        meta.textContent = r.conversion > 1 ? r.purchase_unit + " of " + r.conversion + " " + r.sale_unit : r.sale_unit;
+        name.append(strong, meta);
+        tr.appendChild(name);
+        tr.appendChild(cell(input(r, "batch_no", { placeholder: "Batch", maxlength: 40, "aria-label": "Batch" })));
+        var expiry = input(r, "expiry", { type: "month", "aria-label": "Expiry" });
+        if (!r.track_expiry) { expiry.disabled = true; expiry.placeholder = "—"; }
+        tr.appendChild(cell(expiry));
+        var packs = input(r, "packs", { type: "number", min: 0, step: 1, "aria-label": "Quantity" });
+        var qty = cell(packs); var unit = document.createElement("small"); unit.className = "text-body-secondary d-block";
+        unit.textContent = r.conversion > 1 ? r.purchase_unit : r.sale_unit; qty.appendChild(unit); tr.appendChild(qty);
+        tr.appendChild(r.conversion > 1 ? cell(input(r, "units", { type: "number", min: 0, step: 1, "aria-label": "Loose units" })) : cell(document.createTextNode("—")));
+        tr.appendChild(cell(input(r, "free_units", { type: "number", min: 0, step: 1, "aria-label": "Free units" })));
+        tr.appendChild(cell(input(r, "pack_cost", { type: "number", min: 0, step: "0.01", "aria-label": "Cost per pack" })));
+        tr.appendChild(cell(input(r, "sale_price", { type: "number", min: 0, step: "0.01", "aria-label": "MRP per unit" })));
+        var total = document.createElement("td"); total.className = "text-end fw-semibold text-nowrap"; total.dataset.lineTotal = i; tr.appendChild(total);
+        var remove = document.createElement("button"); remove.type = "button"; remove.className = "btn btn-sm btn-link text-danger"; remove.setAttribute("aria-label", "Remove line");
+        remove.innerHTML = '<i class="bi bi-x-lg"></i>';
+        remove.addEventListener("click", function () { rows.splice(i, 1); render(); });
+        tr.appendChild(cell(remove));
+        tbody.appendChild(tr);
+      });
+      update();
+    }
+
+    function update() {
+      var subtotal = 0;
+      rows.forEach(function (r, i) {
+        var t = lineTotal(r); subtotal += t;
+        var el = tbody.querySelector('[data-line-total="' + i + '"]'); if (el) el.textContent = money(t);
+      });
+      var total = Math.max(0, subtotal - num(discount.value));
+      document.querySelector("[data-subtotal]").textContent = money(subtotal);
+      document.querySelector("[data-total]").textContent = money(total);
+      var due = document.querySelector("[data-due]");
+      if (due && paid) due.textContent = money(total - num(paid.value));
+    }
+
+    $("#add-medicine").on("select2:select", function (ev) {
+      var m = ev.params.data;
+      rows.push({
+        medicine: m.id, text: m.text, conversion: m.conversion || 1, sale_unit: m.sale_unit, purchase_unit: m.purchase_unit,
+        track_expiry: m.track_expiry, batch_no: "", expiry: "", packs: "", units: "", free_units: "",
+        pack_cost: (num(m.purchase_price) * (m.conversion || 1)).toFixed(2), sale_price: m.price
+      });
+      $(this).val(null).trigger("change");
+      render();
+      var inputs = tbody.lastElementChild.querySelectorAll("input"); if (inputs.length) inputs[0].focus();
+    });
+    [discount, paid].forEach(function (el) { if (el) el.addEventListener("input", update); });
+
+    // Whole rows are posted (names and units included) so the page can be redrawn as-is if saving fails.
+    document.getElementById("purchase-form").addEventListener("submit", function () {
+      document.querySelector("[name=lines_json]").value = JSON.stringify(rows);
+    });
+    render();
+  })();
+</script>
+{% endblock %}

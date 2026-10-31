@@ -136,9 +136,14 @@ def lookup(request, kind):
     start = (page - 1) * PAGE
     if kind == "medicines":
         queryset = search_medicines(Medicine.objects.filter(is_active=True), term) if term else Medicine.objects.filter(is_active=True)
-        rows = list(queryset.select_related("generic").order_by("name", "strength")[start:start + PAGE + 1])
-        results = [{"id": m.pk, "text": m.display_name, "generic": m.generic.name if m.generic else "",
-                    "code": m.code, "barcode": m.barcode, "price": str(m.sale_price)} for m in rows[:PAGE]]
+        rows = list(queryset.select_related("generic", "sale_unit", "purchase_unit").order_by("name", "strength")[start:start + PAGE + 1])
+        results = [{
+            "id": m.pk, "text": m.display_name, "generic": m.generic.name if m.generic else "",
+            "code": m.code, "barcode": m.barcode, "price": str(m.sale_price),
+            # Used by the purchase form to set up a line.
+            "conversion": m.conversion, "sale_unit": m.sale_unit.name, "purchase_unit": m.purchase_unit.name,
+            "purchase_price": str(m.purchase_price), "track_expiry": m.track_expiry,
+        } for m in rows[:PAGE]]
     else:
         model = _master(kind)[0]
         queryset = model.objects.filter(is_active=True)

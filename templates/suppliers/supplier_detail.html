@@ -1,0 +1,79 @@
+{% extends "layouts/app.html" %}
+{% load i18n shop %}
+{% block title %}{{ supplier.name }}{% endblock %}
+{% block page_title %}{{ supplier.name }}{% if not supplier.is_active %} <span class="state-badge state-suspended">{% translate "Inactive" %}</span>{% endif %}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle"><a href="{% url 'suppliers:list' %}"><i class="bi bi-chevron-left"></i> {% translate "All suppliers" %}</a></p>{% endblock %}
+{% block page_actions %}
+{% if can.supplier_payment.create %}<a class="btn btn-primary" href="{% url 'suppliers:payment_create' %}?supplier={{ supplier.pk }}"><i class="bi bi-cash-coin"></i> {% translate "Pay" %}</a>{% endif %}
+{% if can.purchase.create %}<a class="btn btn-outline-primary" href="{% url 'purchases:create' %}?supplier={{ supplier.pk }}"><i class="bi bi-bag-plus"></i> {% translate "New purchase" %}</a>{% endif %}
+{% if can.supplier.edit %}<a class="btn btn-outline-primary" href="{% url 'suppliers:edit' supplier.pk %}">{% translate "Edit" %}</a>{% endif %}
+{% endblock %}
+{% block content %}
+<div class="row g-4">
+  <div class="col-xl-4">
+    <div class="card mb-4">
+      <div class="card-body">
+        <div class="stat-label">{% if balance >= 0 %}{% translate "You owe" %}{% else %}{% translate "They owe you" %}{% endif %}</div>
+        <div class="balance-figure {% if balance > 0 %}text-danger{% endif %}">{% money balance %}</div>
+      </div>
+    </div>
+    <div class="card mb-4">
+      <div class="card-header"><h2 class="card-title">{% translate "Contact" %}</h2></div>
+      <div class="card-body">
+        <dl class="detail-list mb-0">
+          <dt>{% translate "Contact person" %}</dt><dd>{{ supplier.contact_person|default:"—" }}</dd>
+          <dt>{% translate "Phone" %}</dt><dd>{{ supplier.phone|default:"—" }}</dd>
+          <dt>{% translate "Email" %}</dt><dd>{{ supplier.email|default:"—" }}</dd>
+          <dt>{% translate "Address" %}</dt><dd>{{ supplier.address|default:"—"|linebreaksbr }}</dd>
+        </dl>
+      </div>
+    </div>
+    {% if can.supplier.delete %}
+    <form method="post" action="{% url 'suppliers:toggle' supplier.pk %}" {% if supplier.is_active %}data-confirm="{% translate 'Hide this supplier from new purchases?' %}"{% endif %}>
+      {% csrf_token %}
+      <button class="btn btn-outline-{% if supplier.is_active %}danger{% else %}success{% endif %} w-100" type="submit">
+        {% if supplier.is_active %}{% translate "Deactivate supplier" %}{% else %}{% translate "Activate supplier" %}{% endif %}
+      </button>
+    </form>
+    {% endif %}
+  </div>
+  <div class="col-xl-8">
+    <div class="card mb-4">
+      <div class="card-header"><h2 class="card-title">{% translate "Ledger" %}</h2></div>
+      <div class="card-body">
+        {% if ledger %}
+        <div class="table-responsive">
+          <table class="table table-sm align-middle mb-0">
+            <thead><tr><th>{% translate "Date" %}</th><th>{% translate "Entry" %}</th><th class="text-end">{% translate "Bought / owed" %}</th><th class="text-end">{% translate "Paid / returned" %}</th><th class="text-end">{% translate "Balance" %}</th></tr></thead>
+            <tbody>
+              {% for entry, running in ledger %}
+              <tr>
+                <td class="text-nowrap">{% shop_date entry.date %}</td>
+                <td>{{ entry.get_kind_display }} {% if entry.ref_label %}<code>{{ entry.ref_label }}</code>{% endif %}{% if entry.note %}<small class="d-block text-body-secondary">{{ entry.note }}</small>{% endif %}</td>
+                <td class="text-end">{% if entry.credit %}{% money entry.credit %}{% endif %}</td>
+                <td class="text-end">{% if entry.debit %}{% money entry.debit %}{% endif %}</td>
+                <td class="text-end fw-semibold">{% money running %}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}<p class="text-body-secondary mb-0">{% translate "No transactions yet." %}</p>{% endif %}
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><h2 class="card-title">{% translate "Recent purchases" %}</h2></div>
+      <div class="card-body">
+        <ul class="simple-list">
+          {% for p in purchases %}
+          <li>
+            <a href="{% url 'purchases:detail' p.pk %}"><code>{{ p.number }}</code> · {% shop_date p.date %}</a>
+            <span class="small">{% money p.total %} {% if p.is_draft %}<span class="state-badge state-grace">{% translate "Draft" %}</span>{% endif %}</span>
+          </li>
+          {% empty %}<li class="text-body-secondary">{% translate "No purchases yet." %}</li>{% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

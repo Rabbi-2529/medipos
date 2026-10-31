@@ -1,0 +1,53 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+{% block title %}{% translate "Pay a supplier" %}{% endblock %}
+{% block page_title %}{% translate "Pay a supplier" %}{% endblock %}
+{% block page_subtitle %}{% if can_list %}<p class="page-subtitle"><a href="{% url 'suppliers:payments' %}"><i class="bi bi-chevron-left"></i> {% translate "All payments" %}</a></p>{% endif %}{% endblock %}
+{% block content %}
+<div class="row">
+  <div class="col-xl-7">
+    <form class="card" method="post" novalidate>
+      {% csrf_token %}
+      <div class="card-body">
+        {% if form.non_field_errors %}<div class="alert alert-danger py-2">{% for e in form.non_field_errors %}{{ e }}{% endfor %}</div>{% endif %}
+        <div class="row">
+          <div class="col-md-6">{% include "partials/_field.html" with field=form.supplier %}</div>
+          <div class="col-md-6">{% include "partials/_field.html" with field=form.purchase %}</div>
+          <div class="col-md-6">{% include "partials/_field.html" with field=form.amount %}<p class="form-text mt-n2" data-due-hint></p></div>
+          <div class="col-md-6">{% include "partials/_field.html" with field=form.account %}</div>
+          <div class="col-md-6">{% include "partials/_field.html" with field=form.date %}</div>
+          <div class="col-md-6">{% include "partials/_field.html" with field=form.reference %}</div>
+          <div class="col-12">{% include "partials/_field.html" with field=form.note %}</div>
+        </div>
+        <button class="btn btn-primary" type="submit"><i class="bi bi-check2"></i> {% translate "Save payment" %}</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+  (function () {
+    var $supplier = $("[name=supplier]"), $purchase = $("[name=purchase]"), amount = document.querySelector("[name=amount]"), hint = document.querySelector("[data-due-hint]");
+    var dues = {};
+    function loadDues(keep) {
+      var id = $supplier.val();
+      if (!id) return;
+      fetch("{% url 'purchases:due_lookup' %}?supplier=" + encodeURIComponent(id)).then(function (r) { return r.json(); }).then(function (data) {
+        var current = keep ? $purchase.val() : "";
+        dues = {};
+        $purchase.empty().append(new Option("", ""));
+        data.results.forEach(function (p) { dues[p.id] = p.due; $purchase.append(new Option(p.text, p.id, false, String(p.id) === current)); });
+        $purchase.trigger("change");
+        hint.textContent = data.balance_text;
+      });
+    }
+    $supplier.on("change", function () { loadDues(false); });
+    $purchase.on("change", function () {
+      var due = dues[$purchase.val()];
+      if (due && !amount.value) amount.value = due;
+    });
+    loadDues(true);
+  })();
+</script>
+{% endblock %}

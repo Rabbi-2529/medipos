@@ -18,7 +18,8 @@ def _int(value, default, low=0, high=None):
     return min(high, number) if high is not None else number
 
 
-def datatable_json(request, queryset, *, order_columns, row, search=None, max_length=100):
+def datatable_json(request, queryset, *, order_columns, row, search=None, max_length=100, extra=None):
+    """`extra` (dict) is merged into the response, e.g. totals for a summary bar."""
     params = request.GET
     draw = _int(params.get("draw"), 0)
     start = _int(params.get("start"), 0)
@@ -42,4 +43,5 @@ def datatable_json(request, queryset, *, order_columns, row, search=None, max_le
         "recordsTotal": total,
         "recordsFiltered": filtered,
         "data": [row(obj) for obj in queryset[start:start + length]],
+        **(extra or {}),
     })

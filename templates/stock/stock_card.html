@@ -1,0 +1,79 @@
+{% extends "layouts/app.html" %}
+{% load i18n shop %}
+{% block title %}{{ medicine.display_name }}{% endblock %}
+{% block page_title %}{{ medicine.display_name }}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle"><a href="{% url 'stock:list' %}"><i class="bi bi-chevron-left"></i> {% translate "Current stock" %}</a> · {{ medicine.generic.name|default:"" }} {% if medicine.manufacturer %}· {{ medicine.manufacturer.name }}{% endif %} · <code>{{ medicine.code }}</code></p>{% endblock %}
+{% block page_actions %}{% if can.item.edit %}<a class="btn btn-outline-primary" href="{% url 'items:edit' medicine.pk %}">{% translate "Edit medicine" %}</a>{% endif %}{% endblock %}
+{% block content %}
+<div class="row g-4 mb-4">
+  <div class="col-lg-4">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="stat-label">{% translate "On hand in your outlets" %}</div>
+        <div class="balance-figure">{{ total_text }}</div>
+        <dl class="detail-list mt-3 mb-0">
+          <dt>{% translate "MRP" %}</dt><dd>{% money medicine.sale_price %} / {{ medicine.sale_unit.name|lower }}</dd>
+          <dt>{% translate "Last cost" %}</dt><dd>{% money medicine.purchase_price %}</dd>
+          <dt>{% translate "Alert at" %}</dt><dd>{{ medicine.alert_quantity|default:"—" }}</dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-8">
+    <div class="card h-100">
+      <div class="card-header"><h2 class="card-title">{% translate "Batches in stock" %}</h2></div>
+      <div class="card-body">
+        {% if stocks %}
+        <div class="table-responsive">
+          <table class="table table-sm align-middle mb-0">
+            <thead><tr><th>{% translate "Outlet" %}</th><th>{% translate "Batch" %}</th><th>{% translate "Expiry" %}</th><th>{% translate "Quantity" %}</th><th class="text-end">{% translate "Cost / unit" %}</th></tr></thead>
+            <tbody>
+              {% for s in stocks %}
+              <tr>
+                <td>{{ s.outlet.name }}</td>
+                <td>{{ s.batch.batch_no|default:"—" }}</td>
+                <td>{% if s.batch.expiry_date %}<span class="{% if s.batch.expiry_date <= today %}text-danger fw-bold{% elif s.batch.expiry_date <= soon %}text-danger{% endif %}">{% shop_date s.batch.expiry_date %}</span>{% if s.batch.expiry_date <= today %} <span class="badge text-bg-danger">{% translate "Expired" %}</span>{% endif %}{% else %}—{% endif %}</td>
+                <td class="fw-semibold">{{ s.quantity_text }}</td>
+                <td class="text-end">{% money s.batch.unit_cost %}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}<p class="text-body-secondary mb-0">{% translate "None in stock." %}</p>{% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+<div class="card">
+  <div class="card-header"><h2 class="card-title">{% translate "Stock history" %}</h2></div>
+  <div class="card-body">
+    {% if outlets|length > 1 %}
+    <div class="table-filters">
+      <div class="table-filter">
+        <label class="form-label" for="f-outlet">{% translate "Outlet" %}</label>
+        <select id="f-outlet" class="form-select" data-mp-select data-no-search data-allow-clear data-placeholder="{% translate 'All my outlets' %}">
+          <option></option>{% for o in outlets %}<option value="{{ o.pk }}">{{ o.name }}</option>{% endfor %}
+        </select>
+      </div>
+    </div>
+    {% endif %}
+    <table id="movement-table" class="table table-sm table-hover align-middle w-100">
+      <thead><tr><th>{% translate "When" %}</th><th>{% translate "Outlet" %}</th><th>{% translate "What" %}</th><th>{% translate "Reference" %}</th><th>{% translate "Batch" %}</th><th class="text-end">{% translate "In" %}</th><th class="text-end">{% translate "Out" %}</th><th class="text-end">{% translate "Batch balance" %}</th><th>{% translate "By" %}</th></tr></thead>
+    </table>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+  (function () {
+    var table = MP.dataTable("#movement-table", {
+      ajax: { url: "{% url 'stock:movements' medicine.pk %}", data: function (d) { d.outlet = $("#f-outlet").val() || ""; } },
+      searching: false,
+      order: [[0, "desc"]],
+      columnDefs: [{ targets: [3, 4, 5, 6, 7, 8], orderable: false }, { targets: [5, 6, 7], className: "text-end" }]
+    });
+    $("#f-outlet").on("change", function () { table.ajax.reload(); });
+  })();
+</script>
+{% endblock %}

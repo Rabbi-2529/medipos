@@ -1,0 +1,23 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+{% block title %}{% translate "Purchase returns" %}{% endblock %}
+{% block page_title %}{% translate "Purchase returns" %}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% translate "Start a return from the purchase it belongs to." %}</p>{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <table id="return-table" class="table table-hover align-middle w-100">
+      <thead><tr><th>{% translate "No." %}</th><th>{% translate "Date" %}</th><th>{% translate "Supplier" %}</th><th>{% translate "Purchase" %}</th><th>{% translate "Outlet" %}</th><th>{% translate "Reason" %}</th><th class="text-end">{% translate "Value" %}</th></tr></thead>
+    </table>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+  MP.dataTable("#return-table", {
+    ajax: { url: "{% url 'purchases:return_data' %}" },
+    order: [[1, "desc"]],
+    columnDefs: [{ targets: 5, orderable: false }, { targets: 6, className: "text-end" }]
+  });
+</script>
+{% endblock %}

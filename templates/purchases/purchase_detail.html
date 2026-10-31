@@ -1,0 +1,118 @@
+{% extends "layouts/app.html" %}
+{% load i18n shop %}
+{% block title %}{{ purchase.number }}{% endblock %}
+{% block page_title %}{% translate "Purchase" %} {{ purchase.number }}
+  {% if purchase.is_draft %}<span class="state-badge state-grace">{% translate "Draft" %}</span>
+  {% elif purchase.due > 0 %}<span class="state-badge state-expired">{% translate "Due" %}</span>
+  {% else %}<span class="state-badge state-active">{% translate "Paid" %}</span>{% endif %}
+{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle no-print"><a href="{% url 'purchases:list' %}"><i class="bi bi-chevron-left"></i> {% translate "All purchases" %}</a></p>{% endblock %}
+{% block page_actions %}
+<div class="no-print d-flex gap-2 flex-wrap">
+{% if purchase.is_draft %}
+  {% if can.purchase.create %}
+  <form method="post" action="{% url 'purchases:receive' purchase.pk %}" data-confirm="{% translate 'Receive this purchase? Stock will be added and it can no longer be edited.' %}">
+    {% csrf_token %}<button class="btn btn-primary" type="submit"><i class="bi bi-box-arrow-in-down"></i> {% translate "Receive stock" %}</button>
+  </form>
+  {% endif %}
+  {% if can.purchase.edit %}<a class="btn btn-outline-primary" href="{% url 'purchases:edit' purchase.pk %}">{% translate "Edit" %}</a>{% endif %}
+  {% if can.purchase.delete %}
+  <form method="post" action="{% url 'purchases:delete' purchase.pk %}" data-confirm="{% translate 'Delete this draft?' %}">
+    {% csrf_token %}<button class="btn btn-outline-danger" type="submit">{% translate "Delete draft" %}</button>
+  </form>
+  {% endif %}
+{% else %}
+  {% if purchase.due > 0 and can.supplier_payment.create %}
+  <a class="btn btn-primary" href="{% url 'suppliers:payment_create' %}?supplier={{ purchase.supplier_id }}&purchase={{ purchase.pk }}&amount={{ purchase.due }}"><i class="bi bi-cash-coin"></i> {% translate "Pay" %}</a>
+  {% endif %}
+  {% if can.purchase_return.create %}<a class="btn btn-outline-primary" href="{% url 'purchases:return_create' purchase.pk %}"><i class="bi bi-arrow-return-left"></i> {% translate "Return items" %}</a>{% endif %}
+{% endif %}
+  <button class="btn btn-outline-secondary" type="button" onclick="window.print()"><i class="bi bi-printer"></i> {% translate "Print" %}</button>
+</div>
+{% endblock %}
+{% block content %}
+<div class="row g-4 mb-4">
+  <div class="col-lg-8">
+    <div class="card h-100">
+      <div class="card-body">
+        <dl class="detail-list detail-grid mb-0">
+          <dt>{% translate "Supplier" %}</dt><dd><a href="{% url 'suppliers:detail' purchase.supplier_id %}">{{ purchase.supplier.name }}</a></dd>
+          <dt>{% translate "Received at" %}</dt><dd>{{ purchase.outlet.name }}</dd>
+          <dt>{% translate "Date" %}</dt><dd>{% shop_date purchase.date %}</dd>
+          <dt>{% translate "Supplier invoice" %}</dt><dd>{{ purchase.supplier_invoice_no|default:"—" }}</dd>
+          <dt>{% translate "Created by" %}</dt><dd>{{ purchase.created_by|default:"—" }}</dd>
+          {% if purchase.received_at %}<dt>{% translate "Received" %}</dt><dd>{{ purchase.received_at|date:"d M Y, h:i A" }} · {{ purchase.received_by|default:"" }}</dd>{% endif %}
+          {% if purchase.note %}<dt>{% translate "Note" %}</dt><dd>{{ purchase.note }}</dd>{% endif %}
+        </dl>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card h-100">
+      <div class="card-body">
+        <dl class="totals mb-0">
+          <dt>{% translate "Subtotal" %}</dt><dd>{% money purchase.subtotal %}</dd>
+          <dt>{% translate "Discount" %}</dt><dd>{% money purchase.discount %}</dd>
+          <dt class="totals-grand">{% translate "Total" %}</dt><dd class="totals-grand">{% money purchase.total %}</dd>
+          {% if not purchase.is_draft %}
+          {% if purchase.returned %}<dt>{% translate "Returned" %}</dt><dd>− {% money purchase.returned %}</dd>{% endif %}
+          <dt>{% translate "Paid" %}</dt><dd>{% money purchase.paid %}</dd>
+          <dt>{% translate "Due" %}</dt><dd class="{% if purchase.due > 0 %}text-danger fw-semibold{% endif %}">{% money purchase.due %}</dd>
+          {% endif %}
+        </dl>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card mb-4">
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table align-middle mb-0">
+        <thead><tr><th>{% translate "Medicine" %}</th><th>{% translate "Batch" %}</th><th>{% translate "Expiry" %}</th><th>{% translate "Quantity" %}</th><th>{% translate "Free" %}</th><th class="text-end">{% translate "Cost / pack" %}</th><th class="text-end">{% translate "MRP" %}</th><th class="text-end">{% translate "Total" %}</th></tr></thead>
+        <tbody>
+          {% for line in lines %}
+          <tr>
+            <td class="fw-semibold">{% if can.stock.list %}<a href="{% url 'stock:card' line.medicine_id %}">{{ line.medicine.display_name }}</a>{% else %}{{ line.medicine.display_name }}{% endif %}</td>
+            <td>{{ line.batch_no|default:"—" }}</td>
+            <td>{% if line.expiry_date %}{{ line.expiry_date|date:"m/Y" }}{% else %}—{% endif %}</td>
+            <td>{{ line.quantity_text }}</td>
+            <td>{% if line.free_units %}+{{ line.free_units }} {{ line.medicine.sale_unit.name }}{% else %}—{% endif %}</td>
+            <td class="text-end">{% money line.pack_cost %}</td>
+            <td class="text-end">{% money line.sale_price %}</td>
+            <td class="text-end fw-semibold">{% money line.line_total %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4 no-print">
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-header"><h2 class="card-title">{% translate "Payments" %}</h2></div>
+      <div class="card-body">
+        <ul class="simple-list">
+          {% for p in payments %}
+          <li><span><code>{{ p.number }}</code> · {% shop_date p.date %} · {{ p.account.name }}{% if p.reference %} · {{ p.reference }}{% endif %}</span><strong>{% money p.amount %}</strong></li>
+          {% empty %}<li class="text-body-secondary">{% translate "No payments yet." %}</li>{% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-header"><h2 class="card-title">{% translate "Returns" %}</h2></div>
+      <div class="card-body">
+        <ul class="simple-list">
+          {% for r in returns %}
+          <li><span><code>{{ r.number }}</code> · {% shop_date r.date %}{% if r.reason %} · {{ r.reason }}{% endif %}</span><strong>{% money r.total %}</strong></li>
+          {% empty %}<li class="text-body-secondary">{% translate "No returns." %}</li>{% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

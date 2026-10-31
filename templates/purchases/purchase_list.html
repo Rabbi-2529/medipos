@@ -1,0 +1,52 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+{% block title %}{% translate "Purchases" %}{% endblock %}
+{% block page_title %}{% translate "Purchases" %}{% endblock %}
+{% block page_actions %}{% if can.purchase.create %}<a class="btn btn-primary" href="{% url 'purchases:create' %}"><i class="bi bi-bag-plus"></i> {% translate "New purchase" %}</a>{% endif %}{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <div class="table-filters">
+      <div class="table-filter">
+        <label class="form-label" for="f-status">{% translate "Status" %}</label>
+        <select id="f-status" class="form-select" data-mp-select data-no-search data-allow-clear data-placeholder="{% translate 'All' %}">
+          <option></option>
+          <option value="draft">{% translate "Drafts" %}</option>
+          <option value="received">{% translate "Received" %}</option>
+          <option value="due">{% translate "Received, money due" %}</option>
+        </select>
+      </div>
+      {% if outlets|length > 1 %}
+      <div class="table-filter">
+        <label class="form-label" for="f-outlet">{% translate "Outlet" %}</label>
+        <select id="f-outlet" class="form-select" data-mp-select data-no-search data-allow-clear data-placeholder="{% translate 'All my outlets' %}">
+          <option></option>{% for o in outlets %}<option value="{{ o.pk }}">{{ o.name }}</option>{% endfor %}
+        </select>
+      </div>
+      {% endif %}
+      <div class="table-filter">
+        <label class="form-label" for="f-supplier">{% translate "Supplier" %}</label>
+        <select id="f-supplier" class="form-select" data-mp-select data-allow-clear data-placeholder="{% translate 'All' %}" data-ajax-url="{% url 'suppliers:lookup' %}"><option></option></select>
+      </div>
+    </div>
+    <table id="purchase-table" class="table table-hover align-middle w-100">
+      <thead><tr><th>{% translate "No." %}</th><th>{% translate "Date" %}</th><th>{% translate "Supplier" %}</th><th>{% translate "Outlet" %}</th><th class="text-end">{% translate "Total" %}</th><th class="text-end">{% translate "Paid" %}</th><th class="text-end">{% translate "Due" %}</th><th>{% translate "Status" %}</th></tr></thead>
+    </table>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+  (function () {
+    var table = MP.dataTable("#purchase-table", {
+      ajax: { url: "{% url 'purchases:data' %}", data: function (d) {
+        d.status = $("#f-status").val() || ""; d.outlet = $("#f-outlet").val() || ""; d.supplier = $("#f-supplier").val() || "";
+      } },
+      order: [[1, "desc"]],
+      columnDefs: [{ targets: [4, 5, 6], className: "text-end text-nowrap" }],
+      language: { searchPlaceholder: "Number, supplier or invoice…" }
+    });
+    $("#f-status, #f-outlet, #f-supplier").on("change", function () { table.ajax.reload(); });
+  })();
+</script>
+{% endblock %}

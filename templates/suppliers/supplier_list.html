@@ -1,0 +1,47 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+{% block title %}{% translate "Suppliers" %}{% endblock %}
+{% block page_title %}{% translate "Suppliers" %}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% translate "Companies and distributors you buy from, and what you owe each." %}</p>{% endblock %}
+{% block page_actions %}
+{% if can.supplier_payment.create %}<a class="btn btn-outline-primary" href="{% url 'suppliers:payment_create' %}"><i class="bi bi-cash-coin"></i> {% translate "Pay a supplier" %}</a>{% endif %}
+{% if can.supplier.create %}<a class="btn btn-primary" href="{% url 'suppliers:create' %}"><i class="bi bi-plus-lg"></i> {% translate "Add supplier" %}</a>{% endif %}
+{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <div class="table-filters">
+      <div class="table-filter">
+        <label class="form-label" for="f-due">{% translate "Show" %}</label>
+        <select id="f-due" class="form-select" data-mp-select data-no-search>
+          <option value="">{% translate "All suppliers" %}</option>
+          <option value="yes">{% translate "Only ones I owe" %}</option>
+        </select>
+      </div>
+      <div class="table-filter">
+        <label class="form-label" for="f-status">{% translate "Status" %}</label>
+        <select id="f-status" class="form-select" data-mp-select data-no-search>
+          <option value="active">{% translate "Active" %}</option>
+          <option value="inactive">{% translate "Inactive" %}</option>
+          <option value="">{% translate "All" %}</option>
+        </select>
+      </div>
+    </div>
+    <table id="supplier-table" class="table table-hover align-middle w-100">
+      <thead><tr><th>{% translate "Supplier" %}</th><th>{% translate "Phone" %}</th><th class="text-center">{% translate "Purchases" %}</th><th class="text-end">{% translate "You owe" %}</th><th>{% translate "Status" %}</th><th></th></tr></thead>
+    </table>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+  (function () {
+    var table = MP.dataTable("#supplier-table", {
+      ajax: { url: "{% url 'suppliers:data' %}", data: function (d) { d.due = $("#f-due").val(); d.status = $("#f-status").val(); } },
+      order: [[0, "asc"]],
+      columnDefs: [{ targets: 2, className: "text-center" }, { targets: 3, className: "text-end" }, { targets: 5, orderable: false, className: "text-end" }]
+    });
+    $("#f-due, #f-status").on("change", function () { table.ajax.reload(); });
+  })();
+</script>
+{% endblock %}

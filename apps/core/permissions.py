@@ -35,8 +35,15 @@ SHOP = _("Shop setup")
 PEOPLE = _("People")
 ACCOUNTS = _("Accounts")
 MEDICINES = _("Medicines")
+BUYING = _("Stock & purchases")
 
 MODULES = (
+    # "stock.create" = opening-stock import. "purchase.create" also receives purchases; edit/delete apply to drafts.
+    Module("stock", _("Stock"), BUYING, (LIST, CREATE)),
+    Module("purchase", _("Purchases"), BUYING, (LIST, CREATE, EDIT, DELETE)),
+    Module("purchase_return", _("Purchase returns"), BUYING, (LIST, CREATE)),
+    Module("supplier", _("Suppliers"), BUYING, (LIST, CREATE, EDIT, DELETE)),
+    Module("supplier_payment", _("Supplier payments"), BUYING, (LIST, CREATE)),
     # "item.create" also covers Excel import and adding from the catalog; "item.edit" covers bulk price changes.
     Module("item", _("Medicines"), MEDICINES, (LIST, CREATE, EDIT, DELETE)),
     Module("item_setup", _("Medicine setup lists"), MEDICINES, (LIST, CREATE, EDIT, DELETE)),

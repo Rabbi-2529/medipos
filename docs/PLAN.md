@@ -108,12 +108,32 @@ Moved to Phase 4: **opening-stock import** (needs the stock engine).
 
 **Catalog data:** the repo ships only a 28-row sample (brands, generics and makers, no prices). Load the real list as platform admin under Medicine catalog → Import. Use a source ThingBD may use, such as DGDA's published registered-drug list or a licensed dataset. Don't copy other vendors' databases.
 
-### Phase 4 — Stock engine, suppliers and purchases
-- Stock ledger and per-batch balances, average and last purchase cost, negative-stock guard.
-- Suppliers with opening balance, supplier ledger and payments.
-- Purchases with batch, expiry, quantity and cost per line, discount, partial payment and due; stock goes in when you confirm.
-- Purchase returns linked to their batch.
-- Done when: stock per batch and the supplier payable both match their ledgers.
+### Phase 4 — Stock engine, suppliers and purchases ✅
+- **Stock engine** (`stock` app):
+  - `Batch` (medicine + batch no. + expiry, with its own unit cost).
+  - `BatchStock` (quantity per outlet × batch; a database constraint keeps it ≥ 0).
+  - `StockMovement`, an append-only ledger with kind, signed quantity, unit cost, balance after, reference and user.
+  - `stock.services.post_movement()` is the **only** way stock changes: it locks the row, refuses to go negative and writes the movement.
+  - `available_batches()` gives earliest-expiry-first order for the POS.
+- **Screens:**
+  - Current stock: per outlet or all allowed outlets, with summary values at cost and at MRP, and nearest expiry (red within 90 days).
+  - Stock card: batches in stock plus movement history.
+- **Opening stock import:** the template is pre-filled with your medicine list; matching is by code, then barcode, then name. Packs + loose quantity, flexible expiry formats (2027-02, 02/2027, Feb-27), checked preview.
+- **Suppliers:**
+  - Ledger (credit = owed, debit = paid/returned) with an opening balance line and running balance.
+  - Payments (`SPY-`) on account or against a purchase; you can't pay more than is due.
+  - List shows "you owe".
+- **Purchases** (`PUR-`):
+  - Draft → receive; edit or delete drafts only.
+  - Lines: batch, expiry (required when tracked, must be in the future), boxes + loose + **free/bonus** units, cost per box, MRP.
+  - Server-side totals and discount.
+  - Receiving posts stock (free units lower the batch's unit cost), credits the supplier, and optionally updates the medicine's MRP and last cost.
+  - "Pay now" on receive.
+  - Staff only see and receive into their allowed outlets.
+- **Purchase returns** (`PRT-`): limited by what's still returnable and what's actually in stock. Stock goes out of the original batch and the supplier balance is reduced.
+- 179 tests.
+
+Later: low-stock / expiring reports, adjustments, transfers and damage (Phase 6); journals for payments and purchases (Phase 7); cash refunds from suppliers (Phase 7).
 
 ### Phase 5 — POS and sales
 - POS: search by barcode, name, generic or brand.

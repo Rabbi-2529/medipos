@@ -19,6 +19,27 @@ def make_pharmacy(name="Lazz Pharma", plan="business"):
     )
 
 
+def make_medicine(tenant, name="Napa", *, conversion=10, track_expiry=True, purchase_price="1.00", sale_price="1.20", **extra):
+    """A medicine sold by Piece and bought by Box of `conversion` (or by Piece when conversion is 1)."""
+    from decimal import Decimal
+
+    from apps.items.models import Medicine, Unit
+
+    with tenant_context(tenant):
+        piece, box = Unit.objects.get(name="Piece"), Unit.objects.get(name="Box")
+        return Medicine.objects.create(
+            name=name, code=extra.pop("code", name.upper()[:10]), sale_unit=piece, purchase_unit=box if conversion > 1 else piece,
+            conversion=conversion, track_expiry=track_expiry, purchase_price=Decimal(purchase_price), sale_price=Decimal(sale_price), **extra,
+        )
+
+
+def make_supplier(tenant, name="Square Distribution", **fields):
+    from apps.suppliers.models import Supplier
+
+    with tenant_context(tenant):
+        return Supplier.objects.create(name=name, **fields)
+
+
 def add_staff(tenant, email, codes=None, outlets=(), all_outlets=False):
     """A non-owner login with its own role holding `codes` (None = no role at all)."""
     with tenant_context(tenant):

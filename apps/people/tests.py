@@ -45,8 +45,9 @@ class PermissionTests(TestCase):
         self.assertIn("outlet.create", manager.codes)
         self.assertNotIn("role.create", manager.codes)
         self.assertNotIn("subscription.show", manager.codes)
-        # Stored codes switch on as their modules arrive: the medicine list now, POS later.
-        self.assertEqual(cashier.codes, {"item.list"})
+        # Stored codes switch on as their modules arrive: medicine list and stock now, POS later.
+        self.assertEqual(cashier.codes, {"item.list", "stock.list"})
+        self.assertIn("purchase.create", manager.codes)
         self.assertIn("pos.create", cashier.permissions)
         self.assertIn("item_setup.create", manager.codes)
 
@@ -63,7 +64,8 @@ class PermissionTests(TestCase):
                 yield from walk(item.children)
         keys = {i.key for s in MENU for i in walk(s.items) if i.audience == "tenant" and i.url_name}
         built = {k for k in keys if k in {"settings", "outlet", "counter", "subscription", "payment_account", "employee",
-                                          "role", "item", "item_setup"}}
+                                          "role", "item", "item_setup", "stock", "purchase", "purchase_return",
+                                          "supplier", "supplier_payment"}}
         self.assertTrue(built <= set(MODULES_BY_KEY))
 
 

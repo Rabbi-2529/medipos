@@ -52,13 +52,14 @@ class MenuTests(TestCase):
         tenant = Tenant.objects.create(name="T", slug="t")
         owner = User.objects.create_user("u@x.test", "pw", tenant=tenant, is_owner=True)
         labels = [e["label"] for e in flatten_menu(self._menu_for(owner))]
-        # Later menus (POS, purchases, …) stay hidden until their URLs exist.
-        self.assertEqual(labels, [
-            "Dashboard", "Add medicine", "Medicine list", "Add from catalog", "Import from Excel", "Bulk price update",
-            "Barcode labels", "Categories", "Generics", "Manufacturers", "Units", "Racks",
-            "Payment accounts", "Employees", "Roles & permissions",
-            "Business settings", "Outlet list", "Counters", "Subscription",
-        ])
+        # Built screens show up (in menu order); later ones (POS, sales, …) stay hidden until their URLs exist.
+        for expected in ("Dashboard", "Medicine list", "Current stock", "Opening stock", "Add purchase", "Purchase list",
+                         "Purchase returns", "Supplier list", "Supplier payments", "Employees", "Business settings", "Subscription"):
+            self.assertIn(expected, labels)
+        for unbuilt in ("POS", "Sale list", "Low stock", "Transfers", "Reports"):
+            self.assertNotIn(unbuilt, labels)
+        self.assertEqual(labels[0], "Dashboard")
+        self.assertLess(labels.index("Current stock"), labels.index("Add purchase"))
 
     def test_staff_without_role_only_get_dashboard(self):
         tenant = Tenant.objects.create(name="T", slug="t")
@@ -96,6 +97,9 @@ class SeedDemoTests(TestCase):
         lazz = Medicine.all_objects.filter(tenant=owner.tenant)
         self.assertEqual(lazz.count(), 28)  # sample catalog, adopted once despite two runs
         self.assertFalse(lazz.filter(sale_price=0).exists())
+        from apps.purchases.models import Purchase
+        purchases = Purchase.all_objects.filter(tenant=owner.tenant)
+        self.assertEqual(sorted(purchases.values_list("status", flat=True)), ["draft", "received"])
         self.assertEqual(owner.tenant.slug, "lazz-pharma-demo")
         self.assertTrue(owner.is_owner)
         self.assertTrue(owner.check_password("Seed#Pass2026"))

@@ -1,0 +1,43 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+{% block title %}{% translate "Opening stock" %}{% endblock %}
+{% block page_title %}{% translate "Opening stock" %}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% translate "Load what's already on your shelves when you start using MediPOS." %}</p>{% endblock %}
+{% block content %}
+<div class="row g-4">
+  <div class="col-xl-7">
+    <div class="card">
+      <div class="card-body">
+        <ol class="steps">
+          <li><strong>{% translate "Download your medicine list" %}</strong> {% translate "— it already has every medicine's code, name and cost." %}
+            <div class="mt-2"><a class="btn btn-sm btn-outline-primary" href="{% url 'stock:opening_template' %}"><i class="bi bi-file-earmark-arrow-down"></i> {% translate "Medicine list (.xlsx)" %}</a></div>
+          </li>
+          <li><strong>{% translate "Fill Batch, Expiry and Quantity" %}</strong> {% translate "for what you have. Add a row per batch; leave the rest blank." %}</li>
+          <li><strong>{% translate "Upload it for one outlet." %}</strong> {% translate "You'll check every row before stock is added." %}</li>
+        </ol>
+        <form method="post" enctype="multipart/form-data" novalidate>
+          {% csrf_token %}
+          <div class="row">
+            <div class="col-md-5">{% include "partials/_field.html" with field=form.outlet %}</div>
+            <div class="col-md-7">{% include "partials/_field.html" with field=form.file %}</div>
+          </div>
+          <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i> {% translate "Check file" %}</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="col-xl-5">
+    <div class="card">
+      <div class="card-header"><h2 class="card-title">{% translate "Good to know" %}</h2></div>
+      <div class="card-body">
+        <ul class="simple-list">
+          <li><span>{% translate "Quantity" %}</span><span>{% translate "in sale units (pieces)" %}</span></li>
+          <li><span>{% translate "Packs" %}</span><span>{% translate "boxes, added to quantity" %}</span></li>
+          <li><span>{% translate "Expiry" %}</span><span>2027-02 · 02/2027</span></li>
+          <li><span>{% translate "Uploading twice" %}</span><span>{% translate "adds stock twice" %}</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

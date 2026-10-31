@@ -8,6 +8,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 
+from apps.accounting.models import PaymentAccount
 from apps.accounts.models import User
 from apps.billing.models import Plan
 from apps.catalog.models import CatalogMedicine
@@ -16,7 +17,13 @@ from apps.core.tenancy import tenant_context
 from apps.items.models import Medicine, Unit
 from apps.outlets.models import Counter, Outlet
 from apps.people.models import Employee, Role
+from apps.purchases.models import Purchase
+from apps.purchases.services import clean_lines, receive, save_draft
 from apps.setup.services import provision_tenant
+from apps.stock.models import StockMovement
+from apps.stock.services import get_or_create_batch, post_movement
+from apps.suppliers.models import Supplier
+from apps.suppliers.services import record_payment, set_opening_balance
 from apps.tenants.models import Tenant
 
 SAMPLE_CATALOG = Path(__file__).resolve().parents[3] / "catalog" / "fixtures" / "sample_catalog.csv"
@@ -105,6 +112,7 @@ class Command(BaseCommand):
             if spec["slug"] == "lazz-pharma-demo":
                 self._lazz_staff(tenant, password)
                 self._lazz_medicines(tenant)
+                self._lazz_stock(tenant)
 
         self.stdout.write(self.style.SUCCESS(
             "Demo ready: admin@medipos.local (platform), owner@lazzpharma.local (paid), "
@@ -136,6 +144,40 @@ class Command(BaseCommand):
                 medicine.alert_quantity = 50 if medicine.conversion > 1 else 5
                 medicine.prescription_required = bool(medicine.generic and medicine.generic.name in RX_GENERICS)
                 medicine.save()
+
+    def _lazz_stock(self, tenant):
+        """Suppliers, opening stock at Main branch, one received + part-paid purchase and one draft (once)."""
+        with tenant_context(tenant):
+            if Purchase.objects.exists():
+                return
+            owner = tenant.owner
+            main = Outlet.objects.get(code="0001")
+            square = Supplier.objects.create(name="Square Pharmaceuticals (Depot)", phone="01711000111", contact_person="Rahim")
+            beximco = Supplier.objects.create(name="Beximco Distribution", phone="01811000222", opening_balance=Decimal("2500"))
+            set_opening_balance(beximco)
+            today = timezone.localdate()
+            for index, medicine in enumerate(Medicine.objects.filter(catalog_ref__isnull=False).order_by("name")):
+                expiry = today.replace(day=1) + timedelta(days=60 + index * 35)  # a few expire within 90 days
+                batch = get_or_create_batch(medicine, f"OP{index + 1:03d}", expiry, medicine.purchase_price)
+                quantity = medicine.conversion * (2 + index % 4) + (index * 7) % 13
+                post_movement(outlet=main, batch=batch, quantity=quantity, kind=StockMovement.Kind.OPENING,
+                              ref=("opening", None, "Opening stock"), user=owner)
+
+            def lines(names, packs):
+                rows = []
+                for name in names:
+                    m = Medicine.objects.get(name=name, dosage_form__in=["tablet", "capsule"])
+                    rows.append({"medicine": m.pk, "batch_no": f"{name[:3].upper()}{today:%y%m}", "packs": packs, "units": 0,
+                                 "free_units": m.conversion // 10, "expiry": (today + timedelta(days=540)).strftime("%Y-%m"),
+                                 "pack_cost": str(m.purchase_price * m.conversion), "sale_price": str(m.sale_price)})
+                return clean_lines(rows)
+
+            received = save_draft(tenant=tenant, outlet=main, supplier=square, date=today - timedelta(days=3),
+                                  lines=lines(["Seclo", "Fexo", "Alatrol"], 2), supplier_invoice_no="SQ-55120", user=owner)
+            received = receive(received, user=owner)
+            record_payment(supplier=square, amount=(received.total / 2).quantize(Decimal("1")), user=owner,
+                           account=PaymentAccount.objects.get(name="Cash"), date=today - timedelta(days=3), purchase=received)
+            save_draft(tenant=tenant, outlet=main, supplier=beximco, date=today, lines=lines(["Napa", "Tofen"], 3), user=owner)
 
     def _lazz_staff(self, tenant, password):
         """Second outlet, a counter, a manager (all outlets) and a cashier (Main branch only)."""

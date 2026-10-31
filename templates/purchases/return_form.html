@@ -1,0 +1,47 @@
+{% extends "layouts/app.html" %}
+{% load i18n shop %}
+{% block title %}{% translate "Return items" %}{% endblock %}
+{% block page_title %}{% translate "Return items to" %} {{ purchase.supplier.name }}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle"><a href="{% url 'purchases:detail' purchase.pk %}"><i class="bi bi-chevron-left"></i> {{ purchase.number }}</a> · {% translate "Stock is taken from" %} {{ purchase.outlet.name }}</p>{% endblock %}
+{% block content %}
+<form method="post" novalidate>
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="alert alert-danger">{% for e in form.non_field_errors %}<div>{{ e }}</div>{% endfor %}</div>{% endif %}
+  <div class="card mb-4">
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table align-middle mb-0">
+          <thead><tr><th>{% translate "Medicine" %}</th><th>{% translate "Batch" %}</th><th class="text-center">{% translate "Received" %}</th><th class="text-center">{% translate "Can return" %}</th><th class="text-center">{% translate "In stock now" %}</th><th class="text-end">{% translate "Cost / unit" %}</th><th style="width:140px">{% translate "Return (units)" %}</th></tr></thead>
+          <tbody>
+            {% for row in lines %}
+            <tr>
+              <td class="fw-semibold">{{ row.line.medicine.display_name }}</td>
+              <td>{{ row.line.batch_no|default:"—" }}{% if row.line.expiry_date %}<small class="d-block text-body-secondary">{{ row.line.expiry_date|date:"m/Y" }}</small>{% endif %}</td>
+              <td class="text-center">{{ row.line.total_units }}</td>
+              <td class="text-center">{{ row.left }}</td>
+              <td class="text-center">{{ row.on_hand }}</td>
+              <td class="text-end">{% money row.line.unit_cost %}</td>
+              <td>
+                {% if row.left and row.on_hand %}
+                <input type="number" class="form-control form-control-sm" name="qty_{{ row.line.pk }}" min="0" max="{% if row.left < row.on_hand %}{{ row.left }}{% else %}{{ row.on_hand }}{% endif %}" step="1" value="{{ row.posted }}" aria-label="{% translate 'Units to return' %}">
+                {% else %}<span class="text-body-secondary">—</span>{% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-4">{% include "partials/_field.html" with field=form.date %}</div>
+        <div class="col-md-8">{% include "partials/_field.html" with field=form.reason %}</div>
+      </div>
+      <p class="form-text">{% translate "The returned value is taken off what you owe this supplier." %}</p>
+      <button class="btn btn-primary" type="submit" data-confirm-submit><i class="bi bi-arrow-return-left"></i> {% translate "Save return" %}</button>
+    </div>
+  </div>
+</form>
+{% endblock %}

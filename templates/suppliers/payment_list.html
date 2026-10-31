@@ -1,0 +1,23 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+{% block title %}{% translate "Supplier payments" %}{% endblock %}
+{% block page_title %}{% translate "Supplier payments" %}{% endblock %}
+{% block page_actions %}{% if can.supplier_payment.create %}<a class="btn btn-primary" href="{% url 'suppliers:payment_create' %}"><i class="bi bi-cash-coin"></i> {% translate "Pay a supplier" %}</a>{% endif %}{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <table id="payment-table" class="table table-hover align-middle w-100">
+      <thead><tr><th>{% translate "No." %}</th><th>{% translate "Date" %}</th><th>{% translate "Supplier" %}</th><th>{% translate "Purchase" %}</th><th>{% translate "Paid from" %}</th><th>{% translate "Reference" %}</th><th class="text-end">{% translate "Amount" %}</th></tr></thead>
+    </table>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+  MP.dataTable("#payment-table", {
+    ajax: { url: "{% url 'suppliers:payment_data' %}" },
+    order: [[1, "desc"]],
+    columnDefs: [{ targets: [3, 5], orderable: false }, { targets: 6, className: "text-end" }]
+  });
+</script>
+{% endblock %}

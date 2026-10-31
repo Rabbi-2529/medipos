@@ -54,6 +54,9 @@ apps/setup/        business settings, document numbering, tenant provisioning
 apps/accounting/   payment accounts (journals and reports in Phase 7)
 apps/items/        medicines, setup lists, import/export, bulk prices, labels
 apps/catalog/      platform-wide medicine catalog (fixtures/sample_catalog.csv = demo sample)
+apps/stock/        batches, per-outlet stock, movement ledger, opening-stock import
+apps/suppliers/    suppliers, supplier ledger, payments
+apps/purchases/    purchases (draft → received), purchase returns
 templates/         layouts, partials, pages
 static/            css/app.css (theme tokens, dark mode), js/app.js
 ```
@@ -79,6 +82,14 @@ For real use:
 3. Upload an .xlsx/.csv with these columns: Brand name, Generic, Strength, Dosage form, Manufacturer, Pack size, Unit price.
 
 Use a list ThingBD has the right to use, such as DGDA's registered-drug list.
+
+## Stock rules
+
+- Change stock **only** through `apps.stock.services.post_movement()`.
+  - It locks the outlet × batch row, refuses to go below zero (`StockError`) and writes a `StockMovement`.
+  - Quantities are always in sale units, e.g. pieces.
+- Document numbers come from `apps.setup.services.next_code(tenant, key, prefix=…)`: PUR-, PRT-, SPY-, and later INV-.
+- Supplier balances come from `SupplierLedgerEntry` (credit = owed, debit = paid/returned). Post entries with `suppliers.services.post_entry()`.
 
 ## Permissions
 

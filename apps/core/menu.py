@@ -75,11 +75,12 @@ MENU = (
             _item("item_setup", _("Units"), "items:units"),
             _item("item_setup", _("Racks"), "items:racks"),
         )),
-        MenuItem("stock", _("Stock"), icon="bi-box-seam", children=(
+        MenuItem("stock", _("Stock"), icon="bi-box-seam", perm=None, children=(
             _item("stock", _("Current stock"), "stock:list"),
             _item("stock", _("Low stock"), "stock:low"),
             _item("stock", _("Expiring soon"), "stock:expiring"),
             _item("stock", _("Adjustments"), "stock:adjustments"),
+            MenuItem("stock", _("Opening stock"), "stock:opening", perm="stock.create"),
         )),
     )),
     MenuSection(_("Sales & customers"), (
@@ -95,12 +96,12 @@ MENU = (
         )),
     )),
     MenuSection(_("Purchases & suppliers"), (
-        MenuItem("purchase", _("Purchases"), icon="bi-bag-check", children=(
-            _item("purchase", _("Add purchase"), "purchases:create"),
+        MenuItem("purchase", _("Purchases"), icon="bi-bag-check", perm=None, children=(
+            MenuItem("purchase", _("Add purchase"), "purchases:create", perm="purchase.create"),
             _item("purchase", _("Purchase list"), "purchases:list"),
             _item("purchase_return", _("Purchase returns"), "purchases:returns"),
         )),
-        MenuItem("supplier", _("Suppliers"), icon="bi-truck", children=(
+        MenuItem("supplier", _("Suppliers"), icon="bi-truck", perm=None, children=(
             _item("supplier", _("Supplier list"), "suppliers:list"),
             _item("supplier_payment", _("Supplier payments"), "suppliers:payments"),
         )),
