@@ -1,6 +1,6 @@
 import os
 import zlib
-from datetime import timedelta
+from datetime import datetime, time, timedelta
 from decimal import Decimal
 from pathlib import Path
 
@@ -19,6 +19,8 @@ from apps.catalog.models import CatalogMedicine
 from apps.catalog.services import adopt, import_catalog
 from apps.core.tenancy import tenant_context
 from apps.customers.models import Customer
+from apps.hr.models import Attendance, OfficeNetwork, Payroll, Shift
+from apps.hr.services import give_advance, pay_payroll, prepare_payroll, save_attendance
 from apps.inventory.models import Transfer, WriteOff
 from apps.inventory.services import create_write_off, dispatch_transfer, receive_transfer, save_stock_count
 from apps.items.models import Medicine, Unit
@@ -126,6 +128,8 @@ class Command(BaseCommand):
                 self._lazz_sales(tenant)
                 self._lazz_inventory(tenant)
                 self._lazz_accounts(tenant)
+                self._lazz_shifts(tenant)
+                self._lazz_hr(tenant)
 
         self.stdout.write(self.style.SUCCESS(
             "Demo ready: admin@medipos.local (platform), owner@lazzpharma.local (paid), "
@@ -321,6 +325,74 @@ class Command(BaseCommand):
                 move_funds(tenant=tenant, kind=FundMovement.Kind.WITHDRAW, date=today, amount="200", from_account=bkash,
                            note="Owner's personal use", user=owner)
             rebuild()
+
+    def _lazz_hr(self, tenant):
+        """Pay for the staff, a delivery rider with no login, attendance since last month, an advance,
+        last month's payroll paid and this month's waiting as a draft (once). Anything already entered by hand is kept."""
+        with tenant_context(tenant), transaction.atomic():
+            if Employee.objects.filter(name="Karim Mia", user=None).exists():
+                return
+            owner = tenant.owner
+            manager = Employee.objects.get(user__email="manager@lazzpharma.local")
+            cashier = Employee.objects.get(user__email="cashier@lazzpharma.local")
+            for employee, salary, allowance, commission in ((manager, "25000", "2000", "0"), (cashier, "15000", "1000", "1")):
+                if not employee.salary:
+                    employee.salary, employee.allowance, employee.commission_percent = Decimal(salary), Decimal(allowance), Decimal(commission)
+                    employee.save()
+            today = timezone.localdate()
+            rider = Employee.objects.create(name="Karim Mia", designation="Delivery rider", phone="01900112233", salary=Decimal("8000"),
+                                            joined_on=today - timedelta(days=200))
+            if not Sale.objects.filter(created_by=cashier.user).exists():
+                # The cashier rang up every third counter sale of the last four weeks (their commission comes from these).
+                history = list(Sale.objects.filter(register__isnull=True, created_by=owner).order_by("pk").values_list("pk", flat=True))
+                Sale.objects.filter(pk__in=history[::3]).update(created_by=cashier.user)
+
+            this_month = today.replace(day=1)
+            last_month = (this_month - timedelta(days=1)).replace(day=1)
+            S, day = Attendance.Status, last_month
+            marked = set(Attendance.objects.values_list("employee_id", "date"))
+            while day <= today:
+                rows = []
+                for i, employee in enumerate((manager, cashier, rider)):
+                    if (day == today and employee is rider) or (employee.pk, day) in marked:
+                        continue  # not in yet, or already marked by hand
+                    seed = day.toordinal() * 7 + i * 13
+                    status = (S.OFF if day.weekday() == 4 else S.ABSENT if seed % 23 == 0 else S.HALF if seed % 29 == 0
+                              else S.LEAVE if seed % 37 == 0 else S.LATE if seed % 6 == 0 else S.PRESENT)
+                    worked = status in (S.PRESENT, S.LATE, S.HALF)
+                    # Out a little after their last shift ends; now and then over an hour before it (marked as leaving early).
+                    end = datetime.combine(day, employee.schedule.end if employee.schedule else time(21, 0))
+                    out = end - timedelta(minutes=75) if seed % 11 == 0 else end + timedelta(minutes=seed % 25)
+                    rows.append({"employee": employee, "status": status,
+                                 "check_in": time(9, 35 + seed % 20) if status == S.LATE else time(8, 50 + seed % 10) if worked else None,
+                                 "check_out": (time(14, 0) if status == S.HALF else out.time()) if worked and day < today else None,
+                                 "note": "Sick" if status == S.LEAVE else ""})
+                save_attendance(day=day, rows=rows, user=manager.user)
+                day += timedelta(days=1)
+
+            cash, bank = PaymentAccount.objects.get(name="Cash"), PaymentAccount.objects.get(name="Dutch-Bangla Bank")
+            if not Payroll.objects.filter(month=last_month).exists():
+                give_advance(tenant=tenant, employee=cashier, date=last_month + timedelta(days=12), amount=Decimal("1500"), payment_account=cash,
+                             note="Family emergency", user=owner)
+                paid = prepare_payroll(tenant=tenant, month=last_month, user=owner)
+                pay_payroll(paid, account=bank, day=this_month, user=owner)
+            if not Payroll.objects.filter(month=this_month).exists():
+                give_advance(tenant=tenant, employee=cashier, date=this_month + timedelta(days=9), amount=Decimal("2000"), payment_account=cash,
+                             note="Eid shopping", user=owner)
+                prepare_payroll(tenant=tenant, month=this_month, user=owner)
+
+    def _lazz_shifts(self, tenant):
+        """Day and evening shifts (the cashier works both), and the networks staff can check in from without a reason (once).
+        127.0.0.1 is there so checking in on a local demo works; the /24 stands in for a branch's broadband."""
+        with tenant_context(tenant), transaction.atomic():
+            if Shift.objects.exists() or OfficeNetwork.objects.exists():
+                return
+            day = Shift.objects.create(name="Day", start=time(9, 0), end=time(17, 0), grace_minutes=10)
+            evening = Shift.objects.create(name="Evening", start=time(15, 0), end=time(23, 0), grace_minutes=10)
+            Employee.objects.get(user__email="manager@lazzpharma.local").shifts.set([day])
+            Employee.objects.get(user__email="cashier@lazzpharma.local").shifts.set([day, evening])
+            OfficeNetwork.objects.create(address="127.0.0.1", label="This computer (demo)")
+            OfficeNetwork.objects.create(address="103.112.54.0/24", label="Main branch broadband")
 
     def _lazz_staff(self, tenant, password):
         """Second outlet, a counter, a manager (all outlets) and a cashier (Main branch only)."""

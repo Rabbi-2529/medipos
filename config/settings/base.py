@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     "apps.sales",
     "apps.inventory",
     "apps.reports",
+    "apps.hr",
 ]
 
 MIDDLEWARE = [
@@ -117,6 +118,10 @@ REST_FRAMEWORK = {
 APP_COMPANY = "ThingBD"
 APP_PRODUCT = "MediPOS"
 APP_NAME = f"{APP_COMPANY} {APP_PRODUCT}"
+
+# Behind nginx or another reverse proxy the visitor's address arrives in X-Forwarded-For
+# (attendance checks it against the shop's networks). Only turn on when a proxy sets that header.
+BEHIND_PROXY = env.bool("BEHIND_PROXY", default=False)
 
 # SaaS subscription rules
 TRIAL_DAYS = env.int("TRIAL_DAYS", default=14)

@@ -79,6 +79,9 @@ MODULES = (
     Module("profit_report", _("Profit reports (costs & margins)"), REPORTS, (LIST,)),
     Module("employee", _("Employees"), PEOPLE, (LIST, CREATE, EDIT, DELETE)),
     Module("role", _("Roles & permissions"), PEOPLE, (LIST, CREATE, EDIT, DELETE)),
+    # "attendance.create" = mark the daily sheet; "attendance.edit" = shifts and the shop's networks. "salary.create" = set pay on employees, give advances, prepare and pay payrolls.
+    Module("attendance", _("Attendance"), PEOPLE, (LIST, CREATE, EDIT)),
+    Module("salary", _("Payroll & advances"), PEOPLE, (LIST, CREATE)),
 )
 
 MODULES_BY_KEY = {m.key: m for m in MODULES}

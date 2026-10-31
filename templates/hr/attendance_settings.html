@@ -1,0 +1,121 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+{% block title %}{% translate "Shifts & networks" %}{% endblock %}
+{% block page_title %}{% translate "Shifts & networks" %}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% translate "Working hours decide who is late. Staff checking in or out away from the shop's internet must give a reason." %}</p>{% endblock %}
+{% block page_actions %}<a class="btn btn-soft tone-violet" href="{% url 'hr:attendance' %}"><i class="bi bi-calendar-check"></i> {% translate "Daily sheet" %}</a>{% endblock %}
+{% block content %}
+<div class="row g-4">
+  <div class="col-xl-6">
+    <div class="card voucher-card tone-sky mb-4">
+      <div class="card-header"><h2 class="card-title"><i class="bi bi-wifi"></i> {% translate "Shop networks (IP addresses)" %}</h2></div>
+      <div class="card-body">
+        <p class="small text-body-secondary">{% translate "Add the internet address of each branch. Check-ins from these need no reason. Leave the list empty to let staff check in from anywhere." %}</p>
+        <div class="check-network {% if ip_listed %}is-ok{% else %}is-away{% endif %} mb-3">
+          <i class="bi bi-pc-display"></i>
+          {% if ip_listed %}{% blocktranslate %}You're on {{ ip }}, which is on the list.{% endblocktranslate %}
+          {% else %}{% blocktranslate %}You're on {{ ip }}. If you're at the shop now, add it below.{% endblocktranslate %}{% endif %}
+        </div>
+        {% if networks %}
+        <ul class="list-unstyled net-list mb-3">
+          {% for n in networks %}
+          <li>
+            <div><code>{{ n.address }}</code>{% if n.label %}<small class="d-block text-body-secondary">{{ n.label }}</small>{% endif %}</div>
+            <form method="post" data-confirm="{% translate 'Remove this address? Staff on it will need to give a reason.' %}">
+              {% csrf_token %}<input type="hidden" name="action" value="network_delete"><input type="hidden" name="pk" value="{{ n.pk }}">
+              <button class="btn btn-sm btn-link text-danger" type="submit" aria-label="{% translate 'Remove' %}"><i class="bi bi-trash3"></i></button>
+            </form>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="alert alert-info small py-2"><i class="bi bi-info-circle"></i> {% translate "No addresses yet: nobody is asked for a reason." %}</p>
+        {% endif %}
+        <form method="post" novalidate>
+          {% csrf_token %}<input type="hidden" name="action" value="network">
+          {% if network_form.non_field_errors %}<div class="alert alert-danger py-2">{% for e in network_form.non_field_errors %}{{ e }}{% endfor %}</div>{% endif %}
+          <div class="row g-2">
+            <div class="col-sm-6">{% include "partials/_field.html" with field=network_form.address %}</div>
+            <div class="col-sm-6">{% include "partials/_field.html" with field=network_form.label %}</div>
+          </div>
+          <button class="btn btn-primary" type="submit"><i class="bi bi-plus-circle"></i> {% translate "Add address" %}</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-6">
+    <div class="card voucher-card tone-violet mb-4">
+      <div class="card-header"><h2 class="card-title"><i class="bi bi-clock-history"></i> {% translate "Shifts" %}</h2></div>
+      <div class="card-body">
+        {% if shifts %}
+        <ul class="list-unstyled net-list mb-3">
+          {% for s in shifts %}
+          <li{% if editing.pk == s.pk %} class="is-editing"{% endif %}>
+            <div>
+              <strong>{{ s.name }}</strong> <span class="text-body-secondary">{{ s.start|time:"h:i A" }} – {{ s.end|time:"h:i A" }}</span>
+              <small class="d-block text-body-secondary">
+                {% blocktranslate count counter=s.grace_minutes %}Late after {{ counter }} minute{% plural %}Late after {{ counter }} minutes{% endblocktranslate %} ·
+                {% blocktranslate count counter=s.people|length %}{{ counter }} person{% plural %}{{ counter }} people{% endblocktranslate %}
+              </small>
+              {% if s.people %}<div class="shift-people">{% for e in s.people %}<span><i class="bi bi-person"></i> {{ e.display_name }}</span>{% endfor %}</div>{% endif %}
+            </div>
+            <div class="d-flex">
+              <a class="btn btn-sm btn-link" href="?shift={{ s.pk }}" aria-label="{% translate 'Edit' %}"><i class="bi bi-pencil"></i></a>
+              <form method="post" data-confirm="{% translate 'Delete this shift? It comes off everyone who works it.' %}">
+                {% csrf_token %}<input type="hidden" name="action" value="shift_delete"><input type="hidden" name="pk" value="{{ s.pk }}">
+                <button class="btn btn-sm btn-link text-danger" type="submit" aria-label="{% translate 'Delete' %}"><i class="bi bi-trash3"></i></button>
+              </form>
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+        <form method="post" novalidate>
+          {% csrf_token %}<input type="hidden" name="action" value="shift">{% if editing %}<input type="hidden" name="pk" value="{{ editing.pk }}">{% endif %}
+          <h3 class="form-section-title">{% if editing %}{% blocktranslate with name=editing.name %}Edit “{{ name }}”{% endblocktranslate %}{% else %}{% translate "New shift" %}{% endif %}</h3>
+          {% if shift_form.non_field_errors %}<div class="alert alert-danger py-2">{% for e in shift_form.non_field_errors %}{{ e }}{% endfor %}</div>{% endif %}
+          <div class="row g-2">
+            <div class="col-sm-6">{% include "partials/_field.html" with field=shift_form.name %}</div>
+            <div class="col-sm-6">{% include "partials/_field.html" with field=shift_form.grace_minutes %}</div>
+            <div class="col-6">{% include "partials/_field.html" with field=shift_form.start %}</div>
+            <div class="col-6">{% include "partials/_field.html" with field=shift_form.end %}</div>
+          </div>
+          <button class="btn btn-primary" type="submit"><i class="bi bi-check2-circle"></i> {% if editing %}{% translate "Save shift" %}{% else %}{% translate "Add shift" %}{% endif %}</button>
+          {% if editing %}<a class="btn btn-link" href="{% url 'hr:attendance_settings' %}">{% translate "Cancel" %}</a>{% endif %}
+        </form>
+      </div>
+    </div>
+
+    {% if shifts and staff %}
+    <form class="card" method="post">
+      {% csrf_token %}<input type="hidden" name="action" value="assign">
+      <div class="card-header"><h2 class="card-title">{% translate "Who works which shift" %}</h2></div>
+      <div class="card-body">
+        <p class="small text-body-secondary">{% translate "Tick every shift a person works. Late counts from the start of their first shift; checking out before their last shift ends is marked as leaving early." %}</p>
+        {% for e in staff %}
+        <div class="shift-row">
+          <div>
+            <strong>{{ e.display_name }}</strong>{% if e.designation %}<small class="d-block text-body-secondary">{{ e.designation }}</small>{% endif %}
+            {% if e.schedule %}
+            <small class="d-block shift-hours"><i class="bi bi-clock"></i> {% blocktranslate with start=e.schedule.start|time:"h:i A" end=e.schedule.end|time:"h:i A" %}Works {{ start }} – {{ end }}{% endblocktranslate %}</small>
+            {% else %}
+            <small class="d-block text-body-secondary">{% translate "No shift" %}</small>
+            {% endif %}
+          </div>
+          <fieldset class="shift-picks">
+            <legend class="visually-hidden">{% blocktranslate with name=e.display_name %}Shifts for {{ name }}{% endblocktranslate %}</legend>
+            {% for s in shifts %}
+            <input class="btn-check" type="checkbox" name="shifts-{{ e.pk }}" id="sh-{{ e.pk }}-{{ s.pk }}" value="{{ s.pk }}" {% if s.pk in e.shift_ids %}checked{% endif %}>
+            <label class="att-pill tone-violet" for="sh-{{ e.pk }}-{{ s.pk }}"><i class="bi bi-clock"></i> {{ s.name }} <small>{{ s.start|time:"H:i" }}–{{ s.end|time:"H:i" }}</small></label>
+            {% endfor %}
+          </fieldset>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="card-footer bg-transparent border-0 pt-0 px-4 pb-4"><button class="btn btn-primary" type="submit">{% translate "Save" %}</button></div>
+    </form>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

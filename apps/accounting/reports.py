@@ -27,6 +27,8 @@ SOURCES = {
     "income": (_("Other income"), None),
     "expense": (_("Expenses"), None),
     "fund_movement": (_("Deposits, withdrawals & transfers"), None),
+    "advance": (_("Staff advances"), None),
+    "payroll": (_("Payroll"), "hr:payroll_detail"),
     "": (_("Manual journal entries"), None),
 }
 

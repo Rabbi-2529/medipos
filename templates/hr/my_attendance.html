@@ -1,0 +1,49 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+{% block title %}{% translate "My attendance" %}{% endblock %}
+{% block page_title %}{% translate "My attendance" %}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{{ panel.employee.display_name }}{% if panel.employee.designation %} · {{ panel.employee.designation }}{% endif %}</p>{% endblock %}
+{% block content %}
+<div class="row g-4">
+  <div class="col-lg-5 col-xl-4">
+    {% url 'hr:my_attendance' as next_url %}
+    {% include "hr/_check_panel.html" with panel=panel next_url=next_url %}
+  </div>
+  <div class="col-lg-7 col-xl-8">
+    <div class="card">
+      <div class="card-header"><h2 class="card-title">{{ month|date:"F Y" }}</h2></div>
+      <div class="card-body">
+        <div class="att-counts mb-3">
+          {% for s in statuses %}<span class="att-chip tone-{{ s.tone }}"><i class="bi {{ s.icon }}"></i> {{ s.label }} <strong>{{ s.count }}</strong></span>{% endfor %}
+          {% if left_early %}<span class="att-chip tone-red"><i class="bi bi-box-arrow-left"></i> {% translate "Left early" %} <strong>{{ left_early }}</strong></span>{% endif %}
+        </div>
+        {% if records %}
+        <div class="table-responsive">
+          <table class="table align-middle mb-0">
+            <thead><tr><th>{% translate "Date" %}</th><th>{% translate "Status" %}</th><th>{% translate "In" %}</th><th>{% translate "Out" %}</th><th>{% translate "Note" %}</th></tr></thead>
+            <tbody>
+              {% for r in records %}
+              <tr>
+                <td class="text-nowrap">{{ r.date|date:"D, j M" }}</td>
+                <td><span class="att-chip tone-{{ r.look.tone }}"><i class="bi {{ r.look.icon }}"></i> {{ r.look.label }}</span></td>
+                <td class="text-nowrap">{{ r.check_in|time:"h:i A"|default:"—" }}</td>
+                <td class="text-nowrap">{{ r.check_out|time:"h:i A"|default:"—" }}
+                  {% if r.left_early %}<small class="att-early d-flex"><i class="bi bi-box-arrow-left"></i> {% translate "Left early" %}</small>{% endif %}</td>
+                <td class="small">
+                  {{ r.note }}
+                  {% if r.in_reason %}<div class="att-away"><i class="bi bi-wifi-off"></i> {% translate "In" %}: {{ r.in_reason }}</div>{% endif %}
+                  {% if r.out_reason %}<div class="att-away"><i class="bi bi-wifi-off"></i> {% translate "Out" %}: {{ r.out_reason }}</div>{% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <p class="text-body-secondary mb-0">{% translate "Nothing recorded this month yet." %}</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -7,6 +7,7 @@ from apps.billing.limits import check_limit
 from .models import Employee
 
 PROFILE_FIELDS = ("designation", "joined_on", "nid", "address")
+PAY_FIELDS = ("salary", "allowance", "commission_percent")
 
 
 class EmployeeError(Exception):
@@ -19,44 +20,68 @@ def _apply_access(employee, data):
         employee.all_outlets = data["all_outlets"]
 
 
-@transaction.atomic
-def create_employee(tenant, data):
-    """New login + staff profile. Counts toward the plan's user limit."""
+def _new_login(tenant, data):
+    """A login counts toward the plan's user limit."""
     check_limit(tenant, "users")
-    user = User.objects.create_user(
+    return User.objects.create_user(
         email=data["email"], password=data["password1"], phone=data["phone"],
         first_name=data["first_name"], last_name=data["last_name"], tenant=tenant,
     )
-    employee = Employee(user=user, **{f: data[f] for f in PROFILE_FIELDS})
-    _apply_access(employee, data)
+
+
+def _apply_profile(employee, data):
+    for field in PROFILE_FIELDS:
+        setattr(employee, field, data[field])
+    for field in PAY_FIELDS:
+        if field in data:
+            setattr(employee, field, data[field])
+    employee.name = " ".join(filter(None, [data["first_name"], data["last_name"]]))
+    employee.phone = data["phone"]
+
+
+@transaction.atomic
+def create_employee(tenant, data):
+    """New staff profile, with a login unless they never use the app (has_login off)."""
+    employee = Employee(user=_new_login(tenant, data) if data.get("has_login", True) else None)
+    _apply_profile(employee, data)
+    if employee.user_id:
+        _apply_access(employee, data)
     employee.save()
-    employee.outlets.set([] if data["all_outlets"] else data["outlets"])
+    if employee.user_id:
+        employee.outlets.set([] if data["all_outlets"] else data["outlets"])
     return employee
 
 
 def _guard(employee, actor):
-    if employee.user.is_owner and not actor.is_owner:
+    if employee.user_id and employee.user.is_owner and not actor.is_owner:
         raise EmployeeError(_("Only the owner can change the owner's account."))
 
 
 @transaction.atomic
 def update_employee(employee, data, *, actor):
     _guard(employee, actor)
-    user = employee.user
-    for field in ("first_name", "last_name", "email", "phone"):
-        setattr(user, field, data[field])
-    user.save(update_fields=["first_name", "last_name", "email", "phone"])
-    for field in PROFILE_FIELDS:
-        setattr(employee, field, data[field])
-    _apply_access(employee, data)
+    if employee.user_id:
+        user = employee.user
+        for field in ("first_name", "last_name", "email", "phone"):
+            setattr(user, field, data[field])
+        user.save(update_fields=["first_name", "last_name", "email", "phone"])
+    elif data.get("has_login"):
+        employee.user = _new_login(employee.tenant, data)  # staff who start using the app
+    _apply_profile(employee, data)
+    if employee.user_id:
+        _apply_access(employee, data)
     employee.save()
-    if "outlets" in data:
+    if employee.user_id and "outlets" in data:
         employee.outlets.set([] if data["all_outlets"] else data["outlets"])
     return employee
 
 
 @transaction.atomic
 def set_active(employee, active, *, actor):
+    if not employee.user_id:  # staff without a login: just their profile
+        employee.is_active = active
+        employee.save(update_fields=["is_active", "updated_at"])
+        return employee
     user = employee.user
     if not active:
         if user.is_owner:
@@ -67,6 +92,8 @@ def set_active(employee, active, *, actor):
         check_limit(employee.tenant, "users")
     user.is_active = active
     user.save(update_fields=["is_active"])
+    employee.is_active = active
+    employee.save(update_fields=["is_active", "updated_at"])
     return employee
 
 

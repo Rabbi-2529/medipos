@@ -24,6 +24,7 @@
           <th>{% translate "Login" %}</th>
           <th>{% translate "Role" %}</th>
           <th>{% translate "Outlets" %}</th>
+          <th>{% translate "Shifts" %}</th>
           <th>{% translate "Status" %}</th>
           <th>{% translate "Last login" %}</th>
           <th><span class="visually-hidden">{% translate "Actions" %}</span></th>
@@ -38,7 +39,7 @@
   (function () {
     var table = MP.dataTable("#employee-table", {
       ajax: { url: "{% url 'people:employee_data' %}", data: function (d) { d.status = $("#filter-status").val() || ""; } },
-      columnDefs: [{ targets: [3, 6], orderable: false }, { targets: 6, className: "text-end" }]
+      columnDefs: [{ targets: [3, 4, 7], orderable: false }, { targets: 7, className: "text-end" }]
     });
     $("#filter-status").on("change", function () { table.ajax.reload(); });
   })();

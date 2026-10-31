@@ -1,0 +1,76 @@
+{% extends "layouts/app.html" %}
+{% load i18n shop %}
+{% block title %}{% translate "Salary advances" %}{% endblock %}
+{% block page_title %}{% translate "Salary advances" %}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% translate "Money given to staff before payday. The next payroll takes it back from their salary." %}</p>{% endblock %}
+{% block page_actions %}<a class="btn btn-soft tone-violet" href="{% url 'hr:payroll' %}"><i class="bi bi-cash-coin"></i> {% translate "Payroll" %}</a>{% endblock %}
+{% block content %}
+<div class="row g-4">
+  {% if can_give %}
+  <div class="col-xl-4">
+    <div class="card voucher-card tone-orange">
+      <div class="card-header"><h2 class="card-title">{% translate "Give an advance" %}</h2></div>
+      <div class="card-body">
+        <form method="post" novalidate>
+          {% csrf_token %}
+          {% if form.non_field_errors %}<div class="alert alert-danger">{% for e in form.non_field_errors %}<div>{{ e }}</div>{% endfor %}</div>{% endif %}
+          {% include "partials/_field.html" with field=form.employee %}
+          <div class="row">
+            <div class="col-sm-6 col-xl-12 col-xxl-6">{% include "partials/_field.html" with field=form.amount %}</div>
+            <div class="col-sm-6 col-xl-12 col-xxl-6">{% include "partials/_field.html" with field=form.date %}</div>
+          </div>
+          {% include "partials/_field.html" with field=form.payment_account %}
+          {% include "partials/_field.html" with field=form.note %}
+          <button class="btn btn-primary w-100" type="submit"><i class="bi bi-check2-circle"></i> {% translate "Save" %}</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+  <div class="{% if can_give %}col-xl-8{% else %}col-12{% endif %}">
+    <div class="row g-3 mb-4">
+      <div class="col-md-4">
+        <div class="card stat-tile tone-orange h-100"><div class="card-body">
+          <div class="stat-label">{% translate "Still owed by staff" %}</div>
+          <div class="stat-figure">{% money owed_total %}</div>
+        </div></div>
+      </div>
+      <div class="col-md-8">
+        <div class="card h-100"><div class="card-body">
+          <div class="stat-label mb-2">{% translate "Who owes what" %}</div>
+          {% for e, amount in owing %}
+          <div class="category-bar"><span>{{ e.display_name }}</span><strong>{% money amount %}</strong><i style="width: {% widthratio amount owed_total 100 %}%"></i></div>
+          {% empty %}<p class="text-body-secondary mb-0">{% translate "Nobody owes anything." %}</p>{% endfor %}
+        </div></div>
+      </div>
+    </div>
+    <form class="card mb-4" method="get"><div class="card-body">{% include "accounting/_period.html" %}</div></form>
+    <div class="card">
+      <div class="card-body">
+        <table class="table table-hover align-middle w-100" data-mp-table>
+          <thead><tr><th>{% translate "No." %}</th><th>{% translate "Date" %}</th><th>{% translate "Employee" %}</th><th>{% translate "Paid from" %}</th><th>{% translate "Note" %}</th><th class="text-end">{% translate "Amount" %}</th><th class="no-sort"></th></tr></thead>
+          <tbody>
+            {% for a in advances %}
+            <tr>
+              <td class="text-nowrap"><code>{{ a.number }}</code></td>
+              <td class="text-nowrap" data-order="{{ a.date|date:'Y-m-d' }}">{% shop_date a.date %}</td>
+              <td class="fw-semibold">{{ a.employee.display_name }}<small class="d-block text-body-secondary">{{ a.employee.designation }}</small></td>
+              <td>{{ a.payment_account.name }}</td>
+              <td>{{ a.note|default:"—" }}</td>
+              <td class="text-end fw-semibold" data-order="{{ a.amount }}">{% money a.amount %}</td>
+              <td class="text-end">
+                {% if can_give %}
+                <form method="post" action="{% url 'hr:advance_delete' a.pk %}" data-confirm="{% translate 'Delete this advance? The money goes back to the account it came from.' %}">
+                  {% csrf_token %}<button class="btn btn-sm btn-link text-danger" type="submit" aria-label="{% translate 'Delete' %}"><i class="bi bi-trash3"></i></button>
+                </form>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

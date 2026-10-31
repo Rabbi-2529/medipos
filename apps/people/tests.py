@@ -14,7 +14,7 @@ from .models import Employee, Role
 
 def staff_form(**overrides):
     data = {
-        "first_name": "Rafi", "last_name": "Hasan", "email": "rafi@lazz.test", "phone": "",
+        "first_name": "Rafi", "last_name": "Hasan", "email": "rafi@lazz.test", "phone": "", "has_login": "on",
         "password1": PASSWORD, "password2": PASSWORD, "role": "", "designation": "Pharmacist",
         "all_outlets": "on", "joined_on": "", "nid": "", "address": "",
     }
@@ -31,7 +31,7 @@ class PermissionTests(TestCase):
         self.assertEqual(user_permissions(self.owner), ALL_CODES)
 
     def test_staff_get_their_roles_codes_and_future_codes_are_ignored(self):
-        user = add_staff(self.tenant, "a@x.test", ["outlet.list", "salary.create"])  # payroll arrives in Phase 9
+        user = add_staff(self.tenant, "a@x.test", ["outlet.list", "sms.create"])  # messaging arrives in Phase 10
         self.assertEqual(user_permissions(user), {"outlet.list"})
 
     def test_no_role_or_platform_admin_means_nothing(self):

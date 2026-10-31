@@ -1,0 +1,115 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+{% block title %}{% translate "Attendance" %}{% endblock %}
+{% block page_title %}{% translate "Attendance" %}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% translate "Mark who came in today. Absences and half days are taken off the salary when you prepare the month's payroll." %}</p>{% endblock %}
+{% block page_actions %}
+<a class="btn btn-soft tone-violet" href="{% url 'hr:attendance_calendar' %}"><i class="bi bi-calendar3"></i> {% translate "Calendar" %}</a>
+{% endblock %}
+{% block content %}
+<div class="card mb-4">
+  <div class="card-body att-toolbar">
+    <form class="att-day" method="get">
+      <a class="btn btn-outline-secondary" href="?date={{ prev|date:'Y-m-d' }}" aria-label="{% translate 'Previous day' %}"><i class="bi bi-chevron-left"></i></a>
+      <input class="form-control" type="date" name="date" value="{{ day|date:'Y-m-d' }}" aria-label="{% translate 'Date' %}" data-att-date>
+      <a class="btn btn-outline-secondary" href="?date={{ next|date:'Y-m-d' }}" aria-label="{% translate 'Next day' %}"><i class="bi bi-chevron-right"></i></a>
+      {% if day != today %}<a class="btn btn-link" href="?">{% translate "Today" %}</a>{% endif %}
+    </form>
+    <div class="att-counts">
+      {% for s in statuses %}<span class="att-chip tone-{{ s.tone }}"><i class="bi {{ s.icon }}"></i> {{ s.label }} <strong>{{ s.count }}</strong></span>{% endfor %}
+      <span class="att-chip tone-slate is-empty">{% translate "Not marked" %} <strong>{{ unmarked }}</strong></span>
+      {% if left_early %}<span class="att-chip tone-red"><i class="bi bi-box-arrow-left"></i> {% translate "Left early" %} <strong>{{ left_early }}</strong></span>{% endif %}
+    </div>
+  </div>
+</div>
+
+{% if rows %}
+<form class="card" method="post" data-att-sheet>
+  {% csrf_token %}
+  <input type="hidden" name="date" value="{{ day|date:'Y-m-d' }}">
+  <div class="card-header d-flex flex-wrap gap-2 align-items-center justify-content-between">
+    <h2 class="card-title mb-0">{{ day|date:"l, j F Y" }}</h2>
+    {% if can_mark %}
+    <div class="d-flex flex-wrap gap-2">
+      <button class="btn btn-sm btn-soft tone-teal" type="button" data-all-present><i class="bi bi-check2-all"></i> {% translate "Everyone not marked is present" %}</button>
+    </div>
+    {% endif %}
+  </div>
+  <div class="att-sheet">
+    <div class="att-head" aria-hidden="true"><span>{% translate "Employee" %}</span><span>{% translate "Status" %}</span><span>{% translate "In" %}</span><span>{% translate "Out" %}</span><span>{% translate "Note" %}</span></div>
+    {% for row in rows %}
+    {% with e=row.employee r=row.record %}
+    <div class="att-row{% if not r %} is-unmarked{% endif %}" data-att-row>
+      <div class="att-person">
+        <strong>{{ e.display_name }}</strong>
+        <small>{{ e.designation|default:"" }}{% if not e.active %} · {% translate "Inactive" %}{% endif %}</small>
+        {% if e.schedule %}<small class="d-block"><i class="bi bi-clock"></i> {{ e.schedule.names }} {{ e.schedule.start|time:"H:i" }}–{{ e.schedule.end|time:"H:i" }}</small>{% endif %}
+      </div>
+      <fieldset class="att-status" {% if not can_mark %}disabled{% endif %}>
+        <legend class="visually-hidden">{% blocktranslate with name=e.display_name %}Status for {{ name }}{% endblocktranslate %}</legend>
+        {% for s in statuses %}
+        <input class="btn-check" type="radio" name="status-{{ e.pk }}" id="st-{{ e.pk }}-{{ s.value }}" value="{{ s.value }}" {% if r.status == s.value %}checked{% endif %}>
+        <label class="att-pill tone-{{ s.tone }}" for="st-{{ e.pk }}-{{ s.value }}" title="{{ s.label }}"><i class="bi {{ s.icon }}"></i><span>{{ s.label }}</span></label>
+        {% endfor %}
+        {% if can_mark %}<button class="att-clear" type="button" data-clear title="{% translate 'Clear' %}" aria-label="{% translate 'Clear' %}"><i class="bi bi-x-lg"></i></button>{% endif %}
+      </fieldset>
+      <label class="att-time"><span class="visually-hidden">{% translate "In" %}</span>
+        <input class="form-control form-control-sm" type="time" name="in-{{ e.pk }}" value="{{ r.check_in|time:'H:i' }}" {% if not can_mark %}disabled{% endif %}></label>
+      <label class="att-time"><span class="visually-hidden">{% translate "Out" %}</span>
+        <input class="form-control form-control-sm" type="time" name="out-{{ e.pk }}" value="{{ r.check_out|time:'H:i' }}" {% if not can_mark %}disabled{% endif %}>
+        {% if r.left_early %}<small class="att-early"><i class="bi bi-box-arrow-left"></i> {% translate "Left early" %}</small>{% endif %}</label>
+      <label class="att-note"><span class="visually-hidden">{% translate "Note" %}</span>
+        <input class="form-control form-control-sm" name="note-{{ e.pk }}" maxlength="255" value="{{ r.note|default:'' }}" placeholder="{% translate 'Note' %}" {% if not can_mark %}disabled{% endif %}>
+        {% if r.self_marked %}<small class="att-self"><i class="bi bi-fingerprint"></i> {% translate "Checked in themselves" %}</small>{% endif %}
+        {% if r.in_reason %}<small class="att-away" title="{{ r.in_ip|default:'' }}"><i class="bi bi-wifi-off"></i> {% translate "In" %}: {{ r.in_reason }}</small>{% endif %}
+        {% if r.out_reason %}<small class="att-away" title="{{ r.out_ip|default:'' }}"><i class="bi bi-wifi-off"></i> {% translate "Out" %}: {{ r.out_reason }}</small>{% endif %}</label>
+    </div>
+    {% endwith %}
+    {% endfor %}
+  </div>
+  {% if can_mark %}
+  <div class="card-footer att-footer">
+    <span class="text-body-secondary small">{% translate "Leave a row unmarked if you don't know yet. Clearing a row removes that day's mark." %}</span>
+    <button class="btn btn-primary" type="submit"><i class="bi bi-check2-circle"></i> {% translate "Save attendance" %}</button>
+  </div>
+  {% endif %}
+</form>
+{% else %}
+<div class="card"><div class="card-body text-center py-5">
+  <i class="bi bi-people fs-1 text-body-secondary"></i>
+  <p class="mt-2 mb-3">{% translate "There is nobody on staff yet." %}</p>
+  {% if can.employee.create %}<a class="btn btn-primary" href="{% url 'people:employee_create' %}">{% translate "Add employee" %}</a>{% endif %}
+</div></div>
+{% endif %}
+{% endblock %}
+{% block extra_js %}
+<script>
+  (function () {
+    // A picked date opens that day's sheet (the picker reports it as "input"; a plain date field as "change").
+    var picker = document.querySelector("[data-att-date]"), going = false;
+    ["input", "change"].forEach(function (name) {
+      picker.addEventListener(name, function () { if (!going && picker.value) { going = true; picker.form.submit(); } });
+    });
+    var sheet = document.querySelector("[data-att-sheet]");
+    if (!sheet) return;
+    function sync(row) { row.classList.toggle("is-unmarked", !row.querySelector(".btn-check:checked")); }
+    sheet.addEventListener("change", function (ev) { var row = ev.target.closest("[data-att-row]"); if (row) sync(row); });
+    sheet.addEventListener("click", function (ev) {
+      var clear = ev.target.closest("[data-clear]");
+      if (!clear) return;
+      var row = clear.closest("[data-att-row]");
+      row.querySelectorAll(".btn-check").forEach(function (r) { r.checked = false; });
+      sync(row);
+    });
+    var all = sheet.querySelector("[data-all-present]");
+    if (all) all.addEventListener("click", function () {
+      sheet.querySelectorAll("[data-att-row]").forEach(function (row) {
+        if (row.querySelector(".btn-check:checked")) return;
+        var present = row.querySelector(".btn-check[value=present]");
+        if (present) present.checked = true;
+        sync(row);
+      });
+    });
+  })();
+</script>
+{% endblock %}

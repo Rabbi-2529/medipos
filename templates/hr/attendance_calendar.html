@@ -1,0 +1,109 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+{% block title %}{% translate "Attendance calendar" %}{% endblock %}
+{% block page_title %}{% translate "Attendance calendar" %}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle"><a href="{% url 'hr:attendance' %}"><i class="bi bi-chevron-left"></i> {% translate "Daily sheet" %}</a></p>{% endblock %}
+{% block content %}
+<div class="row g-4">
+  <div class="col-xl-9">
+    <div class="card">
+      <div class="card-body">
+        <div class="att-cal-filter">
+          <label class="form-label mb-0" for="att-person">{% translate "Show" %}</label>
+          <select id="att-person" class="form-select" data-mp-select data-allow-clear data-placeholder="{% translate 'Everyone (how many each day)' %}">
+            <option value="">{% translate "Everyone (how many each day)" %}</option>
+            {% for p in people %}<option value="{{ p.pk }}" {% if employee == p.pk|stringformat:'s' %}selected{% endif %}>{{ p.display_name }}</option>{% endfor %}
+          </select>
+        </div>
+        <div id="att-calendar" class="att-calendar" data-events="{% url 'hr:attendance_events' %}" data-sheet="{% if can_mark %}{% url 'hr:attendance' %}{% endif %}"></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-xl-3">
+    <div class="card mb-4">
+      <div class="card-header"><h2 class="card-title" data-summary-title>{% translate "This month" %}</h2></div>
+      <div class="card-body">
+        <p class="text-body-secondary small" data-summary-hint>{% translate "Person-days in the month shown." %}</p>
+        <ul class="att-summary list-unstyled mb-0">
+          {% for s in statuses %}
+          <li class="tone-{{ s.tone }}"><span><i class="bi {{ s.icon }}"></i> {{ s.label }}</span><strong data-sum="{{ s.value }}">0</strong></li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+    {% if can_mark %}<p class="small text-body-secondary"><i class="bi bi-hand-index"></i> {% translate "Click a day to open its sheet and mark attendance." %}</p>{% endif %}
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+{% if LANGUAGE_CODE == "bn" %}<script src="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.15/locales/bn.global.min.js"></script>{% endif %}
+<script>
+  (function () {
+    var el = document.getElementById("att-calendar"), person = document.getElementById("att-person");
+    var icons = { {% for s in statuses %}"{{ s.value }}": "{{ s.icon }}"{% if not forloop.last %}, {% endif %}{% endfor %} };
+    var title = document.querySelector("[data-summary-title]");
+
+    function summarise(info) {
+      // Count only the days of the month in view, not the spill-over days of the next/previous month.
+      var month = info.view.currentStart, end = info.view.currentEnd, sums = {};
+      calendar.getEvents().forEach(function (ev) {
+        if (ev.start >= month && ev.start < end) sums[ev.extendedProps.status] = (sums[ev.extendedProps.status] || 0) + ev.extendedProps.count;
+      });
+      document.querySelectorAll("[data-sum]").forEach(function (cell) { cell.textContent = sums[cell.dataset.sum] || 0; });
+      title.textContent = info.view.title;
+    }
+
+    var calendar = new FullCalendar.Calendar(el, {
+      initialView: "dayGridMonth",
+      locale: "{{ LANGUAGE_CODE }}",
+      firstDay: 6,  // weeks start on Saturday in Bangladesh
+      height: "auto",
+      fixedWeekCount: false,
+      dayMaxEvents: 4,
+      eventOrder: "order",
+      headerToolbar: { left: "prev,next today", center: "title", right: "" },
+      events: function (fetchInfo, success, failure) {
+        var url = el.dataset.events + "?start=" + fetchInfo.startStr.slice(0, 10) + "&end=" + fetchInfo.endStr.slice(0, 10) + "&employee=" + encodeURIComponent(person.value);
+        fetch(url, { headers: { "X-Requested-With": "XMLHttpRequest" } }).then(function (r) { return r.json(); }).then(success).catch(failure);
+      },
+      eventContent: function (arg) {
+        var p = arg.event.extendedProps, box = document.createElement("div");
+        box.className = "att-event-body";
+        var icon = document.createElement("i");
+        icon.className = "bi " + (icons[p.status] || "bi-circle");
+        var text = document.createElement("span");
+        text.textContent = arg.event.title;
+        box.append(icon, text);
+        if (p.early) {
+          var early = document.createElement("i");
+          early.className = "bi bi-box-arrow-left att-event-early";
+          box.append(early);
+        }
+        if (p.away) {
+          var away = document.createElement("i");
+          away.className = "bi bi-wifi-off att-event-away";
+          box.append(away);
+        }
+        if (p.times) {
+          var times = document.createElement("small");
+          times.textContent = p.times;
+          box.append(times);
+        }
+        if (p.note) box.title = p.note;
+        return { domNodes: [box] };
+      },
+      eventsSet: function () { if (calendar.view) summarise({ view: calendar.view }); },
+      datesSet: function (info) { summarise(info); },
+      dateClick: el.dataset.sheet ? function (info) { window.location = el.dataset.sheet + "?date=" + info.dateStr; } : null,
+    });
+    calendar.render();
+    $(person).on("change", function () {
+      var url = new URL(window.location);
+      if (person.value) url.searchParams.set("employee", person.value); else url.searchParams.delete("employee");
+      history.replaceState(null, "", url);
+      calendar.refetchEvents();
+    });
+  })();
+</script>
+{% endblock %}

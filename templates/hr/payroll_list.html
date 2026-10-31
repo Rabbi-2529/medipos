@@ -1,0 +1,72 @@
+{% extends "layouts/app.html" %}
+{% load i18n shop %}
+{% block title %}{% translate "Payroll" %}{% endblock %}
+{% block page_title %}{% translate "Payroll" %}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% translate "One payroll a month: salary and allowances, sales commission, absences and advances worked out for everyone." %}</p>{% endblock %}
+{% block page_actions %}<a class="btn btn-soft tone-orange" href="{% url 'hr:advances' %}"><i class="bi bi-wallet2"></i> {% translate "Advances" %}</a>{% endblock %}
+{% block content %}
+<div class="row g-4">
+  {% if can_manage %}
+  <div class="col-xl-4">
+    <div class="card voucher-card tone-violet mb-4">
+      <div class="card-header"><h2 class="card-title">{% translate "Prepare a payroll" %}</h2></div>
+      <div class="card-body">
+        <form method="post" novalidate>
+          {% csrf_token %}
+          {% if form.non_field_errors %}<div class="alert alert-danger">{% for e in form.non_field_errors %}<div>{{ e }}</div>{% endfor %}</div>{% endif %}
+          {% include "partials/_field.html" with field=form.month %}
+          <button class="btn btn-primary w-100" type="submit"><i class="bi bi-calculator"></i> {% translate "Prepare" %}</button>
+        </form>
+        <ul class="payroll-how small text-body-secondary mt-3 mb-0">
+          <li>{% translate "Everyone with a salary, allowance or commission gets a line." %}</li>
+          <li>{% translate "Absent days and half days are taken off: monthly salary ÷ days in the month × days missed." %}</li>
+          <li>{% translate "Commission is a percentage of what they sold at the POS that month, less returns." %}</li>
+          <li>{% translate "Unpaid advances are taken back, up to the month's pay." %}</li>
+          <li>{% translate "It starts as a draft: add bonuses or change deductions, then pay." %}</li>
+        </ul>
+      </div>
+    </div>
+    {% if unpaid_staff %}
+    <div class="alert alert-warning small">
+      <i class="bi bi-exclamation-triangle"></i>
+      {% blocktranslate count counter=unpaid_staff|length %}{{ counter }} person has no salary set and won't be on the payroll:{% plural %}{{ counter }} people have no salary set and won't be on the payroll:{% endblocktranslate %}
+      {% for e in unpaid_staff %}<a href="{% url 'people:employee_edit' e.pk %}">{{ e.display_name }}</a>{% if not forloop.last %}, {% endif %}{% endfor %}
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+  <div class="{% if can_manage %}col-xl-8{% else %}col-12{% endif %}">
+    <div class="card">
+      <div class="card-body">
+        {% if payrolls %}
+        <table class="table table-hover align-middle w-100" data-mp-table>
+          <thead><tr><th>{% translate "No." %}</th><th>{% translate "Month" %}</th><th class="text-end">{% translate "People" %}</th><th class="text-end">{% translate "Salary cost" %}</th><th class="text-end">{% translate "Advances back" %}</th><th class="text-end">{% translate "Paid out" %}</th><th>{% translate "Status" %}</th><th class="no-sort"></th></tr></thead>
+          <tbody>
+            {% for p in payrolls %}
+            <tr>
+              <td><code>{{ p.number }}</code></td>
+              <td class="fw-semibold text-nowrap" data-order="{{ p.month|date:'Y-m' }}">{{ p.month|date:"F Y" }}</td>
+              <td class="text-end">{{ p.sums.people }}</td>
+              <td class="text-end" data-order="{{ p.sums.gross }}">{% money p.sums.gross %}</td>
+              <td class="text-end" data-order="{{ p.sums.advance }}">{% if p.sums.advance %}{% money p.sums.advance %}{% else %}—{% endif %}</td>
+              <td class="text-end fw-semibold" data-order="{{ p.sums.net }}">{% money p.sums.net %}</td>
+              <td>
+                {% if p.is_draft %}<span class="state-badge state-trial">{% translate "Draft" %}</span>
+                {% else %}<span class="state-badge state-active">{% translate "Paid" %}</span><small class="d-block text-body-secondary">{% shop_date p.paid_on %} · {{ p.payment_account.name }}</small>{% endif %}
+              </td>
+              <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="{% url 'hr:payroll_detail' p.pk %}">{% if p.is_draft and can_manage %}{% translate "Check & pay" %}{% else %}{% translate "View" %}{% endif %}</a></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="text-center py-5">
+          <i class="bi bi-cash-coin fs-1 text-body-secondary"></i>
+          <p class="mt-2 mb-0">{% translate "No payroll yet." %}{% if can_manage %} {% translate "Pick a month and prepare the first one." %}{% endif %}</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

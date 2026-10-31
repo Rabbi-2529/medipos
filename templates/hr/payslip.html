@@ -1,0 +1,97 @@
+{% load i18n shop %}<!doctype html>
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% translate "Payslip" %} · {{ line.employee.display_name }} · {{ payroll.month|date:"F Y" }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600&family=Public+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root { color-scheme: light; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #eceaf3; color: #111; font-family: "Public Sans", "Hind Siliguri", system-ui, sans-serif; font-size: 13px; }
+    .paper { width: 210mm; margin: 16px auto; padding: 16mm 18mm; background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,.12); }
+    .head { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; padding-bottom: 14px; border-bottom: 3px solid #6d5dfc; }
+    .shop { font-size: 1.5em; font-weight: 700; }
+    .muted { color: #555; }
+    .logo { max-height: 60px; max-width: 200px; }
+    h1 { margin: 0 0 6px; font-size: 1.7em; letter-spacing: .04em; color: #6d5dfc; text-transform: uppercase; }
+    .meta { text-align: right; }
+    .who { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px 24px; margin: 16px 0; padding: 12px 14px; border-radius: 8px; background: #f6f5fb; }
+    .who span { color: #555; }
+    .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 7px 6px; border-bottom: 1px solid #e5e5e5; text-align: left; }
+    th { background: #f3f1ff; color: #4b3fd1; font-weight: 600; }
+    .r { text-align: right; }
+    .sub td { font-weight: 700; border-top: 2px solid #ccc; }
+    .net { margin: 18px 0 0 auto; width: 320px; padding: 12px 14px; border: 2px solid #111; border-radius: 8px; display: flex; justify-content: space-between; font-size: 1.3em; font-weight: 700; }
+    .days { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 16px; }
+    .days b { font-weight: 600; }
+    .sign { display: flex; justify-content: space-between; margin-top: 56px; }
+    .sign div { width: 200px; border-top: 1px solid #555; padding-top: 4px; text-align: center; color: #555; }
+    .draft { margin-top: 14px; padding: 8px 12px; border-radius: 8px; background: #fff7e6; color: #8a5a00; }
+    .tools { text-align: center; margin: 12px; }
+    .tools button, .tools a { font: inherit; margin: 0 4px; padding: 6px 12px; border-radius: 6px; border: 1px solid #6d5dfc; background: #fff; color: #6d5dfc; text-decoration: none; cursor: pointer; }
+    @media print { body { background: #fff; } .paper { margin: 0; box-shadow: none; } .tools { display: none; } @page { size: A4; margin: 10mm; } }
+  </style>
+</head>
+<body>
+{% with bn=shop.receipt_bangla_digits e=line.employee %}
+<div class="tools">
+  <button type="button" onclick="window.print()">{% translate "Print" %}</button>
+  <a href="{% url 'hr:payroll_detail' payroll.pk %}">{% translate "Back" %}</a>
+</div>
+<div class="paper">
+  <div class="head">
+    <div>
+      {% if shop.logo %}<img class="logo" src="{{ shop.logo.url }}" alt=""><br>{% endif %}
+      <div class="shop">{{ tenant.name }}</div>
+      {% if tenant.phone %}<div class="muted">{{ tenant.phone|bn_digits:bn }}</div>{% endif %}
+    </div>
+    <div class="meta">
+      <h1>{% translate "Payslip" %}</h1>
+      <div><strong>{{ payroll.month|date:"F Y" }}</strong></div>
+      <div class="muted">{{ payroll.number }}</div>
+    </div>
+  </div>
+  <div class="who">
+    <div><span>{% translate "Name" %}:</span> <strong>{{ e.display_name }}</strong></div>
+    <div><span>{% translate "Designation" %}:</span> {{ e.designation|default:"—" }}</div>
+    <div><span>{% translate "Mobile" %}:</span> {{ e.phone|default:"—"|bn_digits:bn }}</div>
+    <div><span>{% translate "Paid on" %}:</span> {% if payroll.paid_on %}{% shop_date payroll.paid_on as d %}{{ d|bn_digits:bn }}{% if payroll.payment_account %} · {{ payroll.payment_account.name }}{% endif %}{% else %}—{% endif %}</div>
+  </div>
+  <div class="cols">
+    <table>
+      <thead><tr><th>{% translate "Earnings" %}</th><th class="r">{% translate "Amount" %}</th></tr></thead>
+      <tbody>
+        <tr><td>{% translate "Basic salary" %}</td><td class="r">{% money line.salary as v %}{{ v|bn_digits:bn }}</td></tr>
+        {% if line.allowance %}<tr><td>{% translate "Allowances" %}</td><td class="r">{% money line.allowance as v %}{{ v|bn_digits:bn }}</td></tr>{% endif %}
+        {% if line.commission %}<tr><td>{% translate "Sales commission" %} <span class="muted">({{ line.commission_percent|floatformat:"-2"|bn_digits:bn }}%)</span></td><td class="r">{% money line.commission as v %}{{ v|bn_digits:bn }}</td></tr>{% endif %}
+        {% if line.bonus %}<tr><td>{% translate "Bonus" %}</td><td class="r">{% money line.bonus as v %}{{ v|bn_digits:bn }}</td></tr>{% endif %}
+        <tr class="sub"><td>{% translate "Total earnings" %}</td><td class="r">{% money line.earnings as v %}{{ v|bn_digits:bn }}</td></tr>
+      </tbody>
+    </table>
+    <table>
+      <thead><tr><th>{% translate "Deductions" %}</th><th class="r">{% translate "Amount" %}</th></tr></thead>
+      <tbody>
+        <tr><td>{% translate "Absence" %}{% if line.absent_days %} <span class="muted">({{ line.absent_days|floatformat:"-1"|bn_digits:bn }})</span>{% endif %}</td><td class="r">{% money line.absence_deduction as v %}{{ v|bn_digits:bn }}</td></tr>
+        {% if line.other_deduction %}<tr><td>{% translate "Other deduction" %}</td><td class="r">{% money line.other_deduction as v %}{{ v|bn_digits:bn }}</td></tr>{% endif %}
+        <tr><td>{% translate "Advance taken back" %}</td><td class="r">{% money line.advance_deduction as v %}{{ v|bn_digits:bn }}</td></tr>
+        <tr class="sub"><td>{% translate "Total deductions" %}</td><td class="r">{% money line.deductions as v %}{{ v|bn_digits:bn }}</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="net"><span>{% translate "Net pay" %}</span><span>{% money line.net as v %}{{ v|bn_digits:bn }}</span></div>
+  <div class="days">
+    <span class="muted">{% translate "Attendance" %}:</span>
+    {% for s in statuses %}<span>{{ s.label }} <b>{{ s.count|bn_digits:bn }}</b></span>{% endfor %}
+  </div>
+  {% if line.note %}<p class="muted">{{ line.note }}</p>{% endif %}
+  {% if payroll.is_draft %}<div class="draft">{% translate "Draft: amounts can still change until the payroll is paid." %}</div>{% endif %}
+  <div class="sign"><div>{% translate "Employee" %}</div><div>{% translate "Authorised by" %}</div></div>
+</div>
+{% endwith %}
+{% if auto_print %}<script>window.addEventListener("load", function () { window.print(); });</script>{% endif %}
+</body>
+</html>

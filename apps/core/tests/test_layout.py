@@ -6,7 +6,8 @@ from django.test import RequestFactory, TestCase
 from django.urls import reverse
 
 from apps.accounts.models import User
-from apps.core.menu import build_menu, flatten_menu
+from apps.core.menu import MenuItem, _resolve, build_menu, flatten_menu
+from apps.core.permissions import ALL_CODES
 from apps.items.models import Medicine
 from apps.tenants.models import Tenant
 
@@ -55,10 +56,11 @@ class MenuTests(TestCase):
         # Built screens show up (in menu order); later ones (POS, sales, …) stay hidden until their URLs exist.
         for expected in ("Dashboard", "Medicine list", "Current stock", "Opening stock", "Add purchase", "Purchase list",
                          "Purchase returns", "Supplier list", "Supplier payments", "Employees", "Business settings", "Subscription",
-                         "Quotations", "Low stock", "Transfers", "Stock counts", "Expenses", "Profit & loss", "Chart of accounts", "Reports"):
+                         "Quotations", "Low stock", "Transfers", "Stock counts", "Expenses", "Profit & loss", "Chart of accounts", "Reports",
+                         "Daily sheet", "Monthly payroll", "Advances"):
             self.assertIn(expected, labels)
-        for unbuilt in ("Attendance", "Payroll"):
-            self.assertNotIn(unbuilt, labels)
+        # An entry whose URL doesn't exist yet stays hidden.
+        self.assertIsNone(_resolve(MenuItem("later", "Later", "nowhere:yet"), owner, "", ALL_CODES))
         self.assertEqual(labels[0], "Dashboard")
         self.assertLess(labels.index("Current stock"), labels.index("Add purchase"))
 

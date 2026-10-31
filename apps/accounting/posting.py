@@ -8,6 +8,7 @@ from decimal import ROUND_HALF_UP, Decimal
 from django.db import transaction
 from django.db.models import F, Sum
 from django.utils import timezone
+from django.utils.formats import date_format
 from django.utils.translation import gettext as _
 
 from apps.setup.services import next_code
@@ -204,12 +205,31 @@ def post_fund_movement(movement):
                 memo=movement.note or movement.get_kind_display())
 
 
+# ---- Staff ----------------------------------------------------------------------------
+
+def post_advance(advance):
+    """Money lent to staff: it is still ours (an asset) until payroll takes it back."""
+    return post(("advance", advance.pk, advance.number), date=advance.date, user=advance.created_by,
+                lines=[(system_account("advances"), advance.amount, 0), (money_account(advance.payment_account), 0, advance.amount)],
+                memo=_("Advance to %(name)s") % {"name": advance.employee.display_name})
+
+
+def post_payroll(payroll):
+    """Salaries, commission and bonus as an expense; advances taken back; the rest paid out."""
+    totals = payroll.totals()
+    return post(("payroll", payroll.pk, payroll.number), date=payroll.paid_on, user=payroll.paid_by,
+                lines=[(system_account("salaries"), totals["gross"], 0), (system_account("advances"), 0, totals["advance"]),
+                       (money_account(payroll.payment_account), 0, totals["net"])],
+                memo=_("Salaries for %(month)s") % {"month": date_format(payroll.month, "F Y")})
+
+
 # ---- Rebuilding ---------------------------------------------------------------------
 
 @transaction.atomic
 def rebuild():
     """Throw away every automatic entry of the current pharmacy and post them again from the documents."""
     from apps.customers.models import Customer, CustomerReceipt
+    from apps.hr.models import Advance, Payroll
     from apps.inventory.models import StockCount, WriteOff
     from apps.outlets.models import Outlet
     from apps.purchases.models import Purchase, PurchaseReturn
@@ -236,6 +256,8 @@ def rebuild():
         (StockCount.objects.all(), post_stock_count),
         (CashEntry.objects.select_related("account", "payment_account"), post_cash_entry),
         (FundMovement.objects.select_related("from_account", "to_account"), post_fund_movement),
+        (Advance.objects.select_related("employee", "payment_account"), post_advance),
+        (Payroll.objects.filter(status=Payroll.Status.PAID).select_related("payment_account"), post_payroll),
     ):
         for document in queryset.order_by("pk"):
             if poster(document) is not None:

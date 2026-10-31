@@ -40,6 +40,9 @@ def dashboard(request):
         from apps.reports.dashboard import dashboard_context
 
         context.update(dashboard_context(request))
+        from apps.hr.views import check_panel
+
+        context["check_panel"] = check_panel(request)
     return render(request, "core/dashboard.html", context)
 
 

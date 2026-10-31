@@ -1,0 +1,54 @@
+{% load i18n %}
+{# The person's own check-in / check-out card. Needs `panel` (hr.views.check_panel) and `next_url`. #}
+<div class="card check-panel mb-4">
+  <div class="card-body">
+    <div class="check-panel-head">
+      <div>
+        <h2 class="card-title mb-1"><i class="bi bi-fingerprint"></i> {% translate "My attendance" %}</h2>
+        <div class="text-body-secondary small">
+          {{ panel.today|date:"l, j F" }}
+          {% if panel.schedule %} · {% blocktranslate with name=panel.schedule.names start=panel.schedule.start|time:"h:i A" end=panel.schedule.end|time:"h:i A" %}{{ name }} shift, {{ start }}–{{ end }}{% endblocktranslate %}{% endif %}
+        </div>
+      </div>
+      {% if panel.status %}<span class="att-chip tone-{{ panel.status.tone }}"><i class="bi {{ panel.status.icon }}"></i> {{ panel.status.label }}</span>{% endif %}
+    </div>
+
+    <div class="check-times">
+      <div><span>{% translate "Checked in" %}</span><strong>{% if panel.record.check_in %}{{ panel.record.check_in|time:"h:i A" }}{% elif panel.open %}{{ panel.open.check_in|time:"h:i A" }}{% else %}—{% endif %}</strong></div>
+      <div><span>{% translate "Checked out" %}</span><strong>{% if panel.record.check_out and not panel.open %}{{ panel.record.check_out|time:"h:i A" }}{% else %}—{% endif %}</strong>
+        {% if panel.record.left_early and not panel.open %}<small class="att-early"><i class="bi bi-box-arrow-left"></i> {% translate "Left early" %}</small>{% endif %}</div>
+    </div>
+
+    <p class="check-network {% if panel.on_network %}is-ok{% else %}is-away{% endif %}">
+      {% if not panel.networks_set %}
+      <i class="bi bi-wifi"></i> {% blocktranslate with ip=panel.ip %}Your address: {{ ip }}. The shop hasn't set its network, so you can check in from anywhere.{% endblocktranslate %}
+      {% elif panel.on_network %}
+      <i class="bi bi-wifi"></i> {% blocktranslate with ip=panel.ip %}You're on the shop's network ({{ ip }}).{% endblocktranslate %}
+      {% else %}
+      <i class="bi bi-wifi-off"></i> {% blocktranslate with ip=panel.ip %}You're not on the shop's network ({{ ip }}). Say why when you check in or out.{% endblocktranslate %}
+      {% endif %}
+    </p>
+
+    {% if panel.can_check_in or panel.can_check_out %}
+    <form method="post" action="{% if panel.can_check_out %}{% url 'hr:check_out' %}{% else %}{% url 'hr:check_in' %}{% endif %}" class="check-form">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ next_url }}">
+      {% if not panel.on_network %}
+      <label class="form-label" for="check-reason">{% translate "Reason" %} <span class="text-danger">*</span></label>
+      <textarea id="check-reason" name="reason" class="form-control mb-2" rows="2" maxlength="255" required
+                placeholder="{% translate 'e.g. Delivering medicine to a customer, bank work, shop internet is down' %}"></textarea>
+      {% endif %}
+      {% if panel.can_check_out %}
+      {% if panel.leaving_early %}
+      <p class="check-network is-away"><i class="bi bi-box-arrow-left"></i> {% blocktranslate with end=panel.schedule.end|time:"h:i A" %}Your shift ends at {{ end }}. Checking out now is marked as leaving early.{% endblocktranslate %}</p>
+      {% endif %}
+      <button class="btn btn-lg btn-danger w-100" type="submit"><i class="bi bi-box-arrow-right"></i> {% translate "Check out" %}</button>
+      {% else %}
+      <button class="btn btn-lg btn-success w-100" type="submit"><i class="bi bi-box-arrow-in-right"></i> {% translate "Check in" %}</button>
+      {% endif %}
+    </form>
+    {% else %}
+    <p class="mb-0 text-body-secondary"><i class="bi bi-check2-circle text-success"></i> {% translate "You're done for today." %}</p>
+    {% endif %}
+  </div>
+</div>

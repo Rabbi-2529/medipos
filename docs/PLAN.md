@@ -211,8 +211,28 @@ Simplifications: VAT on returned sales stays in sales returns; transfers between
 - `.claude/launch.json` gains `medipos-alt` (port 8002) for previews when another dev server holds port 8000.
 - 235 tests.
 
-### Phase 9 — HR and payroll
-- Employees, attendance (FullCalendar), salary and payroll, advance payments, sales commission.
+### Phase 9 — HR and payroll ✅
+- **Staff without a login:** an employee can be added with "Can log in to the app" off (a delivery rider, a cleaner): name, mobile, designation, pay, and they still get attendance and payroll. "Mark as left" takes them off the sheet and new payrolls. A login can be added later.
+- **Pay on the employee:** monthly salary, fixed allowances and sales commission % (shown to people with `salary.create`).
+- **Attendance** (`apps.hr`, permission `attendance`):
+  - Daily sheet: everyone on staff with Present / Late / Half day / Absent / On leave / Day off (colour plus icon and label), in/out times, note, "Everyone not marked is present", previous/next day.
+  - Calendar (FullCalendar 6): everyone (how many had each status per day) or one person (status and times), month summary, click a day to open its sheet; weeks start on Saturday; Bangla locale.
+  - **Shifts & networks** (`attendance.edit`): shifts with start, end and "late after N minutes" (night shifts work); each shift lists its people; "Who works which shift" lets a person tick **several shifts** (e.g. Day + Evening, or a split day) and shows their whole working day. The shop's IP addresses or ranges (e.g. 103.4.5.0/24, IPv6 too); your current address is shown so it can be added in one go.
+  - **Several shifts make one working day** (`hr.models.Schedule`): it runs from the first shift's start to the last shift's end, and begins after the longest break (Night 22:00–06:00 + Morning 06:00–14:00 is 22:00 to 14:00). Late = checking in after the first shift's grace minutes. **Left early** = checking out before the last shift ends, on a present or late day (never a half day); set on self check-out and when the daily sheet is saved with an out time.
+  - **Checking in yourself:** every person on staff gets a check-in / check-out card on the dashboard and a "My attendance" page (this month). Late is worked out from their shifts; before the last shift ends the card warns that checking out now is marked as leaving early. Away from the shop's networks a **reason is required** to check in or out; the address and reason are kept and shown on the daily sheet, the calendar and the Staff attendance report. With no networks set, nobody is asked. Behind nginx set `BEHIND_PROXY=True` so the visitor's address is read from X-Forwarded-For.
+- **Advances** (ADV-): money given before payday from any payment account; who still owes what; deletable until a payroll takes it back.
+- **Payroll** (PAY-, permission `salary`): one per month, prepared as a draft for everyone with pay:
+  - absence deduction = salary ÷ days in the month × (absent days + half of the half days);
+  - commission = % of what they sold at the POS that month, less returns;
+  - unpaid advances taken back up to the month's pay (the rest carries over);
+  - bonus, other deduction, absence and advance amounts editable with live totals; Recalculate refreshes the automatic parts and keeps bonuses and notes.
+  - Paying locks it and posts Dr Staff salaries & commission (6005) / Cr Staff advances (1400) / Cr the payment account; advances post Dr 1400 / Cr the account. `rebuild_books` includes both.
+  - Printable **payslip** per person (earnings, deductions, attendance, signatures).
+- **Left early** shows on the daily sheet (a count and a badge by the out time), the calendar (an icon, and in the tooltip), My attendance and the Staff attendance report. The employee list has a Shifts column.
+- **Reports:** Staff attendance (days per status, not marked, days off pay, left early, check-ins away from the shop) and Salaries paid.
+- Template managers get attendance and payroll permissions by data migration.
+- Demo: salaries for the manager and cashier (1% commission), a delivery rider without a login, attendance since last month with Fridays off, Day and Evening shifts (the manager on Day, the cashier on both, out times following their shifts with the odd early check-out), the shop's networks (127.0.0.1 so the local demo checks in without a reason), advances, last month's payroll paid and this month's as a draft. Seed steps keep anything already entered by hand.
+- 250 tests; Bangla 1814/1814.
 
 ### Phase 10 — Notifications, marketing and loyalty
 - SMS, email and WhatsApp messages: invoice after sale, daily low-stock and expiry alerts, due reminders.

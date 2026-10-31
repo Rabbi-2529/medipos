@@ -135,8 +135,15 @@ MENU = (
     MenuSection(_("People"), (
         MenuItem("employee", _("Employees"), "people:employees", "bi-person-badge"),
         MenuItem("role", _("Roles & permissions"), "people:roles", "bi-shield-lock"),
-        MenuItem("attendance", _("Attendance"), "people:attendance", "bi-calendar-check"),
-        MenuItem("salary", _("Payroll"), "people:payroll", "bi-cash-coin"),
+        MenuItem("attendance", _("Attendance"), icon="bi-calendar-check", children=(
+            _item("attendance", _("Daily sheet"), "hr:attendance"),
+            _item("attendance", _("Calendar"), "hr:attendance_calendar"),
+            MenuItem("attendance", _("Shifts & networks"), "hr:attendance_settings", perm="attendance.edit"),
+        )),
+        MenuItem("salary", _("Payroll"), icon="bi-cash-coin", children=(
+            _item("salary", _("Monthly payroll"), "hr:payroll"),
+            _item("salary", _("Advances"), "hr:advances"),
+        )),
     )),
     MenuSection(_("Reports"), (
         MenuItem("report", _("Reports"), "reports:index", "bi-bar-chart-line"),

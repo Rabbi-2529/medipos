@@ -18,6 +18,11 @@
   </div>
 </div>
 
+{% if check_panel %}
+{% url 'core:dashboard' as next_url %}
+<div class="row"><div class="col-lg-6 col-xxl-4">{% include "hr/_check_panel.html" with panel=check_panel next_url=next_url %}</div></div>
+{% endif %}
+
 {% if overview %}
 <div class="row g-4 mb-4">
   {% translate "Pharmacies" as l_total %}{% translate "Active" as l_active %}{% translate "On trial" as l_trial %}

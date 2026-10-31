@@ -1,0 +1,183 @@
+{% extends "layouts/app.html" %}
+{% load i18n shop %}
+{% block title %}{{ payroll.number }}{% endblock %}
+{% block page_title %}{% blocktranslate with month=payroll.month|date:"F Y" %}Payroll for {{ month }}{% endblocktranslate %}
+{% if payroll.is_draft %}<span class="state-badge state-trial">{% translate "Draft" %}</span>{% else %}<span class="state-badge state-active">{% translate "Paid" %}</span>{% endif %}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle"><a href="{% url 'hr:payroll' %}"><i class="bi bi-chevron-left"></i> {% translate "All payrolls" %}</a> · <code>{{ payroll.number }}</code></p>{% endblock %}
+{% block page_actions %}
+{% if can_manage %}
+<form method="post" class="d-inline" data-confirm="{% translate 'Work out salaries, commission, absences and advances again from the latest data? Bonuses, other deductions and notes stay.' %}">
+  {% csrf_token %}<input type="hidden" name="action" value="recalculate">
+  <button class="btn btn-outline-secondary" type="submit"><i class="bi bi-arrow-repeat"></i> {% translate "Recalculate" %}</button>
+</form>
+<button class="btn btn-success" type="button" data-bs-toggle="modal" data-bs-target="#payModal" data-pay-open><i class="bi bi-cash-coin"></i> {% translate "Pay salaries" %}</button>
+{% endif %}
+{% endblock %}
+{% block content %}
+<div class="row g-3 mb-4">
+  <div class="col-6 col-xl-3"><div class="card stat-tile tone-violet h-100"><div class="card-body">
+    <div class="stat-label">{% translate "People" %}</div><div class="stat-figure">{{ totals.people }}</div>
+  </div></div></div>
+  <div class="col-6 col-xl-3"><div class="card stat-tile tone-rose h-100"><div class="card-body">
+    <div class="stat-label">{% translate "Salary cost" %}</div><div class="stat-figure" data-total="gross">{% money totals.gross %}</div>
+  </div></div></div>
+  <div class="col-6 col-xl-3"><div class="card stat-tile tone-orange h-100"><div class="card-body">
+    <div class="stat-label">{% translate "Advances taken back" %}</div><div class="stat-figure" data-total="advance">{% money totals.advance %}</div>
+  </div></div></div>
+  <div class="col-6 col-xl-3"><div class="card stat-tile tone-teal h-100"><div class="card-body">
+    <div class="stat-label">{% if payroll.is_draft %}{% translate "To pay" %}{% else %}{% translate "Paid out" %}{% endif %}</div><div class="stat-figure" data-total="net">{% money totals.net %}</div>
+  </div></div></div>
+</div>
+
+{% if not payroll.is_draft %}
+<div class="alert alert-success d-flex flex-wrap gap-2 align-items-center">
+  <i class="bi bi-check-circle"></i>
+  {% shop_date payroll.paid_on as paid_on %}
+  {% blocktranslate with date=paid_on account=payroll.payment_account.name %}Paid on {{ date }} from {{ account }}.{% endblocktranslate %}
+  {% if payroll.paid_by %}<span class="text-body-secondary">{% blocktranslate with name=payroll.paid_by.get_full_name|default:payroll.paid_by.email %}By {{ name }}.{% endblocktranslate %}</span>{% endif %}
+  {% if entry and can.accounting.list %}<a class="ms-auto" href="{% url 'accounting:entry' entry.pk %}"><i class="bi bi-journal-text"></i> {{ entry.number }}</a>{% endif %}
+</div>
+{% endif %}
+
+<form class="card" method="post" data-payroll data-currency="{{ shop.currency_symbol }}" data-currency-after="{% if shop.currency_position == 'after' %}1{% endif %}">
+  {% csrf_token %}
+  <div class="table-responsive">
+    <table class="table align-middle payroll-table mb-0">
+      <thead>
+        <tr>
+          <th>{% translate "Employee" %}</th>
+          <th class="text-end">{% translate "Salary + allowance" %}</th>
+          <th class="text-end">{% translate "Commission" %}</th>
+          <th class="text-end">{% translate "Absence" %}</th>
+          <th class="text-end">{% translate "Bonus" %}</th>
+          <th class="text-end">{% translate "Other deduction" %}</th>
+          <th class="text-end">{% translate "Gross" %}</th>
+          <th class="text-end">{% translate "Advance back" %}</th>
+          <th class="text-end">{% translate "Net pay" %}</th>
+          <th>{% translate "Note" %}</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for line in lines %}
+        <tr data-line data-allowance="{{ line.allowance }}" data-salary="{{ line.salary }}" data-commission="{{ line.commission }}" data-owed="{{ line.owed|default:0 }}">
+          <td class="payroll-person">
+            <strong class="d-block">{{ line.employee.display_name }}</strong>
+            <small class="text-body-secondary">{{ line.employee.designation|default:"" }}</small>
+          </td>
+          <td class="text-end text-nowrap">{% money line.salary %}{% if line.allowance %}<small class="d-block text-body-secondary">+ {% money line.allowance %}</small>{% endif %}</td>
+          <td class="text-end text-nowrap">
+            {% if line.commission_percent %}{% money line.commission %}<small class="d-block text-body-secondary">{{ line.commission_percent|floatformat:"-2" }}% × {% money line.sales %}</small>{% else %}—{% endif %}
+          </td>
+          <td class="text-end">
+            {% if can_manage %}<input class="form-control form-control-sm payroll-input" name="absence_deduction-{{ line.pk }}" value="{{ line.absence_deduction }}" inputmode="decimal" data-field="absence" aria-label="{% translate 'Absence deduction' %}">
+            {% else %}{% if line.absence_deduction %}− {% money line.absence_deduction %}{% else %}—{% endif %}{% endif %}
+            <small class="d-block text-body-secondary text-nowrap mt-1">
+              {% if line.absent_days %}{% blocktranslate with days=line.absent_days|floatformat:"-1" %}{{ days }} days off{% endblocktranslate %}{% endif %}
+              {% for m in line.marks %}<span class="att-mini tone-{{ m.tone }}" title="{{ m.label }}">{{ m.short }} {{ m.count }}</span>{% endfor %}
+            </small>
+          </td>
+          <td class="text-end">
+            {% if can_manage %}<input class="form-control form-control-sm payroll-input" name="bonus-{{ line.pk }}" value="{{ line.bonus }}" inputmode="decimal" data-field="bonus" aria-label="{% translate 'Bonus' %}">
+            {% else %}{% if line.bonus %}{% money line.bonus %}{% else %}—{% endif %}{% endif %}
+          </td>
+          <td class="text-end">
+            {% if can_manage %}<input class="form-control form-control-sm payroll-input" name="other_deduction-{{ line.pk }}" value="{{ line.other_deduction }}" inputmode="decimal" data-field="other" aria-label="{% translate 'Other deduction' %}">
+            {% else %}{% if line.other_deduction %}− {% money line.other_deduction %}{% else %}—{% endif %}{% endif %}
+          </td>
+          <td class="text-end text-nowrap fw-semibold" data-cell="gross">{% money line.gross %}</td>
+          <td class="text-end">
+            {% if can_manage %}<input class="form-control form-control-sm payroll-input" name="advance_deduction-{{ line.pk }}" value="{{ line.advance_deduction }}" inputmode="decimal" data-field="advance" aria-label="{% translate 'Advance back' %}">
+            {% if line.owed %}<small class="d-block text-body-secondary text-nowrap">{% translate "owes" %} {% money line.owed %}</small>{% endif %}
+            {% else %}{% if line.advance_deduction %}− {% money line.advance_deduction %}{% else %}—{% endif %}{% endif %}
+          </td>
+          <td class="text-end text-nowrap fw-bold" data-cell="net">{% money line.net %}</td>
+          <td>
+            {% if can_manage %}<input class="form-control form-control-sm payroll-note" name="note-{{ line.pk }}" value="{{ line.note }}" maxlength="255" aria-label="{% translate 'Note' %}">
+            {% else %}{{ line.note|default:"" }}{% endif %}
+          </td>
+          <td class="text-end"><a class="btn btn-sm btn-link" href="{% url 'hr:payslip' payroll.pk line.pk %}" target="_blank" rel="noopener" title="{% translate 'Payslip' %}" aria-label="{% translate 'Payslip' %}"><i class="bi bi-file-earmark-text"></i></a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr class="fw-bold">
+          <td colspan="6">{% translate "Total" %}</td>
+          <td class="text-end text-nowrap" data-foot="gross">{% money totals.gross %}</td>
+          <td class="text-end text-nowrap" data-foot="advance">{% money totals.advance %}</td>
+          <td class="text-end text-nowrap" data-foot="net">{% money totals.net %}</td>
+          <td colspan="2"></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+  {% if can_manage %}
+  <div class="card-footer att-footer">
+    <span class="small text-body-secondary" data-dirty-hint hidden><i class="bi bi-exclamation-circle text-warning"></i> {% translate "You have unsaved changes. Save before paying." %}</span>
+    <button class="btn btn-primary ms-auto" type="submit"><i class="bi bi-check2-circle"></i> {% translate "Save changes" %}</button>
+  </div>
+  {% endif %}
+</form>
+
+{% if can_manage %}
+<div class="d-flex justify-content-end mt-3">
+  <form method="post" action="{% url 'hr:payroll_delete' payroll.pk %}" data-confirm="{% translate 'Delete this draft payroll? You can prepare the month again.' %}">
+    {% csrf_token %}<button class="btn btn-link text-danger" type="submit"><i class="bi bi-trash3"></i> {% translate "Delete draft" %}</button>
+  </form>
+</div>
+
+<div class="modal fade" id="payModal" tabindex="-1" aria-labelledby="payTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <form class="modal-content" method="post" action="{% url 'hr:payroll_pay' payroll.pk %}" novalidate>
+      {% csrf_token %}
+      <div class="modal-header"><h2 class="modal-title fs-5" id="payTitle">{% translate "Pay salaries" %}</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% translate 'Close' %}"></button></div>
+      <div class="modal-body">
+        <p>{% money totals.net as net %}{% blocktranslate count counter=totals.people with net=net %}Hand out {{ net }} to {{ counter }} person.{% plural %}Hand out {{ net }} to {{ counter }} people.{% endblocktranslate %}
+          {% translate "The salary cost goes to the books and this payroll can't be changed afterwards." %}</p>
+        {% include "partials/_field.html" with field=pay_form.payment_account %}
+        {% include "partials/_field.html" with field=pay_form.date %}
+      </div>
+      <div class="modal-footer"><button type="button" class="btn btn-link" data-bs-dismiss="modal">{% translate "Cancel" %}</button><button type="submit" class="btn btn-success">{% translate "Pay" %}</button></div>
+    </form>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+{% block extra_js %}
+{% if can_manage %}
+<script>
+  (function () {
+    var form = document.querySelector("[data-payroll]");
+    var currency = form.dataset.currency, after = !!form.dataset.currencyAfter;
+    var hint = form.querySelector("[data-dirty-hint]"), payBtn = document.querySelector("[data-pay-open]");
+    function num(v) { var n = parseFloat(String(v).replace(/,/g, "")); return isNaN(n) ? 0 : n; }
+    function money(v) {
+      var text = Math.abs(v).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      return (v < 0 ? "−" : "") + (after ? text + currency : currency + text);
+    }
+    function field(row, name) { var el = row.querySelector("[data-field=" + name + "]"); return el ? num(el.value) : 0; }
+    function refresh() {
+      var sums = { gross: 0, advance: 0, net: 0 };
+      form.querySelectorAll("[data-line]").forEach(function (row) {
+        var earnings = num(row.dataset.salary) + num(row.dataset.allowance) + num(row.dataset.commission) + field(row, "bonus");
+        var gross = earnings - field(row, "absence") - field(row, "other"), advance = field(row, "advance"), net = gross - advance;
+        row.querySelector("[data-cell=gross]").textContent = money(gross);
+        row.querySelector("[data-cell=net]").textContent = money(net);
+        var adv = row.querySelector("[data-field=advance]");
+        adv.classList.toggle("is-invalid", advance > num(row.dataset.owed) + 0.001);
+        row.classList.toggle("table-danger", gross < 0 || net < 0);
+        sums.gross += gross; sums.advance += advance; sums.net += net;
+      });
+      Object.keys(sums).forEach(function (key) {
+        document.querySelectorAll("[data-total=" + key + "], [data-foot=" + key + "]").forEach(function (el) { el.textContent = money(sums[key]); });
+      });
+    }
+    form.addEventListener("input", function () {
+      refresh();
+      hint.hidden = false;
+      if (payBtn) payBtn.disabled = true;
+    });
+  })();
+</script>
+{% endif %}
+{% endblock %}

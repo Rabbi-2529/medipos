@@ -16,6 +16,7 @@ SYSTEM_ACCOUNTS = {
     # key: (code, name, type)
     "receivable": ("1200", N_("Customers owe us (receivable)"), A),
     "inventory": ("1300", N_("Medicine stock (inventory)"), A),
+    "advances": ("1400", N_("Staff advances"), A),
     "payable": ("2100", N_("We owe suppliers (payable)"), L),
     "vat": ("2200", N_("VAT payable"), L),
     "capital": ("3000", N_("Owner's capital"), E),
@@ -26,6 +27,7 @@ SYSTEM_ACCOUNTS = {
     "other_income": ("4900", N_("Other income"), I),
     "cogs": ("5000", N_("Cost of medicines sold"), X),
     "stock_loss": ("5100", N_("Stock loss & adjustments"), X),
+    "salaries": ("6005", N_("Staff salaries & commission"), X),
 }
 
 DEFAULT_EXPENSES = [
@@ -38,7 +40,7 @@ DEFAULT_INCOME = [("4910", N_("Supplier discounts & bonus")), ("4920", N_("Commi
 
 
 # System accounts the app fills by itself; they are never offered as an expense or income category.
-NOT_CATEGORIES = ("sales", "sales_returns", "cogs", "stock_loss")
+NOT_CATEGORIES = ("sales", "sales_returns", "cogs", "stock_loss", "salaries")  # salaries go through payroll
 # Where new categories get their codes: expenses 6000–8999, other income 4910–4999.
 CATEGORY_CODES = {X: ("6000", "8999"), I: ("4910", "4999")}
 

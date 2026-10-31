@@ -11,14 +11,16 @@ from .models import Role
 
 
 class EmployeeForm(BootstrapFormMixin, forms.Form):
-    """One form for the login (User) and the staff profile (Employee)."""
+    """One form for the staff profile (Employee) and, when they use the app, their login (User)."""
 
     first_name = forms.CharField(label=_("First name"), max_length=150)
     last_name = forms.CharField(label=_("Last name"), max_length=150, required=False)
-    email = forms.EmailField(label=_("Email"), help_text=_("Used to log in."))
-    phone = forms.CharField(label=_("Mobile"), max_length=20, required=False, help_text=_("Can also be used to log in."))
-    password1 = forms.CharField(label=_("Password"), strip=False, widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}))
-    password2 = forms.CharField(label=_("Confirm password"), strip=False, widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}))
+    phone = forms.CharField(label=_("Mobile"), max_length=20, required=False)
+    has_login = forms.BooleanField(label=_("Can log in to the app"), required=False, initial=True,
+                                   help_text=_("Leave off for staff who never use the app, e.g. a delivery rider. They still get attendance and payroll."))
+    email = forms.EmailField(label=_("Email"), required=False, help_text=_("Used to log in."))
+    password1 = forms.CharField(label=_("Password"), strip=False, required=False, widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}))
+    password2 = forms.CharField(label=_("Confirm password"), strip=False, required=False, widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}))
     role = forms.ModelChoiceField(label=_("Role"), queryset=Role.objects.none(), required=False, empty_label=_("No role (no access)"))
     designation = forms.CharField(label=_("Designation"), max_length=60, required=False)
     all_outlets = forms.BooleanField(label=_("Can work in all outlets"), required=False)
@@ -26,25 +28,38 @@ class EmployeeForm(BootstrapFormMixin, forms.Form):
     joined_on = forms.DateField(label=_("Joined on"), required=False, widget=forms.DateInput(attrs={"type": "date"}))
     nid = forms.CharField(label=_("NID no."), max_length=30, required=False)
     address = forms.CharField(label=_("Address"), required=False, widget=forms.Textarea(attrs={"rows": 2}))
+    salary = forms.DecimalField(label=_("Monthly salary"), max_digits=12, decimal_places=2, min_value=0, required=False)
+    allowance = forms.DecimalField(label=_("Fixed allowances"), max_digits=12, decimal_places=2, min_value=0, required=False,
+                                   help_text=_("Added to every month's pay, e.g. transport or mobile bill."))
+    commission_percent = forms.DecimalField(label=_("Sales commission %"), max_digits=5, decimal_places=2, min_value=0, max_value=100,
+                                            required=False, help_text=_("Of the net sales they make at the POS each month. 0 = none."))
 
-    def __init__(self, *args, employee=None, **kwargs):
+    PAY_FIELDS = ("salary", "allowance", "commission_percent")
+
+    def __init__(self, *args, employee=None, show_pay=False, **kwargs):
         self.employee = employee
         if employee is not None and "initial" not in kwargs:
             user = employee.user
             kwargs["initial"] = {
-                "first_name": user.first_name, "last_name": user.last_name, "email": user.email, "phone": user.phone,
+                "first_name": user.first_name if user else employee.name, "last_name": user.last_name if user else "",
+                "email": user.email if user else "", "phone": (user.phone if user else "") or employee.phone, "has_login": bool(user),
                 "role": employee.role_id, "designation": employee.designation, "all_outlets": employee.all_outlets,
                 "outlets": list(employee.outlets.values_list("pk", flat=True)), "joined_on": employee.joined_on,
                 "nid": employee.nid, "address": employee.address,
+                "salary": employee.salary, "allowance": employee.allowance, "commission_percent": employee.commission_percent,
             }
         super().__init__(*args, **kwargs)
+        if not show_pay:  # pay is only for people who run payroll
+            for name in self.PAY_FIELDS:
+                del self.fields[name]
         # Querysets are set here, not on the class: at import time no tenant is active.
         self.fields["role"].queryset = Role.objects.all()
         self.fields["outlets"].queryset = Outlet.objects.filter(is_active=True)
         self.fields["role"].widget.attrs.update({"data-mp-select": "", "data-allow-clear": "", "data-placeholder": _("No role (no access)")})
         self.fields["outlets"].widget.attrs.update({"data-mp-select": "", "data-placeholder": _("Pick outlets")})
-        if employee is not None:
-            del self.fields["password1"], self.fields["password2"]
+        if employee is not None and employee.user_id:
+            # A login stays a login (deactivate it instead); its password is reset on the side.
+            del self.fields["password1"], self.fields["password2"], self.fields["has_login"]
             if employee.user.is_owner:
                 # The owner always has full access everywhere.
                 for name in ("role", "all_outlets", "outlets"):
@@ -54,25 +69,43 @@ class EmployeeForm(BootstrapFormMixin, forms.Form):
     def user_pk(self):
         return self.employee.user_id if self.employee else None
 
+    @property
+    def wants_login(self):
+        """True when the form is for (or will create) a login."""
+        if "has_login" not in self.fields:
+            return True
+        if "has_login" in getattr(self, "cleaned_data", {}):
+            return bool(self.cleaned_data["has_login"])
+        return bool(self["has_login"].value())  # fields cleaned before it (phone) read the raw value
+
     def clean_email(self):
         email = self.cleaned_data["email"].strip().lower()
-        if User.objects.filter(email__iexact=email).exclude(pk=self.user_pk).exists():
+        if email and User.objects.filter(email__iexact=email).exclude(pk=self.user_pk).exists():
             raise forms.ValidationError(_("Another account already uses this email."))
         return email
 
     def clean_phone(self):
         phone = self.cleaned_data["phone"].strip()
-        if phone and User.objects.filter(phone=phone).exclude(pk=self.user_pk).exists():
+        if phone and self.wants_login and User.objects.filter(phone=phone).exclude(pk=self.user_pk).exists():
             raise forms.ValidationError(_("Another account already uses this phone number."))
         return phone
 
     def clean(self):
         data = super().clean()
+        for name in self.PAY_FIELDS:
+            if name in self.fields and data.get(name) is None:
+                data[name] = 0
+        if not self.wants_login:
+            return data  # no login: nothing to check about email, password or access
+        if not data.get("email") and "email" not in self.errors:
+            self.add_error("email", _("Enter the email they'll log in with."))
         if "outlets" in self.fields and not data.get("all_outlets") and not data.get("outlets"):
             self.add_error("outlets", _("Pick at least one outlet, or allow all outlets."))
         if "password1" in self.fields:
             p1, p2 = data.get("password1"), data.get("password2")
-            if p1 and p2 and p1 != p2:
+            if not p1:
+                self.add_error("password1", _("Choose a password for their login."))
+            elif p1 and p2 and p1 != p2:
                 self.add_error("password2", _("The two passwords don't match."))
             elif p1:
                 try:

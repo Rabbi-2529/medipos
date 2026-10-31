@@ -23,7 +23,7 @@ REPORTS = [
     s.ProductProfit(), s.InvoiceProfit(), s.PriceHistory(),
     o.Purchases(), o.PurchaseItems(), o.StockValue(), o.ItemTracking(),
     o.CustomerBalances(), o.CustomerLedger(), o.SupplierBalances(), o.SupplierLedger(),
-    o.EmployeeSales(), o.Registers(),
+    o.EmployeeSales(), o.Registers(), o.StaffAttendance(), o.SalariesPaid(),
 ]
 BY_KEY = {r.key: r for r in REPORTS}
 
@@ -32,7 +32,7 @@ def _visible(request):
     return [r for r in REPORTS if has_perm(request.user, r.permission)]
 
 
-@shop_permission_required(("report.list", "profit_report.list"))
+@shop_permission_required(("report.list", "profit_report.list", "attendance.list", "salary.list"))
 def index(request):
     reports = _visible(request)
     groups = [{"key": key, "label": label, "icon": icon, "tone": tone, "reports": [r for r in reports if r.group == key]}

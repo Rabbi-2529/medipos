@@ -306,3 +306,68 @@ class Registers(Report):
         totals = totals_for(columns, [r for r in rows if r["difference"] is not None])
         return Result(columns, rows, totals, tiles=[(_("Sessions"), len(rows), "int"), (_("Short / over in total"), totals["difference"], "money")],
                       note=_("A negative difference means cash was short; positive means there was more than expected."))
+
+
+class StaffAttendance(Report):
+    key, group, icon = "staff-attendance", "staff", "bi-calendar-check"
+    title = gettext_lazy("Staff attendance")
+    description = gettext_lazy("Days present, late, on half day, absent or on leave for each person, and the days that count against pay.")
+    permission = "attendance.list"
+    filters = ("period",)
+
+    def run(self, f):
+        from apps.hr.models import Attendance
+        from apps.hr.services import absent_days, active_staff, attendance_counts
+
+        S = Attendance.Status
+        marked = Attendance.objects.filter(date__gte=f.start, date__lte=f.end)
+        people = {e.pk: e for e in active_staff()}
+        people.update({a.employee_id: a.employee for a in marked.select_related("employee").distinct() if a.employee_id not in people})
+        counts = attendance_counts(list(people), f.start, f.end)
+        away = {r["employee"]: r["n"] for r in marked.exclude(in_reason="", out_reason="").values("employee").annotate(n=Count("id"))}
+        early = {r["employee"]: r["n"] for r in marked.filter(left_early=True).values("employee").annotate(n=Count("id"))}
+        days = (min(f.end, timezone.localdate()) - f.start).days + 1
+        rows = []
+        for employee in sorted(people.values(), key=lambda e: e.name):
+            c = counts.get(employee.pk, {})
+            rows.append({
+                "name": Link(employee.display_name, f"{reverse('hr:attendance_calendar')}?employee={employee.pk}"),
+                "designation": employee.designation, **{status: c.get(status, 0) for status in S.values},
+                "unmarked": max(days - sum(c.values()), 0), "off_pay": absent_days(c), "early": early.get(employee.pk, 0),
+                "away": away.get(employee.pk, 0),
+            })
+        columns = [Col("name", _("Employee")), Col("designation", _("Designation"))]
+        columns += [Col(value, label, "int", True) for value, label in S.choices]
+        columns += [Col("unmarked", _("Not marked"), "int", True), Col("off_pay", _("Days off pay"), "int", True),
+                    Col("early", _("Left early"), "int", True), Col("away", _("Checked in/out off the shop network"), "int", True)]
+        totals = totals_for(columns, rows)
+        return Result(columns, rows, totals, tiles=[(_("Person-days present"), totals[S.PRESENT] + totals[S.LATE], "int"),
+                                                     (_("Absent days"), totals[S.ABSENT], "int")],
+                      note=_("Days off pay = absent days plus half of the half days. Late still counts as present."))
+
+
+class SalariesPaid(Report):
+    key, group, icon = "salaries-paid", "staff", "bi-cash-coin"
+    title = gettext_lazy("Salaries paid")
+    description = gettext_lazy("Each person's pay from the payrolls paid in the period: earnings, deductions, advances taken back and take-home.")
+    permission = "salary.list"
+    filters = ("period",)
+    default_days = 365
+
+    def run(self, f):
+        from apps.hr.models import Payroll, PayrollLine
+
+        lines = (PayrollLine.objects.filter(payroll__status=Payroll.Status.PAID, payroll__paid_on__gte=f.start, payroll__paid_on__lte=f.end)
+                 .select_related("payroll", "employee").order_by("payroll__month", "employee__name"))
+        rows = [{
+            "month": Link(line.payroll.month.strftime("%b %Y"), reverse("hr:payroll_detail", args=[line.payroll_id])),
+            "name": line.employee.display_name, "earnings": line.earnings, "deductions": line.absence_deduction + line.other_deduction,
+            "gross": line.gross, "advance": line.advance_deduction, "net": line.net,
+        } for line in lines]
+        columns = [
+            Col("month", _("Month")), Col("name", _("Employee")), Col("earnings", _("Earnings"), "money", True),
+            Col("deductions", _("Absence & other deductions"), "money", True), Col("gross", _("Salary cost"), "money", True),
+            Col("advance", _("Advance taken back"), "money", True), Col("net", _("Take-home"), "money", True),
+        ]
+        totals = totals_for(columns, rows)
+        return Result(columns, rows, totals, tiles=[(_("Salary cost"), totals["gross"], "money"), (_("Paid out"), totals["net"], "money")])
