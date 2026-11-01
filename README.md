@@ -66,7 +66,8 @@ apps/reports/      report engine + 23 reports (sales, profit, stock, ledgers, st
 apps/hr/           attendance (sheet, calendar, shifts, shop networks, self check-in), advances, payroll, payslips
 apps/messaging/    SMS/WhatsApp/email outbox, gateways, SMS credits, bills, due reminders, stock alerts, campaigns, loyalty points
 apps/backup/       Excel export of any list, full .zip backup, export log
-apps/audit/        audit log: who changed what (before/after), sign-ins; History links
+apps/audit/        branch audits (figures, checklist, findings, sign-off, report) and the activity log
+apps/support/      support assistant: built-in help articles or any OpenAI-compatible AI, chat widget
 locale/bn/         Bangla translations (django.po source, django.mo compiled)
 templates/         layouts, partials, pages
 static/            css/app.css (theme tokens, dark mode), js/app.js, js/pos.js, js/stock_lines.js
@@ -137,6 +138,11 @@ venv/Scripts/python.exe manage.py rebuild_books --tenant lazz-pharma-demo
 - Every printed bill goes through `sales.views.render_receipt()` (receipt, the customer's bill link, the settings preview); what shows is on `BusinessSettings` (Invoice & printing page) and the language comes from `setup.services.document_language()`.
 - QR codes are inline SVG from `segno` (`{% qr_svg text %}` in the `shop` template tags).
 - `apps.backup.exports`: `DATASETS` lists what the Excel export offers (any model, every stored column, links by name); `full_backup()` serialises every `TenantOwnedModel` of the current pharmacy. Add a dataset there when a new kind of record should be exportable.
+
+## Branch audits and the support assistant
+
+- `apps.audit.branch.branch_figures()` works out a branch's figures for a period; `checklist()` turns them into flagged checks (limits at the top of the file).
+- `apps.support.help.ARTICLES` is what the built-in help answers from and what the AI is given; keep it in step with the menus. Provider settings live in `SupportSettings` (platform console); `assistant.chat_completion()` speaks the OpenAI chat-completions format.
 
 ## Audit log
 

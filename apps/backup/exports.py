@@ -84,7 +84,7 @@ DATASETS = [
     Dataset("employees", _("Employees"), "people", "people.Employee"),
     Dataset("attendance", _("Attendance"), "people", "hr.Attendance", dated="date"),
     Dataset("payroll", _("Payroll"), "people", "hr.PayrollLine", dated="payroll__month"),
-    Dataset("audit", _("Audit log"), "people", "audit.AuditEntry", dated="created_at__date"),
+    Dataset("audit", _("Activity log"), "people", "audit.AuditEntry", dated="created_at__date"),
     Dataset("messages", _("Messages sent"), "messages", "messaging.Message", dated="created_at__date"),
     Dataset("points", _("Loyalty points"), "messages", "messaging.PointEntry", dated="date"),
 ]

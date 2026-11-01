@@ -132,3 +132,72 @@ class AuditTrailTests(TestCase):
         self.assertEqual(self.client.get(reverse("audit:log")).status_code, 403)
         self.client.force_login(add_staff(self.tenant, "a@x.test", ["audit.list"]))
         self.assertEqual(self.client.get(reverse("audit:log")).status_code, 200)
+
+
+class BranchAuditTests(TestCase):
+    """Head office audits a branch: figures, flags, checklist, findings, sign-off, report."""
+
+    def setUp(self):
+        from apps.sales.models import CashRegister
+        from apps.sales.services import complete_sale, start_register
+
+        self.tenant, self.owner = make_pharmacy()
+        self.client.force_login(self.owner)
+        with tenant_context(self.tenant):
+            self.main = Outlet.objects.get()
+            self.branch = Outlet.objects.create(code="0002", name="Gulshan branch")
+            cash = PaymentAccount.objects.get(name="Cash")
+            napa = make_medicine(self.tenant, "Napa", purchase_price="8.00", sale_price="10.00")
+            batch = get_or_create_batch(napa, "B1", timezone.localdate() + timedelta(days=300), Decimal("8"))
+            post_movement(outlet=self.branch, batch=batch, quantity=100, kind=StockMovement.Kind.OPENING)
+            old = get_or_create_batch(napa, "OLD", timezone.localdate() - timedelta(days=5), Decimal("8"))
+            post_movement(outlet=self.branch, batch=old, quantity=4, kind=StockMovement.Kind.OPENING)  # expired, still on the shelf
+            register = start_register(self.owner, self.branch, "500")
+            complete_sale(tenant=self.tenant, outlet=self.branch, user=self.owner, register=register, cart_discount="30",
+                          lines=[{"medicine": napa.pk, "qty": 20, "batch": batch.pk}], payments=[{"account": cash.pk, "amount": "170"}])
+            CashRegister.objects.filter(pk=register.pk).update(closed_at=timezone.now(), expected_cash=Decimal("670"),
+                                                               counted_cash=Decimal("620"))  # 50 short
+
+    def test_audit_from_start_to_sign_off(self):
+        today = timezone.localdate()
+        response = self.client.post(reverse("audit:branches"), {"outlet": self.branch.pk, "start": today - timedelta(days=1), "end": today})
+        from .models import AuditCheck, BranchAudit
+
+        audit = BranchAudit.all_objects.get(tenant=self.tenant)
+        self.assertRedirects(response, reverse("audit:branch", args=[audit.pk]))
+        self.assertEqual((audit.number, audit.figures["sales"]["total"], audit.figures["cash"]["short"]), ("AUD-0001", "170.00", "50.00"))
+        self.assertEqual(audit.figures["books"]["doc_sales"], audit.figures["books"]["sales"])  # bills match the books
+        flags = dict(AuditCheck.all_objects.filter(audit=audit).values_list("key", "flag"))
+        self.assertEqual((flags["cash"], flags["discounts"], flags["expired"], flags["books"], flags["count"]),
+                         ("warn", "warn", "warn", "ok", "warn"))  # 30 off 200 is 15%; no stock count yet
+
+        page = self.client.get(reverse("audit:branch", args=[audit.pk]))
+        self.assertContains(page, "Cash registers balanced")
+        self.assertContains(page, "Gulshan branch")
+
+        url = reverse("audit:branch", args=[audit.pk])
+        self.client.post(url, {"action": "finding", "finding-title": "Cash short ৳50", "finding-severity": "high",
+                               "finding-detail": "Register closed 50 short.", "finding-action": "Cashier to explain"})
+        self.client.post(url, {"action": "sign", "sign-verdict": "watch", "sign-summary": "Cash handling needs care."})
+        audit.refresh_from_db()
+        self.assertTrue(audit.is_open)  # every check needs an answer first
+        answers = {f"result-{key}": "ok" for key in flags}
+        answers["result-cash"], answers["note-cash"] = "issue", "50 short on 1 register"
+        self.client.post(url, {"action": "checks", **answers})
+        self.client.post(url, {"action": "sign", "sign-verdict": "watch", "sign-summary": "Cash handling needs care."})
+        audit.refresh_from_db()
+        self.assertEqual((audit.status, audit.verdict, audit.signed_by), ("done", "watch", self.owner))
+        self.client.post(url, {"action": "refresh"})  # locked now
+        report = self.client.get(reverse("audit:branch_print", args=[audit.pk]))
+        for text in ("Branch audit report", "Cash short ৳50", "50 short on 1 register", "Needs improvement"):
+            self.assertContains(report, text)
+        self.assertTrue(AuditEntry.all_objects.filter(tenant=self.tenant, model="audit.branchaudit", action=A.UPDATE).exists())
+
+    def test_who_may_audit(self):
+        with tenant_context(self.tenant):
+            manager_role = Role.objects.get(template_key="manager")
+        self.assertFalse(any(code.startswith("branch_audit.") for code in manager_role.permissions))
+        self.client.force_login(add_staff(self.tenant, "viewer@x.test", ["branch_audit.list"]))
+        self.assertEqual(self.client.get(reverse("audit:branches")).status_code, 200)
+        response = self.client.post(reverse("audit:branches"), {"outlet": self.branch.pk, "start": "2026-10-01", "end": "2026-10-31"})
+        self.assertEqual(response.status_code, 404)  # looking only, no starting

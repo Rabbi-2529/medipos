@@ -58,6 +58,7 @@ MENU = (
         )),
         MenuItem("platform", _("Plans"), "platform:plans", "bi-card-checklist", audience=PLATFORM),
         MenuItem("platform", _("Medicine catalog"), "platform:catalog", "bi-journal-medical", audience=PLATFORM),
+        MenuItem("platform", _("Support assistant"), "platform:support", "bi-robot", audience=PLATFORM),
     )),
     MenuSection(_("Medicines & stock"), (
         MenuItem("item", _("Medicines"), icon="bi-capsule", perm=None, children=(
@@ -125,6 +126,10 @@ MENU = (
     )),
     MenuSection(_("Accounts"), (
         MenuItem("payment_account", _("Payment accounts"), "accounting:payment_accounts", "bi-wallet2"),
+        MenuItem("branch_audit", _("Audit"), icon="bi-clipboard2-check", perm=None, children=(
+            _item("branch_audit", _("Branch audits"), "audit:branches"),
+            MenuItem("audit", _("Activity log"), "audit:log", perm="audit.list"),
+        )),
         MenuItem("expense", _("Income & expenses"), icon="bi-cash-stack", perm=None, children=(
             _item("expense", _("Expenses"), "accounting:expenses"),
             _item("expense", _("Expense categories"), "accounting:expense_categories"),
@@ -162,7 +167,6 @@ MENU = (
         MenuItem("settings", _("Business settings"), "setup:settings", "bi-gear"),
         MenuItem("settings", _("Invoice & printing"), "setup:invoice", "bi-printer"),
         MenuItem("backup", _("Data export & backup"), "backup:data", "bi-cloud-download"),
-        MenuItem("audit", _("Audit log"), "audit:log", "bi-shield-check"),
         MenuItem("outlet", _("Outlets"), icon="bi-shop", perm=None, children=(
             _item("outlet", _("Outlet list"), "outlets:list"),
             _item("counter", _("Counters"), "outlets:counters"),

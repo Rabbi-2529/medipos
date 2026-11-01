@@ -61,6 +61,8 @@ AUDITED = {
     "messaging.pointentry": Rule(only_if=lambda entry: entry.kind == "adjusted",
                                  name=lambda entry: f"{entry.customer.name} {entry.change:+d}"),
     "backup.exportlog": DEFAULT,
+    "audit.branchaudit": Rule(ignore=("figures", "figured_at"), link="audit:branch"),
+    "audit.auditfinding": DEFAULT,
 }
 
 # Shown as dots, never stored.
@@ -89,5 +91,5 @@ KINDS = {
     "hr.shift": _("Shift"), "hr.officenetwork": _("Shop network"), "hr.attendance": _("Attendance"), "hr.advance": _("Advance"),
     "hr.payroll": _("Payroll"), "messaging.messagesettings": _("Message settings"), "messaging.loyaltyprogram": _("Loyalty settings"),
     "messaging.campaign": _("Campaign"), "messaging.smscredit": _("SMS credits"), "messaging.pointentry": _("Points correction"),
-    "backup.exportlog": _("Data export"),
+    "backup.exportlog": _("Data export"), "audit.branchaudit": _("Branch audit"), "audit.auditfinding": _("Audit finding"),
 }

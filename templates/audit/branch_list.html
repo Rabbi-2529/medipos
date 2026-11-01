@@ -1,0 +1,55 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+{% block title %}{% translate "Branch audits" %}{% endblock %}
+{% block page_title %}{% translate "Branch audits" %}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% translate "Head office checks a branch for a period: sales, cash, stock, money and the books, then signs it off." %}</p>{% endblock %}
+{% block content %}
+<div class="row g-4">
+  {% if form %}
+  <div class="col-xl-4 order-xl-2">
+    <form class="card voucher-card tone-violet" method="post" novalidate>
+      {% csrf_token %}
+      <div class="card-header"><h2 class="card-title"><i class="bi bi-clipboard2-plus"></i> {% translate "Start an audit" %}</h2></div>
+      <div class="card-body">
+        {% include "partials/_field.html" with field=form.outlet %}
+        <div class="row g-2">
+          <div class="col-6">{% include "partials/_field.html" with field=form.start %}</div>
+          <div class="col-6">{% include "partials/_field.html" with field=form.end %}</div>
+        </div>
+        {% include "partials/_field.html" with field=form.note %}
+        <button class="btn btn-primary w-100" type="submit"><i class="bi bi-play-circle"></i> {% translate "Work out the figures" %}</button>
+      </div>
+    </form>
+  </div>
+  {% endif %}
+  <div class="{% if form %}col-xl-8{% else %}col-12{% endif %}">
+    <div class="card">
+      {% if audits %}
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead><tr><th>{% translate "Audit" %}</th><th>{% translate "Branch" %}</th><th>{% translate "Period" %}</th><th>{% translate "Status" %}</th><th class="text-end">{% translate "Issues" %}</th><th class="text-end">{% translate "Open findings" %}</th></tr></thead>
+          <tbody>
+            {% for a in audits %}
+            <tr>
+              <td><a class="fw-semibold" href="{% url 'audit:branch' a.pk %}">{{ a.number }}</a><small class="d-block text-body-secondary">{{ a.created_by|default:"—" }} · {{ a.created_at|date:"d M Y" }}</small></td>
+              <td>{{ a.outlet.name }}</td>
+              <td class="text-nowrap">{{ a.start|date:"d M Y" }} – {{ a.end|date:"d M Y" }}</td>
+              <td>{% if a.is_open %}<span class="att-chip tone-amber"><i class="bi bi-hourglass-split"></i> {{ a.get_status_display }}</span>
+                  {% else %}<span class="att-chip tone-{{ a.verdict_tone }}"><i class="bi bi-patch-check"></i> {{ a.get_verdict_display }}</span>{% endif %}</td>
+              <td class="text-end">{% if a.issues %}<span class="text-danger fw-semibold">{{ a.issues }}</span>{% else %}—{% endif %}</td>
+              <td class="text-end">{{ a.open_findings|default:"—" }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="card-body text-center py-5">
+        <i class="bi bi-clipboard2-check fs-1 text-body-secondary"></i>
+        <p class="mt-2 mb-0">{% translate "No audits yet. Pick a branch and a period to start one." %}</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

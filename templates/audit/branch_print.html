@@ -1,0 +1,63 @@
+{% load i18n shop static %}<!doctype html>
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ audit.number }} · {{ tenant.name }}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600&family=Public+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root { color-scheme: light; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #eceaf3; color: #111; font: 12.5px/1.45 "Public Sans", "Hind Siliguri", system-ui, sans-serif; }
+    .paper { width: 210mm; min-height: 297mm; margin: 16px auto; padding: 16mm; background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,.12); }
+    h1 { font-size: 20px; margin: 0; } h2 { font-size: 15px; margin: 18px 0 6px; border-bottom: 1px solid #ccc; padding-bottom: 3px; } h3 { font-size: 13px; margin: 10px 0 4px; }
+    .muted, .text-body-secondary { color: #555; }
+    .head { display: flex; justify-content: space-between; gap: 16px; }
+    table { width: 100%; border-collapse: collapse; } th, td { padding: 3px 4px; border-bottom: 1px solid #e3e3e3; text-align: left; vertical-align: top; }
+    .text-end { text-align: right; } .text-danger { color: #b42318; } .text-success { color: #0f7a66; } .fw-semibold { font-weight: 600; }
+    dl.totals { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; margin: 0; } dl.totals dd { margin: 0; text-align: right; }
+    .totals-grand { font-weight: 700; }
+    .audit-figures { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 24px; }
+    .audit-wide { grid-column: 1 / -1; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; } .small { font-size: .9em; } .list-unstyled { list-style: none; padding: 0; margin: 0; }
+    .chip { display: inline-block; padding: 1px 8px; border-radius: 999px; border: 1px solid #999; font-size: .9em; }
+    .sign { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 28mm; } .sign div { border-top: 1px solid #333; padding-top: 4px; text-align: center; }
+    .tools { text-align: center; margin: 12px; } .tools button { font: inherit; padding: 6px 12px; border-radius: 6px; border: 1px solid #6d5dfc; background: #fff; color: #6d5dfc; cursor: pointer; }
+    @media print { body { background: #fff; } .paper { margin: 0; box-shadow: none; padding: 0; } .tools { display: none; } @page { size: A4; margin: 12mm; } }
+  </style>
+</head>
+<body>
+<div class="tools"><button type="button" onclick="window.print()">{% translate "Print" %}</button></div>
+<div class="paper">
+  <div class="head">
+    <div><h1>{% translate "Branch audit report" %}</h1><div class="muted">{{ tenant.name }}</div></div>
+    <div class="text-end"><strong>{{ audit.number }}</strong><div>{{ audit.outlet.name }}</div><div class="muted">{{ audit.start|date:"d M Y" }} – {{ audit.end|date:"d M Y" }}</div></div>
+  </div>
+
+  <h2>{% translate "Conclusion" %}</h2>
+  {% if audit.is_open %}<p class="muted">{% translate "Not signed off yet: a draft." %}</p>
+  {% else %}<p><span class="chip">{{ audit.get_verdict_display }}</span> {{ audit.summary|linebreaksbr }}</p>
+  <p class="muted small">{% blocktranslate with who=audit.signed_by|default:"—" when=audit.signed_at|date:"j F Y, h:i A" %}Signed off by {{ who }} on {{ when }}.{% endblocktranslate %}</p>{% endif %}
+
+  <h2>{% translate "Checklist" %}</h2>
+  <table>
+    <thead><tr><th>{% translate "Check" %}</th><th>{% translate "What the figures show" %}</th><th>{% translate "Result" %}</th><th>{% translate "Note" %}</th></tr></thead>
+    <tbody>{% for c in checks %}<tr><td class="fw-semibold">{{ c.title }}</td><td>{{ c.detail }}</td><td class="{% if c.result == 'issue' %}text-danger fw-semibold{% endif %}">{{ c.get_result_display|default:"—" }}</td><td>{{ c.note }}</td></tr>{% endfor %}</tbody>
+  </table>
+
+  <h2>{% translate "Findings" %}</h2>
+  {% if findings %}
+  <table>
+    <thead><tr><th>{% translate "Severity" %}</th><th>{% translate "Finding" %}</th><th>{% translate "What to do" %}</th><th>{% translate "Resolved" %}</th></tr></thead>
+    <tbody>{% for x in findings %}<tr><td>{{ x.get_severity_display }}</td><td><strong>{{ x.title }}</strong>{% if x.detail %}<div class="small">{{ x.detail|linebreaksbr }}</div>{% endif %}</td><td>{{ x.action }}</td><td>{% if x.resolved %}{% translate "Yes" %}{% else %}{% translate "No" %}{% endif %}</td></tr>{% endfor %}</tbody>
+  </table>
+  {% else %}<p class="muted">{% translate "No findings." %}</p>{% endif %}
+
+  <h2>{% translate "Figures" %}</h2>
+  {% include "audit/_branch_figures.html" %}
+
+  <div class="sign"><div>{% translate "Auditor" %}</div><div>{% translate "Branch manager" %}</div></div>
+</div>
+{% if auto_print %}<script>window.addEventListener("load", function () { setTimeout(function () { window.print(); }, 300); });</script>{% endif %}
+</body>
+</html>

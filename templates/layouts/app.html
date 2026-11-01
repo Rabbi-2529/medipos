@@ -39,5 +39,6 @@
   </div>
 </div>
 {% include "partials/_command_palette.html" %}
+{% if support_widget %}{% include "support/_widget.html" %}{% endif %}
 {{ nav_search|json_script:"nav-search-data" }}
 {% endblock %}

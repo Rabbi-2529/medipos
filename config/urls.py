@@ -29,6 +29,7 @@ urlpatterns = [
     path("messages/", include("apps.messaging.urls")),
     path("data/", include("apps.backup.urls")),
     path("audit/", include("apps.audit.urls")),
+    path("support/", include("apps.support.urls")),
     path("b/<str:token>/", messaging_views.public_bill, name="public_bill"),  # a customer's bill, linked from SMS
     path("", include("apps.tenants.urls")),
     path("", include("apps.billing.urls")),

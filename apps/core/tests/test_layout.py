@@ -72,7 +72,7 @@ class MenuTests(TestCase):
     def test_platform_admin_gets_platform_section(self):
         admin = User.objects.create_superuser("admin@x.test", "pw")
         labels = [e["label"] for e in flatten_menu(self._menu_for(admin))]
-        self.assertEqual(labels, ["Dashboard", "Add pharmacy", "Pharmacy list", "Plans", "Medicine catalog"])
+        self.assertEqual(labels, ["Dashboard", "Add pharmacy", "Pharmacy list", "Plans", "Medicine catalog", "Support assistant"])
 
     def test_locked_pharmacy_only_gets_subscription(self):
         tenant = Tenant.objects.create(name="T", slug="t", status=Tenant.Status.SUSPENDED)

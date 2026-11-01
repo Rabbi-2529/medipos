@@ -1,7 +1,9 @@
 from django.apps import apps
+from django.contrib import messages
 from django.core.exceptions import FieldDoesNotExist
-from django.db.models import Q
-from django.shortcuts import get_object_or_404, render
+from django.db.models import Count, Q
+from django.http import Http404
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import NoReverseMatch, reverse
 from django.utils import timezone
 from django.utils.dateparse import parse_date
@@ -12,9 +14,11 @@ from django.utils.translation import gettext as _
 
 from apps.accounts.models import User
 from apps.core.datatables import datatable_json
-from apps.people.access import shop_permission_required
+from apps.people.access import has_perm, shop_permission_required
 
-from .models import AuditEntry
+from . import branch
+from .forms import FindingForm, SignOffForm, StartAuditForm
+from .models import AuditCheck, AuditEntry, AuditFinding, BranchAudit
 from .registry import AUDITED, KINDS
 
 A = AuditEntry.Action
@@ -152,3 +156,111 @@ def audit_entry(request, pk):
         "entry": entry, "look": _look(entry), "kind": kind_label(entry.model) if entry.model else "", "url": object_url(entry),
         "rows": changes_list(entry), "history": history,
     })
+
+
+# ---- Branch audits ---------------------------------------------------------------------------
+
+FLAG_LOOK = {AuditCheck.Flag.OK: ("teal", "bi-check-circle"), AuditCheck.Flag.WARN: ("amber", "bi-exclamation-triangle"),
+             AuditCheck.Flag.INFO: ("sky", "bi-info-circle")}
+VERDICT_TONE = {BranchAudit.Verdict.GOOD: "teal", BranchAudit.Verdict.WATCH: "amber", BranchAudit.Verdict.BAD: "red"}
+SEVERITY_TONE = {AuditFinding.Severity.HIGH: "red", AuditFinding.Severity.MEDIUM: "amber", AuditFinding.Severity.LOW: "sky"}
+
+
+@shop_permission_required("branch_audit.list")
+def branch_audits(request):
+    can_start = has_perm(request.user, "branch_audit.create")
+    form = StartAuditForm(request.POST or None) if can_start else None
+    if request.method == "POST":
+        if not can_start:
+            raise Http404
+        if form.is_valid():
+            data = form.cleaned_data
+            audit = branch.start_audit(tenant=request.tenant, outlet=data["outlet"], start=data["start"], end=data["end"],
+                                       user=request.user, note=data["note"])
+            messages.success(request, _("%(number)s started: the figures are worked out. Go through the checklist.") % {"number": audit.number})
+            return redirect("audit:branch", pk=audit.pk)
+    audits = list(BranchAudit.objects.select_related("outlet", "created_by", "signed_by").annotate(
+        issues=Count("checks", filter=Q(checks__result=AuditCheck.Result.ISSUE)),
+        open_findings=Count("findings", filter=Q(findings__resolved=False), distinct=True)))
+    for audit in audits:
+        audit.verdict_tone = VERDICT_TONE.get(audit.verdict, "slate")
+    return render(request, "audit/branch_list.html", {"audits": audits, "form": form})
+
+
+def _audit(pk):
+    return get_object_or_404(BranchAudit.objects.select_related("outlet", "created_by", "signed_by"), pk=pk)
+
+
+@shop_permission_required("branch_audit.list")
+def branch_audit_detail(request, pk):
+    audit = _audit(pk)
+    can_work = has_perm(request.user, "branch_audit.create") and audit.is_open
+    can_sign = has_perm(request.user, "branch_audit.edit")
+    finding_form = FindingForm(prefix="finding")
+    sign_form = SignOffForm(prefix="sign", instance=audit)
+    if request.method == "POST":
+        action = request.POST.get("action")
+        allowed = can_sign if action in ("sign", "reopen") else can_work
+        if not allowed:
+            raise Http404
+        try:
+            if action == "refresh":
+                branch.refresh(audit)
+                messages.success(request, _("Figures worked out again."))
+            elif action == "checks":
+                branch.save_checks(audit, {c.key: (request.POST.get(f"result-{c.key}", ""), request.POST.get(f"note-{c.key}", ""))
+                                           for c in audit.checks.all()})
+                messages.success(request, _("Checklist saved."))
+            elif action == "finding":
+                finding_form = FindingForm(request.POST, prefix="finding")
+                if finding_form.is_valid():
+                    branch.add_finding(audit, user=request.user, **finding_form.cleaned_data)
+                    messages.success(request, _("Finding added."))
+                    return redirect("audit:branch", pk=pk)
+                raise branch.AuditError(_("Give the finding a title."))
+            elif action in ("resolve", "delete_finding"):
+                finding = get_object_or_404(AuditFinding, pk=request.POST.get("finding"), audit=audit)
+                if action == "resolve":
+                    finding.resolved = not finding.resolved
+                    finding.save(update_fields=["resolved", "updated_at"])
+                else:
+                    finding.delete()
+            elif action == "sign":
+                sign_form = SignOffForm(request.POST, prefix="sign", instance=audit)
+                if not sign_form.is_valid():
+                    raise branch.AuditError(_("Choose the verdict."))
+                branch.sign_off(audit, verdict=sign_form.cleaned_data["verdict"], summary=sign_form.cleaned_data["summary"], user=request.user)
+                messages.success(request, _("%(number)s signed off.") % {"number": audit.number})
+            elif action == "reopen":
+                branch.reopen(audit)
+                messages.success(request, _("%(number)s is open again.") % {"number": audit.number})
+        except branch.AuditError as error:
+            messages.error(request, str(error))
+        return redirect("audit:branch", pk=pk)
+    return render(request, "audit/branch_detail.html", _branch_context(audit) | {
+        "can_work": can_work, "can_sign": can_sign, "finding_form": finding_form, "sign_form": sign_form})
+
+
+def _branch_context(audit):
+    checks = list(audit.checks.all())
+    for check in checks:
+        check.title = branch.CHECK_TITLES.get(check.key, check.key)
+        check.tone, check.icon = FLAG_LOOK[check.flag]
+    findings = branch.ordered_findings(audit)
+    for finding in findings:
+        finding.tone = SEVERITY_TONE[finding.severity]
+    return {
+        "audit": audit, "f": audit.figures, "checks": checks, "findings": findings, "results": AuditCheck.Result.choices,
+        "verdict_tone": VERDICT_TONE.get(audit.verdict, "slate"),
+        "warnings": sum(1 for c in checks if c.flag == AuditCheck.Flag.WARN),
+        "issues": sum(1 for c in checks if c.result == AuditCheck.Result.ISSUE),
+    }
+
+
+@shop_permission_required("branch_audit.list")
+def branch_audit_print(request, pk):
+    from apps.setup.services import get_business_settings
+
+    audit = _audit(pk)
+    return render(request, "audit/branch_print.html", _branch_context(audit) | {
+        "shop": get_business_settings(request.tenant), "tenant": request.tenant, "auto_print": request.GET.get("print") == "1"})

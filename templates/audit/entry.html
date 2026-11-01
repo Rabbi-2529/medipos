@@ -1,8 +1,8 @@
 {% extends "layouts/app.html" %}
 {% load i18n %}
-{% block title %}{% translate "Audit log" %}{% endblock %}
+{% block title %}{% translate "Activity log" %}{% endblock %}
 {% block page_title %}{{ entry.get_action_display }}{% if kind %}: {{ kind }}{% endif %}{% endblock %}
-{% block page_subtitle %}<p class="page-subtitle"><a href="{% url 'audit:log' %}"><i class="bi bi-chevron-left"></i> {% translate "Audit log" %}</a></p>{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle"><a href="{% url 'audit:log' %}"><i class="bi bi-chevron-left"></i> {% translate "Activity log" %}</a></p>{% endblock %}
 {% block page_actions %}
 {% if history %}<a class="btn btn-outline-secondary" href="{{ history }}"><i class="bi bi-clock-history"></i> {% translate "Everything about this record" %}</a>{% endif %}
 {% if url %}<a class="btn btn-soft tone-violet" href="{{ url }}"><i class="bi bi-box-arrow-up-right"></i> {% translate "Open it" %}</a>{% endif %}

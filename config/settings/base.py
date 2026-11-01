@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     "apps.messaging",
     "apps.backup",
     "apps.audit",
+    "apps.support",
 ]
 
 MIDDLEWARE = [
@@ -78,6 +79,7 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 "django.template.context_processors.i18n",
                 "apps.core.context_processors.app_context",
+                "apps.support.views.widget_context",
             ],
         },
     },
@@ -142,6 +144,9 @@ SMS_GATEWAY_SUCCESS_TEXT = env("SMS_GATEWAY_SUCCESS_TEXT", default="")
 # False: they wait for `manage.py send_messages`, run every minute (which also sends the daily alerts and due reminders).
 MESSAGES_SEND_NOW = env.bool("MESSAGES_SEND_NOW", default=True)
 MESSAGES_SEND_NOW_LIMIT = env.int("MESSAGES_SEND_NOW_LIMIT", default=25)
+
+# Support assistant: the AI provider's key when it isn't typed in the platform console (Platform → Support assistant).
+SUPPORT_AI_API_KEY = env("SUPPORT_AI_API_KEY", default="")
 
 # SaaS subscription rules
 TRIAL_DAYS = env.int("TRIAL_DAYS", default=14)

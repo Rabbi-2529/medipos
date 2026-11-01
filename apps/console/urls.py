@@ -1,10 +1,13 @@
 from django.urls import path
 
+from apps.support import views as support_views
+
 from . import catalog_views, views
 
 app_name = "platform"
 
 urlpatterns = [
+    path("support/", views.platform_admin_required(support_views.platform_settings), name="support"),
     path("catalog/", catalog_views.catalog_list, name="catalog"),
     path("catalog/data/", catalog_views.catalog_data, name="catalog_data"),
     path("catalog/import/", catalog_views.catalog_import, name="catalog_import"),

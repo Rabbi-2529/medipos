@@ -75,7 +75,11 @@ MODULES = (
     # Downloads everything (customers, sales, staff): only the owner has it unless they give it in a role.
     Module("backup", _("Export & backup data"), SHOP, (CREATE,)),
     # Everyone's actions, the owner's included: only the owner has it unless they give it in a role.
-    Module("audit", _("Audit log"), SHOP, (LIST,)),
+    Module("audit", _("Activity log"), SHOP, (LIST,)),
+    # Head office auditing a branch: "create" starts audits and works the checklist, "edit" signs them off or reopens them.
+    Module("branch_audit", _("Branch audits"), ACCOUNTS, (LIST, CREATE, EDIT)),
+    # The chat button for MediPOS help (only when the platform has switched the assistant on).
+    Module("support", _("Support assistant"), SHOP, (LIST,)),
     Module("payment_account", _("Payment accounts"), ACCOUNTS, (LIST, CREATE, EDIT, DELETE)),
     Module("expense", _("Expenses"), ACCOUNTS, (LIST, CREATE, DELETE)),
     Module("income", _("Other income"), ACCOUNTS, (LIST, CREATE, DELETE)),

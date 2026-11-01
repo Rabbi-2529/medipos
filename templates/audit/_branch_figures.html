@@ -1,0 +1,117 @@
+{% load i18n shop %}
+{# The figures of a branch audit (audit page and printed report). Needs `f` = audit.figures. #}
+<div class="audit-figures">
+  <section class="audit-section">
+    <h3>{% translate "Sales" %}</h3>
+    <dl class="totals mb-0">
+      <dt>{% translate "Bills" %}</dt><dd>{{ f.sales.count }}</dd>
+      <dt>{% translate "Before discounts" %}</dt><dd>{% money f.sales.gross %}</dd>
+      <dt>{% translate "Discounts" %} <small class="text-body-secondary">({{ f.sales.discount_pct }}%)</small></dt><dd>− {% money f.sales.discounts %}</dd>
+      {% if f.sales.vat != "0.00" %}<dt>{% translate "VAT" %}</dt><dd>{% money f.sales.vat %}</dd>{% endif %}
+      <dt class="totals-grand">{% translate "Sales" %}</dt><dd class="totals-grand">{% money f.sales.total %}</dd>
+      <dt>{% translate "Returns" %} <small class="text-body-secondary">({{ f.sales.returns_count }} · {{ f.sales.returns_pct }}%)</small></dt><dd>− {% money f.sales.returns %}</dd>
+      <dt>{% translate "Net sales" %}</dt><dd class="fw-semibold">{% money f.sales.net %}</dd>
+      <dt>{% translate "Given on due" %}</dt><dd>{% money f.sales.due %}</dd>
+      <dt>{% translate "Lines sold below cost" %}</dt><dd>{{ f.sales.below_cost }}</dd>
+    </dl>
+  </section>
+
+  <section class="audit-section">
+    <h3>{% translate "Payments received" %}</h3>
+    {% if f.payments %}
+    <dl class="totals mb-3">{% for p in f.payments %}<dt>{{ p.name }}</dt><dd>{% money p.amount %}</dd>{% endfor %}</dl>
+    {% else %}<p class="text-body-secondary small">{% translate "No payments." %}</p>{% endif %}
+    <h3>{% translate "Other money" %}</h3>
+    <dl class="totals mb-0">
+      <dt>{% translate "Due collected" %}</dt><dd>{% money f.money.collected %}</dd>
+      <dt>{% translate "Expenses paid" %}</dt><dd>{% money f.money.expenses %}</dd>
+      <dt>{% translate "Other income" %}</dt><dd>{% money f.money.income %}</dd>
+      <dt>{% translate "Purchases received" %} <small class="text-body-secondary">({{ f.purchases.count }})</small></dt><dd>{% money f.purchases.total %}</dd>
+      <dt>{% translate "Purchase returns" %}</dt><dd>{% money f.purchases.returns %}</dd>
+    </dl>
+  </section>
+
+  <section class="audit-section audit-wide">
+    <h3>{% translate "Cashiers" %}</h3>
+    {% if f.cashiers %}
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0">
+        <thead><tr><th>{% translate "Who" %}</th><th class="text-end">{% translate "Bills" %}</th><th class="text-end">{% translate "Sales" %}</th><th class="text-end">{% translate "Discounts" %}</th><th class="text-end">{% translate "Returns" %}</th></tr></thead>
+        <tbody>{% for c in f.cashiers %}<tr><td>{{ c.name }}</td><td class="text-end">{{ c.sales }}</td><td class="text-end">{% money c.total %}</td><td class="text-end">{% money c.discount %}</td><td class="text-end">{% money c.returns %}</td></tr>{% endfor %}</tbody>
+      </table>
+    </div>
+    {% else %}<p class="text-body-secondary small mb-0">{% translate "No sales in this period." %}</p>{% endif %}
+  </section>
+
+  <section class="audit-section audit-wide">
+    <h3>{% translate "Cash registers" %}</h3>
+    {% if f.cash.registers %}
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0">
+        <thead><tr><th>{% translate "Who" %}</th><th>{% translate "Opened" %}</th><th>{% translate "Closed" %}</th><th class="text-end">{% translate "Opening cash" %}</th><th class="text-end">{% translate "Expected" %}</th><th class="text-end">{% translate "Counted" %}</th><th class="text-end">{% translate "Short / over" %}</th></tr></thead>
+        <tbody>
+          {% for r in f.cash.registers %}
+          <tr><td>{{ r.who }}</td><td class="text-nowrap">{{ r.opened }}</td><td class="text-nowrap">{{ r.closed|default:_("Still open") }}</td>
+            <td class="text-end">{% money r.opening %}</td><td class="text-end">{% if r.expected %}{% money r.expected %}{% else %}—{% endif %}</td>
+            <td class="text-end">{% if r.counted %}{% money r.counted %}{% else %}—{% endif %}</td>
+            <td class="text-end{% if r.difference and r.difference != '0.00' %} text-danger fw-semibold{% endif %}">{% if r.difference %}{% money r.difference %}{% else %}—{% endif %}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}<p class="text-body-secondary small mb-0">{% translate "No cash registers in this period." %}</p>{% endif %}
+  </section>
+
+  <section class="audit-section">
+    <h3>{% translate "Stock" %}</h3>
+    <dl class="totals mb-3">
+      <dt>{% translate "Stock value now (cost)" %}</dt><dd class="fw-semibold">{% money f.stock.value %}</dd>
+      <dt>{% translate "Expired, still in stock" %} <small class="text-body-secondary">({{ f.stock.expired_batches }})</small></dt><dd>{% money f.stock.expired_value %}</dd>
+      <dt>{% translate "Expiring within 30 days" %} <small class="text-body-secondary">({{ f.stock.expiring_batches }})</small></dt><dd>{% money f.stock.expiring_value %}</dd>
+      <dt>{% translate "Written off" %} <small class="text-body-secondary">({{ f.stock.write_offs }})</small></dt><dd>{% money f.stock.write_off_value %}</dd>
+      <dt>{% translate "Missing in counts" %}</dt><dd>{% money f.stock.count_loss %}</dd>
+      <dt>{% translate "Transfers on the way here" %} <small class="text-body-secondary">({{ f.stock.transit }})</small></dt><dd>{% money f.stock.transit_value %}</dd>
+    </dl>
+    {% if f.stock.counts %}
+    <h3>{% translate "Stock counts" %}</h3>
+    <ul class="list-unstyled small mb-0">{% for c in f.stock.counts %}<li>{{ c.number }} · {{ c.date }} · <span class="text-success">+{% money c.gain %}</span> / <span class="text-danger">−{% money c.loss %}</span></li>{% endfor %}</ul>
+    {% endif %}
+  </section>
+
+  <section class="audit-section">
+    <h3>{% translate "Stock movements (units, cost)" %}</h3>
+    {% if f.stock.movements %}
+    <table class="table table-sm align-middle mb-0">
+      <tbody>{% for m in f.stock.movements %}<tr><td>{{ m.kind }}</td><td class="text-end">{{ m.quantity }}</td><td class="text-end">{% money m.value %}</td></tr>{% endfor %}</tbody>
+    </table>
+    {% else %}<p class="text-body-secondary small mb-0">{% translate "No stock moved in this period." %}</p>{% endif %}
+  </section>
+
+  <section class="audit-section audit-wide">
+    <h3>{% translate "The books for this branch" %}</h3>
+    <div class="row g-3">
+      <div class="col-md-6">
+        <dl class="totals mb-0">
+          <dt>{% translate "Sales" %}</dt><dd>{% money f.books.sales %}</dd>
+          <dt>{% translate "Returns" %}</dt><dd>− {% money f.books.returns %}</dd>
+          <dt>{% translate "Cost of goods sold" %}</dt><dd>− {% money f.books.cogs %}</dd>
+          <dt>{% translate "Gross profit" %}{% if f.books.margin %} <small class="text-body-secondary">({{ f.books.margin }}%)</small>{% endif %}</dt><dd>{% money f.books.gross %}</dd>
+          <dt>{% translate "Other income" %}</dt><dd>{% money f.books.other_income %}</dd>
+          <dt>{% translate "Expenses" %}</dt><dd>− {% money f.books.expenses %}</dd>
+          <dt class="totals-grand">{% translate "Net profit" %}</dt><dd class="totals-grand">{% money f.books.net %}</dd>
+        </dl>
+      </div>
+      <div class="col-md-6">
+        <table class="table table-sm align-middle mb-0 audit-recon">
+          <thead><tr><th></th><th class="text-end">{% translate "Bills" %}</th><th class="text-end">{% translate "Books" %}</th></tr></thead>
+          <tbody>
+            <tr><td>{% translate "Sales (without VAT)" %}</td><td class="text-end">{% money f.books.doc_sales %}</td><td class="text-end">{% money f.books.sales %}</td></tr>
+            <tr><td>{% translate "Returns" %}</td><td class="text-end">{% money f.books.doc_returns %}</td><td class="text-end">{% money f.books.returns %}</td></tr>
+          </tbody>
+        </table>
+        <p class="small mt-2 mb-0">{% if f.books.balanced %}<i class="bi bi-check-circle text-success"></i> {% translate "Debits equal credits." %}{% else %}<i class="bi bi-exclamation-triangle text-danger"></i> {% translate "Debits and credits don't match: rebuild the books." %}{% endif %}
+          · {% blocktranslate with n=f.books.unposted %}{{ n }} sales without a journal entry.{% endblocktranslate %}</p>
+      </div>
+    </div>
+  </section>
+</div>

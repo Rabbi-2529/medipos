@@ -1,0 +1,134 @@
+{% extends "layouts/app.html" %}
+{% load i18n shop %}
+{% block title %}{{ audit.number }}{% endblock %}
+{% block page_title %}{{ audit.number }} · {{ audit.outlet.name }}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle"><a href="{% url 'audit:branches' %}"><i class="bi bi-chevron-left"></i> {% translate "Branch audits" %}</a> · {{ audit.start|date:"d M Y" }} – {{ audit.end|date:"d M Y" }}{% if audit.note %} · {{ audit.note }}{% endif %}</p>{% endblock %}
+{% block page_actions %}
+{% if can_work %}<form method="post" class="d-inline">{% csrf_token %}<input type="hidden" name="action" value="refresh"><button class="btn btn-outline-secondary" type="submit"><i class="bi bi-arrow-clockwise"></i> {% translate "Work out again" %}</button></form>{% endif %}
+<a class="btn btn-soft tone-violet" href="{% url 'audit:branch_print' audit.pk %}?print=1" target="_blank" rel="noopener"><i class="bi bi-printer"></i> {% translate "Print report" %}</a>
+{% if not audit.is_open and can_sign %}<form method="post" class="d-inline" data-confirm="{% translate 'Open this audit again for changes?' %}">{% csrf_token %}<input type="hidden" name="action" value="reopen"><button class="btn btn-outline-danger" type="submit">{% translate "Reopen" %}</button></form>{% endif %}
+{% endblock %}
+{% block content %}
+<div class="row g-3 mb-4">
+  <div class="col-6 col-xl-3"><div class="card stat-tile tone-violet h-100"><div class="card-body">
+    <div class="stat-label">{% translate "Status" %}</div>
+    <div class="stat-figure fs-5">{% if audit.is_open %}{{ audit.get_status_display }}{% else %}<span class="att-chip tone-{{ verdict_tone }}"><i class="bi bi-patch-check"></i> {{ audit.get_verdict_display }}</span>{% endif %}</div>
+    <small class="text-body-secondary">{% blocktranslate with n=warnings %}{{ n }} checks to look at{% endblocktranslate %} · {% blocktranslate with n=issues %}{{ n }} issues{% endblocktranslate %}</small>
+  </div></div></div>
+  <div class="col-6 col-xl-3"><div class="card stat-tile tone-teal h-100"><div class="card-body">
+    <div class="stat-label">{% translate "Net sales" %}</div><div class="stat-figure">{% money f.sales.net %}</div>
+    <small class="text-body-secondary">{% blocktranslate with n=f.sales.count %}{{ n }} bills{% endblocktranslate %}</small>
+  </div></div></div>
+  <div class="col-6 col-xl-3"><div class="card stat-tile tone-red h-100"><div class="card-body">
+    <div class="stat-label">{% translate "Cash short / over" %}</div><div class="stat-figure">{% money f.cash.short %} / {% money f.cash.over %}</div>
+    <small class="text-body-secondary">{% blocktranslate with n=f.cash.open %}{{ n }} registers open{% endblocktranslate %}</small>
+  </div></div></div>
+  <div class="col-6 col-xl-3"><div class="card stat-tile tone-amber h-100"><div class="card-body">
+    <div class="stat-label">{% translate "Net profit (books)" %}</div><div class="stat-figure">{% money f.books.net %}</div>
+    <small class="text-body-secondary">{% translate "Stock" %} {% money f.stock.value %}</small>
+  </div></div></div>
+</div>
+
+<div class="row g-4">
+  <div class="col-xl-7">
+    <form class="card mb-4" method="post">
+      {% csrf_token %}<input type="hidden" name="action" value="checks">
+      <div class="card-header"><h2 class="card-title"><i class="bi bi-list-check"></i> {% translate "Checklist" %}</h2></div>
+      <div class="card-body p-0">
+        <ul class="list-unstyled audit-checks mb-0">
+          {% for c in checks %}
+          <li class="audit-check{% if c.result == 'issue' %} is-issue{% endif %}">
+            <div class="audit-check-head">
+              <span class="att-chip tone-{{ c.tone }}" title="{{ c.get_flag_display }}"><i class="bi {{ c.icon }}"></i></span>
+              <div><strong>{{ c.title }}</strong><small class="d-block text-body-secondary">{{ c.detail }}</small></div>
+            </div>
+            <div class="audit-check-answer">
+              <fieldset class="att-status" {% if not can_work %}disabled{% endif %}>
+                <legend class="visually-hidden">{{ c.title }}</legend>
+                {% for value, label in results %}
+                <input class="btn-check" type="radio" name="result-{{ c.key }}" id="r-{{ c.key }}-{{ value }}" value="{{ value }}" {% if c.result == value %}checked{% endif %}>
+                <label class="att-pill tone-{% if value == 'ok' %}teal{% elif value == 'issue' %}red{% else %}slate{% endif %}" for="r-{{ c.key }}-{{ value }}">{{ label }}</label>
+                {% endfor %}
+              </fieldset>
+              <input class="form-control form-control-sm" name="note-{{ c.key }}" value="{{ c.note }}" maxlength="300" placeholder="{% translate 'Note' %}" aria-label="{% translate 'Note' %}" {% if not can_work %}disabled{% endif %}>
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% if can_work %}<div class="card-footer bg-transparent"><button class="btn btn-primary" type="submit"><i class="bi bi-check2-circle"></i> {% translate "Save checklist" %}</button></div>{% endif %}
+    </form>
+
+    <div class="card mb-4">
+      <div class="card-header"><h2 class="card-title"><i class="bi bi-flag"></i> {% translate "Findings" %}</h2></div>
+      <div class="card-body">
+        {% if findings %}
+        <ul class="list-unstyled audit-findings">
+          {% for x in findings %}
+          <li class="{% if x.resolved %}is-resolved{% endif %}">
+            <div class="d-flex justify-content-between gap-2">
+              <div><span class="att-chip tone-{{ x.tone }}">{{ x.get_severity_display }}</span> <strong>{{ x.title }}</strong>{% if x.resolved %} <span class="text-success small"><i class="bi bi-check2"></i> {% translate "Resolved" %}</span>{% endif %}
+                {% if x.detail %}<div class="small mt-1">{{ x.detail|linebreaksbr }}</div>{% endif %}
+                {% if x.action %}<div class="small text-body-secondary"><i class="bi bi-arrow-return-right"></i> {{ x.action }}</div>{% endif %}</div>
+              {% if can_work %}
+              <div class="d-flex gap-1 align-items-start">
+                <form method="post">{% csrf_token %}<input type="hidden" name="action" value="resolve"><input type="hidden" name="finding" value="{{ x.pk }}"><button class="btn btn-sm btn-outline-success" type="submit" title="{% translate 'Resolved' %}" aria-label="{% translate 'Resolved' %}"><i class="bi bi-check2"></i></button></form>
+                <form method="post" data-confirm="{% translate 'Delete this finding?' %}">{% csrf_token %}<input type="hidden" name="action" value="delete_finding"><input type="hidden" name="finding" value="{{ x.pk }}"><button class="btn btn-sm btn-link text-danger" type="submit" aria-label="{% translate 'Delete' %}"><i class="bi bi-trash3"></i></button></form>
+              </div>
+              {% endif %}
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+        {% elif not can_work %}<p class="text-body-secondary mb-0">{% translate "No findings." %}</p>{% endif %}
+        {% if can_work %}
+        <form method="post" novalidate class="audit-finding-form">
+          {% csrf_token %}<input type="hidden" name="action" value="finding">
+          <div class="row g-2">
+            <div class="col-md-8">{% include "partials/_field.html" with field=finding_form.title %}</div>
+            <div class="col-md-4">{% include "partials/_field.html" with field=finding_form.severity %}</div>
+            <div class="col-12">{% include "partials/_field.html" with field=finding_form.detail %}</div>
+            <div class="col-12">{% include "partials/_field.html" with field=finding_form.action %}</div>
+          </div>
+          <button class="btn btn-outline-primary" type="submit"><i class="bi bi-plus-circle"></i> {% translate "Add finding" %}</button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-5">
+    <div class="card voucher-card tone-{% if audit.is_open %}violet{% else %}{{ verdict_tone }}{% endif %} mb-4">
+      <div class="card-header"><h2 class="card-title"><i class="bi bi-pen"></i> {% translate "Sign-off" %}</h2></div>
+      <div class="card-body">
+        {% if audit.is_open %}
+          {% if can_sign %}
+          <form method="post" novalidate>
+            {% csrf_token %}<input type="hidden" name="action" value="sign">
+            {% include "partials/_field.html" with field=sign_form.verdict %}
+            {% include "partials/_field.html" with field=sign_form.summary %}
+            <button class="btn btn-primary w-100" type="submit"><i class="bi bi-patch-check"></i> {% translate "Sign off" %}</button>
+            <p class="form-text mb-0">{% translate "Every check needs OK, Issue or Not checked first. Signing off fixes the figures." %}</p>
+          </form>
+          {% else %}<p class="text-body-secondary mb-0">{% translate "Someone allowed to sign off audits finishes it." %}</p>{% endif %}
+        {% else %}
+        <p class="mb-2"><span class="att-chip tone-{{ verdict_tone }}"><i class="bi bi-patch-check"></i> {{ audit.get_verdict_display }}</span></p>
+        {% if audit.summary %}<p class="mb-2">{{ audit.summary|linebreaksbr }}</p>{% endif %}
+        <p class="small text-body-secondary mb-0">{% blocktranslate with who=audit.signed_by|default:"—" when=audit.signed_at|date:"j F Y, h:i A" %}Signed off by {{ who }} on {{ when }}.{% endblocktranslate %}</p>
+        {% endif %}
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-body small text-body-secondary">
+        {% blocktranslate with when=audit.figured_at|date:"j F Y, h:i A" %}Figures worked out {{ when }}.{% endblocktranslate %}
+        {% translate "Checks flag: register shortages, discounts over 10% and returns over 5% of sales, sales below cost, bills that don't match the books, stock losses over 1% of stock value, expired stock on the shelves and no stock count in the period." %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card mt-2">
+  <div class="card-header"><h2 class="card-title"><i class="bi bi-bar-chart"></i> {% translate "Figures" %}</h2></div>
+  <div class="card-body">{% include "audit/_branch_figures.html" %}</div>
+</div>
+{% endblock %}

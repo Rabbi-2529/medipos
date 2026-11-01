@@ -274,6 +274,23 @@ Simplifications: VAT on returned sales stays in sales returns; transfers between
 - Demo seeding and new-pharmacy setup aren't logged. `queryset.update()` / `bulk_create()` bypass it (used only for system bookkeeping).
 - 285 tests; Bangla 2221/2221.
 
+### Extra — Branch audits ✅ (what "Audit" meant)
+- **Accounts → Audit → Branch audits** (permission `branch_audit`: list / create = start and work audits / edit = sign off and reopen; not in manager defaults): head office picks a branch and a period; MediPOS works out its figures:
+  - sales (bills, discounts, VAT, returns, due given, lines below cost), payments by method, each cashier's sales, discounts and returns;
+  - every cash register (opening, expected, counted, short/over, still open);
+  - money (due collected, expenses, other income), purchases received and returned;
+  - stock (value now, movements by kind, write-offs, stock counts, expired and expiring batches, transfers on the way);
+  - **the branch's books** (profit & loss from the journal) reconciled against the bills, sales without a journal entry, and whether the books balance.
+- A 14-point **checklist** flags what to look at (shortages, discounts over 10%, returns over 5%, sales below cost, bills vs books, losses over 1% of stock, expired stock, no stock count…); the auditor marks each OK / Issue / Not checked with a note, adds **findings** (severity, what was found, what to do, resolved), then **signs off** with a verdict (satisfactory / needs improvement / unsatisfactory) and conclusion. Figures can be worked out again until sign-off; a printable A4 report has the checklist, findings, figures and signature lines.
+- The earlier audit trail is now called the **Activity log** (same menu group).
+
+### Extra — Support assistant ✅
+- A help chat button on every page (not the POS) when the platform switches it on (**Platform → Support assistant**) and the person's role has `support.list` (owner only by default).
+- **Built-in help (free, no AI)**: 21 how-to articles (English and Bangla) matched by keywords; answers link to the page.
+- **AI**: any OpenAI-compatible chat API (base URL, model, key; presets for Groq's free plan, OpenRouter, Gemini's OpenAI endpoint, a local Ollama, OpenAI). The AI is told to answer only about MediPOS from the help articles, in the user's language, never asking for personal data; the conversation's last messages go along. Per-pharmacy daily AI limit; falls back to the built-in help when the AI fails or the limit is reached. Test button; today's numbers and recent questions in the console. Key can come from `SUPPORT_AI_API_KEY`.
+- GitHub Models (the free GitHub option asked for) was retired by GitHub on 30 July 2026, so it can't be the default.
+- 293 tests; Bangla 2446/2446.
+
 ### Phase 12 — Production deploy
 - Docker Compose (web, PostgreSQL, Redis, Celery, Nginx) and HTTPS.
 - Optional subdomain per pharmacy.

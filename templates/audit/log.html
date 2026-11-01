@@ -1,8 +1,8 @@
 {% extends "layouts/app.html" %}
 {% load i18n %}
-{% block title %}{% translate "Audit log" %}{% endblock %}
-{% block page_title %}{% if record %}{% blocktranslate with kind=record.kind name=record.name %}History of {{ kind }} “{{ name }}”{% endblocktranslate %}{% else %}{% translate "Audit log" %}{% endif %}{% endblock %}
-{% block page_subtitle %}<p class="page-subtitle">{% if record %}<a href="{% url 'audit:log' %}"><i class="bi bi-chevron-left"></i> {% translate "Whole audit log" %}</a>{% else %}{% translate "Who added, changed or deleted what, and when, with the values before and after. Sign-ins are here too." %}{% endif %}</p>{% endblock %}
+{% block title %}{% translate "Activity log" %}{% endblock %}
+{% block page_title %}{% if record %}{% blocktranslate with kind=record.kind name=record.name %}History of {{ kind }} “{{ name }}”{% endblocktranslate %}{% else %}{% translate "Activity log" %}{% endif %}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% if record %}<a href="{% url 'audit:log' %}"><i class="bi bi-chevron-left"></i> {% translate "Whole activity log" %}</a>{% else %}{% translate "Who added, changed or deleted what, and when, with the values before and after. Sign-ins are here too." %}{% endif %}</p>{% endblock %}
 {% block content %}
 <div class="card">
   <div class="card-body">

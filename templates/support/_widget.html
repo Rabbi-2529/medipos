@@ -1,0 +1,26 @@
+{% load i18n static %}
+{# The help chat button on every page (except the POS). Shown when the platform has switched the assistant on and the role allows it. #}
+<div class="support-widget" data-support data-state-url="{% url 'support:chat' %}" data-send-url="{% url 'support:send' %}"
+     data-thinking="{% translate 'Looking that up…' %}" data-failed="{% translate 'Something went wrong. Please try again.' %}"
+     data-open-label="{% translate 'Open it' %}">
+  <button class="support-fab" type="button" data-support-toggle aria-expanded="false" aria-controls="support-panel" title="{% translate 'Help' %}">
+    <i class="bi bi-chat-dots" aria-hidden="true"></i><span class="visually-hidden">{% translate "Help" %}</span>
+  </button>
+  <section class="support-panel" id="support-panel" role="dialog" aria-labelledby="support-title" hidden>
+    <header class="support-head">
+      <strong id="support-title"><i class="bi bi-robot" aria-hidden="true"></i> {% translate "MediPOS help" %}</strong>
+      <span>
+        <button type="button" data-support-new title="{% translate 'New conversation' %}" aria-label="{% translate 'New conversation' %}"><i class="bi bi-plus-lg"></i></button>
+        <button type="button" data-support-close title="{% translate 'Close' %}" aria-label="{% translate 'Close' %}"><i class="bi bi-x-lg"></i></button>
+      </span>
+    </header>
+    <div class="support-log" data-support-log aria-live="polite"></div>
+    <form class="support-form" data-support-form>
+      <label class="visually-hidden" for="support-input">{% translate "Your question" %}</label>
+      <textarea id="support-input" rows="2" maxlength="1000" placeholder="{% translate 'Ask how to do something…' %}" data-support-input></textarea>
+      <button type="submit" class="btn btn-primary" aria-label="{% translate 'Send' %}"><i class="bi bi-send"></i></button>
+    </form>
+    <p class="support-note">{% translate "Don't share patients' or customers' personal details here." %}</p>
+  </section>
+</div>
+<script src="{% static 'js/support.js' %}?v=1"></script>
