@@ -6,8 +6,7 @@
   <div class="auth-card card {% block auth_card_class %}{% endblock %}">
     <div class="card-body">
       <div class="auth-brand">
-        <span class="brand-mark"><i class="bi bi-capsule-pill"></i></span>
-        <span class="brand-text"><small>{{ APP_COMPANY }}</small>{{ APP_PRODUCT }}</span>
+        {% include "partials/_brand.html" %}
       </div>
       {% include "partials/_messages.html" %}
       {% block auth_content %}{% endblock %}

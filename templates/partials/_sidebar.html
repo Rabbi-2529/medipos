@@ -1,8 +1,7 @@
 {% load i18n %}
 <aside class="app-sidebar" id="appSidebar" aria-label="{% translate 'Main menu' %}">
   <a class="sidebar-brand" href="{% url 'core:dashboard' %}">
-    <span class="brand-mark"><i class="bi bi-capsule-pill"></i></span>
-    <span class="brand-text"><small>{{ APP_COMPANY }}</small>{{ APP_PRODUCT }}</span>
+    {% include "partials/_brand.html" %}
   </a>
   {% if current_tenant %}
   <div class="sidebar-tenant" title="{{ current_tenant.name }}">

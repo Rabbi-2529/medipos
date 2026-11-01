@@ -24,11 +24,30 @@
 
   function api(url, body) {
     var opts = body === undefined ? {} : { method: "POST", headers: { "Content-Type": "application/json", "X-CSRFToken": csrf }, body: JSON.stringify(body) };
-    return fetch(url, opts).then(function (r) {
+    return fetch(url, opts).catch(function () {
+      setOnline(false);
+      var lost = new Error(T.offline); lost.offline = true; throw lost;
+    }).then(function (r) {
+      setOnline(true);
       return r.json().catch(function () { return {}; }).then(function (data) {
         if (!r.ok) throw new Error(data.error || T.error);
         return data;
       });
+    });
+  }
+
+  // ---- without internet (static/js/pos_offline.js) ----------------------------------
+  var offline = window.MPOffline && window.indexedDB ? window.MPOffline : null, online = navigator.onLine;
+  function setOnline(yes) {
+    online = yes;
+    var badge = q("[data-net]");
+    if (badge) { badge.classList.toggle("is-offline", !yes); q("[data-net-label]").textContent = yes ? T.online : T.offlineShort; }
+  }
+  /* Ask the server; when it can't be reached, answer from the till's own copy. */
+  function orOffline(url, local) {
+    return api(url).catch(function (err) {
+      if (err.offline && offline && offline.hasCopy()) return local();
+      throw err;
     });
   }
 
@@ -97,7 +116,7 @@
 
   function runSearch(term, addExact) {
     var seq = ++searchSeq;
-    return api(cfg.urls.search + "?q=" + encodeURIComponent(term)).then(function (data) {
+    return orOffline(cfg.urls.search + "?q=" + encodeURIComponent(term), function () { return offline.search(term); }).then(function (data) {
       if (seq !== searchSeq) return;
       results = data.results; activeResult = 0;
       if (addExact && data.exact && results.length) { addItem(results[0]); search.value = ""; showBrowse(); return; }
@@ -109,7 +128,7 @@
     if (category) browse.category = category;
     catsBox.querySelectorAll("[data-category]").forEach(function (b) { b.classList.toggle("is-active", b.dataset.category === browse.category); });
     var seq = ++searchSeq;
-    return api(cfg.urls.search + "?category=" + encodeURIComponent(browse.category)).then(function (data) {
+    return orOffline(cfg.urls.search + "?category=" + encodeURIComponent(browse.category), function () { return offline.browse(browse.category); }).then(function (data) {
       if (seq !== searchSeq) return;
       results = data.results; activeResult = 0;
       browse.hasSales = data.hasSales; browse.more = data.more; browse.navigated = false;
@@ -334,7 +353,7 @@
         item.addEventListener("click", function () { line.batch = b.id; line.batchLabel = label; modal("batchModal").hide(); render(); });
         list.appendChild(item);
       });
-    });
+    }).catch(function () { list.appendChild(el("p", "small text-body-secondary m-2 mb-0", T.offlineBatch)); });
     modal("batchModal").show();
   }
 
@@ -342,7 +361,18 @@
   var $customer = $("#pos-customer");
   $customer.select2({
     theme: "bootstrap-5", width: "100%", allowClear: true, placeholder: T.walkIn,
-    ajax: { url: cfg.urls.customers, dataType: "json", delay: 250, data: function (p) { return { q: p.term || "", page: p.page || 1 }; } }
+    ajax: {
+      url: cfg.urls.customers, dataType: "json", delay: 250, data: function (p) { return { q: p.term || "", page: p.page || 1 }; },
+      transport: function (params, success, failure) {
+        var request = $.ajax(params);
+        request.then(success);
+        request.fail(function (xhr) {
+          if (xhr.status === 0 && offline && offline.hasCopy()) { setOnline(false); success({ results: offline.customers(params.data.q), pagination: { more: false } }); }
+          else failure();
+        });
+        return request;
+      }
+    }
   });
   $customer.on("select2:select", function (ev) { setCustomer(ev.params.data); });
   $customer.on("select2:clear", function () { setCustomer(null); });
@@ -440,12 +470,12 @@
   q("[data-pay]").addEventListener("click", openPay);
   document.getElementById("payModal").addEventListener("shown.bs.modal", function () { var i = paymentsBox.querySelector("input"); if (i) i.select(); });
 
-  var completing = false, lastReceipt = null;
+  var completing = false, lastReceipt = null, lastOffline = null;
   q("[data-complete]").addEventListener("click", function () {
     if (completing) return;
     completing = true;
     var t = totals();
-    api(cfg.urls.checkout, {
+    var payload = {
       lines: cartLines(),
       quotation: state.quotationId,
       payments: payments.filter(function (p) { return num(p.amount) > 0; }).map(function (p) { return { account: p.account, amount: num(p.amount) }; }),
@@ -455,9 +485,11 @@
       points: t.points,
       cashTendered: q("[data-tendered]").value || null,
       rxChecked: q("[data-rx]").checked
-    }).then(function (sale) {
+    };
+    api(cfg.urls.checkout, payload).then(function (sale) {
       modal("payModal").hide();
-      lastReceipt = sale.receiptUrl;
+      lastReceipt = sale.receiptUrl; lastOffline = null;
+      q("[data-done-offline]").classList.add("d-none");
       q("[data-done-number]").textContent = sale.number;
       var change = q("[data-done-change]"), due = q("[data-done-due]");
       change.textContent = sale.change ? T.change + ": " + sale.change : ""; change.classList.toggle("d-none", !sale.change);
@@ -470,9 +502,44 @@
       if (cfg.autoPrint) printQuietly(sale.receiptUrl);
       reset();
     }).catch(function (err) {
+      if (err.offline && offline) return saveOffline(payload, t);
       var box = q("[data-pay-error]"); box.textContent = err.message; box.classList.remove("d-none");
     }).finally(function () { completing = false; });
   });
+
+  /* No internet: keep the sale on this computer, print a receipt with a temporary number, send it later. */
+  function saveOffline(payload, t) {
+    var paid = payload.payments.reduce(function (sum, p) { return sum + num(p.amount); }, 0);
+    var tendered = num(payload.cashTendered), change = tendered > paid ? round2(tendered - paid) : 0, due = round2(t.total - paid);
+    var receipt = {
+      customer: state.customer ? state.customer.name : "",
+      lines: state.lines.map(function (l) {
+        return { medicine: l.medicine, name: l.name, unit: unitOf(l).label, qty: l.qty, units: unitOf(l).factor * l.qty,
+                 price: money(gross(l) / l.qty), total: money(lineTotal(l)) };
+      }),
+      totals: [{ label: T.subtotal, value: money(t.subtotal) }]
+        .concat(t.lineDiscount + t.discount + t.pointsValue ? [{ label: T.lineDiscount, value: "− " + money(t.lineDiscount + t.discount + t.pointsValue) }] : [])
+        .concat(t.vat ? [{ label: T.vat, value: money(t.vat) }] : [])
+        .concat([{ label: T.total, value: money(t.total), grand: true }, { label: T.paid, value: money(paid) }])
+        .concat(change ? [{ label: T.change, value: money(change) }] : [])
+        .concat(due > 0 ? [{ label: T.due, value: money(due) }] : [])
+    };
+    return offline.save(payload, receipt).then(function (row) {
+      modal("payModal").hide();
+      lastReceipt = null; lastOffline = row;
+      q("[data-done-number]").textContent = row.number;
+      var changeBox = q("[data-done-change]"), dueBox = q("[data-done-due]");
+      changeBox.textContent = change ? T.change + ": " + money(change) : ""; changeBox.classList.toggle("d-none", !change);
+      dueBox.textContent = due > 0 ? T.due + ": " + money(due) : ""; dueBox.classList.toggle("d-none", !(due > 0));
+      ["[data-done-points]", "[data-done-sent]", "[data-done-whatsapp]"].forEach(function (sel) { q(sel).classList.add("d-none"); });
+      q("[data-done-offline]").classList.remove("d-none");
+      modal("doneModal").show();
+      if (cfg.autoPrint) offline.printReceipt(row, T);
+      reset();
+    }).catch(function () {
+      var box = q("[data-pay-error]"); box.textContent = T.offlineSaveFailed; box.classList.remove("d-none");
+    });
+  }
 
   // Prints from a hidden frame on this page, so no pop-up window (or pop-up blocker) is involved.
   function printQuietly(url) {
@@ -487,6 +554,7 @@
 
   q("[data-print]").addEventListener("click", function () {
     if (lastReceipt) window.open(lastReceipt + "?print=1&size=" + cfg.receiptSize, "_blank", "width=420,height=640");
+    else if (lastOffline) offline.printReceipt(lastOffline, T);
   });
   q("[data-new-sale]").addEventListener("click", function () { modal("doneModal").hide(); });
   document.getElementById("doneModal").addEventListener("hidden.bs.modal", function () { search.focus(); });
@@ -588,5 +656,69 @@
   if (cfg.quotation) {  // opened from a quotation's "Sell in POS"
     loadCart(Object.assign({}, cfg.quotation.cart, { quotationId: cfg.quotation.id }));
     toast(fmt(T.fromQuote, { number: cfg.quotation.number }));
+  }
+  // ---- offline sales: the badge and the list -------------------------------------------
+  function renderQueue(rows) {
+    var badge = q("[data-net]"), count = q("[data-net-count]"), list = q("[data-offline-list]");
+    if (!badge) return;
+    var failed = rows.filter(function (r) { return r.status === "failed"; }).length;
+    count.textContent = rows.length; count.hidden = !rows.length;
+    badge.classList.toggle("has-failed", failed > 0);
+    list.replaceChildren();
+    if (!rows.length) { list.appendChild(el("p", "text-body-secondary mb-0", T.offlineNone)); return; }
+    rows.forEach(function (row) {
+      var item = el("div", "offline-row" + (row.status === "failed" ? " is-failed" : ""));
+      var info = el("div");
+      info.appendChild(el("strong", "", row.number));
+      info.appendChild(el("small", "d-block text-body-secondary", new Date(row.soldAt).toLocaleString() + " · " +
+        row.receipt.totals.filter(function (t) { return t.grand; }).map(function (t) { return t.value; }).join("")));
+      if (row.error) info.appendChild(el("small", "d-block text-danger", row.error));
+      item.appendChild(info);
+      var actions = el("div", "d-flex gap-1");
+      if (row.status === "failed") {
+        var again = el("button", "btn btn-sm btn-outline-primary", T.offlineRetry); again.type = "button";
+        again.addEventListener("click", function () { offline.retry(row.offlineId); });
+        var load = el("button", "btn btn-sm btn-outline-secondary", T.offlineLoad); load.type = "button";
+        load.addEventListener("click", function () {
+          offline.take(row.offlineId).then(function (taken) { if (taken) { modal("offlineModal").hide(); loadOfflineCart(taken); } });
+        });
+        var drop = el("button", "btn btn-sm btn-link text-danger", T.remove); drop.type = "button";
+        drop.addEventListener("click", function () { if (window.confirm(T.offlineDeleteConfirm)) offline.remove(row.offlineId); });
+        actions.append(again, load, drop);
+      } else {
+        actions.appendChild(el("span", "badge text-bg-light", T.offlineWaiting));
+      }
+      item.appendChild(actions);
+      list.appendChild(item);
+    });
+  }
+
+  /* A sale the server refused goes back into the cart, to be fixed and completed again while online. */
+  function loadOfflineCart(row) {
+    state.lines = [];
+    row.lines.forEach(function (l) {
+      var m = offline.medicine(l.medicine);
+      if (!m) return;
+      state.lines.push({ medicine: m.id, name: m.name, rx: m.rx, price: m.price, wholesale: m.wholesale, units: m.units, stock: m.stock,
+                         unit: l.unit, qty: l.qty, discount: l.discount ? String(l.discount) : "", batch: null, batchLabel: "", promo: m.promo || null });
+    });
+    render();
+    toast(T.offlineLoaded);
+  }
+
+  if (offline) {
+    offline.onChange(renderQueue);
+    offline.start(Object.assign({}, cfg.offline, { urls: cfg.urls, csrf: function () { return csrf; } }));
+    var syncButton = q("[data-offline-sync]");
+    if (syncButton) syncButton.addEventListener("click", function () {
+      offline.sync().then(function (res) {
+        if (res.error === "signin") toast(T.offlineSignIn);
+        else if (res.error) toast(T.offline);
+        else if (res.sent) toast(fmt(T.offlineSent, { n: res.sent }));
+      });
+    });
+    window.addEventListener("online", function () { setOnline(true); });
+    window.addEventListener("offline", function () { setOnline(false); });
+    setOnline(navigator.onLine);
   }
 })();

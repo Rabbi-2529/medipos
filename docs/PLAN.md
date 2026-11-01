@@ -300,7 +300,25 @@ Simplifications: VAT on returned sales stays in sales returns; transfers between
 - Online subscription billing (bKash / SSLCommerz).
 - eCommerce storefront per pharmacy.
 - Installment sales.
-- Offline-capable POS (PWA).
+- ~~Offline-capable POS (PWA)~~ — done, see below.
+
+### Extra — POS without internet (PWA) ✅ (Phase 12 put on hold)
+- While online the POS keeps a copy of its outlet's medicines (prices, units, stock, barcodes, offers), customers and register in the browser (IndexedDB, `static/js/pos_offline.js`), refreshed every 10 minutes and after each sale sent (`sales:pos_offline_data`).
+- When the server can't be reached, search, scanning, best sellers, categories and customer picking work from that copy; completing a sale saves it on the computer with a temporary number (OFF-…), takes the stock off the copy and prints an offline receipt. Batch choice, holding carts and quotations need the internet.
+- An Online / Offline badge on the POS bar counts sales waiting; its list shows each one, with Send again, Back to the cart and Delete for any the server refused.
+- Saved sales are sent by themselves when the connection is back (and every 30 s): `sales:pos_sync` takes up to 50 at a time, re-checks everything, records each with its real sale time, the register open then and "Sold without internet", and `Sale.offline_ref` makes a sale sent twice record once. Refusals (stock gone, credit limit, a wrong clock, an outlet no longer allowed) come back with the reason.
+- Installable app: web app manifest, icons, and a service worker (`/sw.js`) that keeps the POS page and its files so it opens without internet; other pages show a short offline page. Needs https (or localhost).
+- 298 tests; Bangla 2471/2471.
+
+### Extra — ThingBD brand, Windows desktop install and the guide ✅
+- **Brand** from thingbd.com: purple `#8b5cf6` on white, black (`#050505`) in dark mode, Outfit + Hind Siliguri. The ThingBD "T" icon is the logo (sidebar, POS bar, sign-in pages), the favicon, the app icons (192, 512, maskable) and a Windows `.ico` for the shortcuts.
+- **Shop PC install** (`scripts/windows/`): `Install-MediPOS.bat` runs `install.ps1`: Python 3.12+ venv, packages, a `.env` with a new secret key, migrate, the platform admin, and shortcuts with the ThingBD icon on the desktop, in the Start menu (with **Stop MediPOS**) and in Startup so MediPOS starts with Windows. `-NoStartup`, `-ShortcutsOnly`, `-Remove`.
+- **Launcher** `medipos_desktop.py` (pythonw, no console): Waitress on `MEDIPOS_HOST:MEDIPOS_PORT` (127.0.0.1:8800), migrate on start, a thread that sends queued messages every minute, and the POS opened as a Chrome/Edge app window. A second start finds the running one and only opens the window; another program on the port gets a message box. `--background`, `--stop`; logs in `logs/`.
+- **`config.settings.desktop`**: no debug pages, WhiteNoise with finders (an update needs no collectstatic), uploaded files served by Django (`SERVE_MEDIA`), SQLite waits for locks (20 s, IMMEDIATE transactions), a rotating file log. Browsers treat http://localhost as secure, so the installed app and the offline POS work without a certificate.
+- The mail server comes from `.env` (`EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, `EMAIL_USE_TLS` / `EMAIL_USE_SSL`); before, only the console backend in dev was set.
+- `.claude/launch.json` gains `medipos-desktop` (port 8800) to preview the launcher.
+- **`docs/ThingBD-MediPOS-Guide.pdf`** (25 pages): features, Windows install, desktop icon and starting with Windows, installing the app, other PCs on the shop network, first-time setup, the POS, selling offline, routines, where things are, settings, backups, updates, server install (Ubuntu, PostgreSQL, Gunicorn, Nginx, HTTPS), troubleshooting and the `.env` reference.
+- 298 tests; Bangla 2471/2471.
 
 ## Deliberately dropped from the demo
 IMEI/serial tracking, warranty and servicing, combo products, Saudi-style e-invoice, and plugin/license/update screens.

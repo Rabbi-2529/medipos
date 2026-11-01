@@ -15,6 +15,14 @@
       "port": 8002,
       "url": "http://localhost:8002",
       "autoPort": false
+    },
+    {
+      "name": "medipos-desktop",
+      "runtimeExecutable": "E:\\medipos\\venv\\Scripts\\python.exe",
+      "runtimeArgs": ["scripts/windows/medipos_desktop.py", "--background"],
+      "port": 8800,
+      "url": "http://localhost:8800",
+      "autoPort": false
     }
   ]
 }

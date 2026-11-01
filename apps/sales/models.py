@@ -63,10 +63,13 @@ class Sale(TenantOwnedModel):
     rx_checked = models.BooleanField(default=False)
     note = models.CharField(max_length=255, blank=True)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
+    # Set when the sale was made at a POS without internet: the till's own id, so sending it twice records it once.
+    offline_ref = models.CharField(max_length=40, blank=True)
 
     class Meta:
         ordering = ["-sold_at", "-id"]
-        constraints = [models.UniqueConstraint(fields=["tenant", "number"], name="uniq_sale_number")]
+        constraints = [models.UniqueConstraint(fields=["tenant", "number"], name="uniq_sale_number"),
+                       models.UniqueConstraint(fields=["tenant", "offline_ref"], condition=~Q(offline_ref=""), name="uniq_sale_offline_ref")]
         indexes = [models.Index(fields=["tenant", "outlet", "sold_at"], name="sale_outlet_time")]
 
     def __str__(self):

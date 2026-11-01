@@ -1,7 +1,8 @@
 # ThingBD MediPOS
 
 ThingBD's multi-tenant SaaS for medicine shops: inventory, POS, purchases, accounting and reports.
-The build plan is in [docs/PLAN.md](docs/PLAN.md).
+The build plan is in [docs/PLAN.md](docs/PLAN.md). The guide for owners and installers (features, Windows install,
+daily use, server install) is [docs/ThingBD-MediPOS-Guide.pdf](docs/ThingBD-MediPOS-Guide.pdf).
 
 ## Run locally (Windows)
 
@@ -28,6 +29,12 @@ Open http://localhost:8000. `seed_demo` creates:
 All of them use the `DEMO_PASSWORD` from `.env`. New pharmacies sign up at `/signup/`, or the platform admin adds them under **Pharmacies → Add pharmacy**.
 
 Lazz Pharma also gets two customers, an open cash register for the owner and a few sales, so the POS (`/sales/pos/`) works straight away.
+
+## Install on a shop PC (Windows)
+
+Double-click `scripts\windows\Install-MediPOS.bat`. It makes the venv, installs `requirements.txt`, writes `.env` for `config.settings.desktop` (port 8800, new secret key), migrates, asks for the platform admin and adds the shortcuts with the ThingBD icon: desktop and Start menu (plus **Stop MediPOS**), and the Startup folder so MediPOS starts with Windows. Switches: `install.ps1 -NoStartup | -ShortcutsOnly | -Remove`.
+
+The shortcuts run `scripts/windows/medipos_desktop.py` with `pythonw` (no console): Waitress on `MEDIPOS_HOST:MEDIPOS_PORT`, `migrate`, a thread sending queued messages every minute, then the POS opens as a Chrome/Edge app window. Starting it again only opens the window; `--background` opens nothing, `--stop` stops it. Logs are in `logs/`. In the preview, `medipos-desktop` (port 8800) runs the same launcher.
 
 ## Subscriptions
 
@@ -138,6 +145,11 @@ venv/Scripts/python.exe manage.py rebuild_books --tenant lazz-pharma-demo
 - Every printed bill goes through `sales.views.render_receipt()` (receipt, the customer's bill link, the settings preview); what shows is on `BusinessSettings` (Invoice & printing page) and the language comes from `setup.services.document_language()`.
 - QR codes are inline SVG from `segno` (`{% qr_svg text %}` in the `shop` template tags).
 - `apps.backup.exports`: `DATASETS` lists what the Excel export offers (any model, every stored column, links by name); `full_backup()` serialises every `TenantOwnedModel` of the current pharmacy. Add a dataset there when a new kind of record should be exportable.
+
+## POS without internet
+
+- `static/js/pos_offline.js` keeps the till's copy (IndexedDB) and the queue of offline sales; `pos.js` falls back to it only when a request fails for lack of network (`orOffline`, the checkout catch). Server side is `apps/sales/offline.py` (`offline_data`, `sync`, deduplicated by `Sale.offline_ref`).
+- The service worker is `templates/pwa/sw.js`, served at `/sw.js` (`apps/core/pwa.py`); bump `CACHE_VERSION` there when its logic changes. The POS page asks it to keep every file it loaded.
 
 ## Branch audits and the support assistant
 

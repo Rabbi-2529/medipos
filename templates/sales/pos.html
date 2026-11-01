@@ -6,6 +6,10 @@
 <span class="pos-bar-info"><i class="bi bi-cash-stack"></i> {% translate "Register opened" %} {{ register.opened_at|date:"h:i A" }}{% if register.counter %} · {{ register.counter.name }}{% endif %}</span>
 {% endblock %}
 {% block pos_bar_links %}
+<button class="pos-net" type="button" data-net data-bs-toggle="modal" data-bs-target="#offlineModal" title="{% translate 'Sales saved without internet' %}">
+  <span class="pos-net-dot" aria-hidden="true"></span><span data-net-label>{% translate "Online" %}</span>
+  <span class="badge rounded-pill text-bg-warning" data-net-count hidden></span>
+</button>
 {% if can.sale.list %}<a class="btn btn-sm btn-outline-secondary d-none d-lg-inline-block" href="{% url 'sales:list' %}"><i class="bi bi-receipt"></i> {% translate "Sales" %}</a>{% endif %}
 <a class="btn btn-sm btn-outline-danger" href="{% url 'sales:register_close' %}" title="{% translate 'Close register (Z-report)' %}"><i class="bi bi-door-closed"></i><span class="d-none d-xl-inline"> {% translate "Close register" %}</span></a>
 {% endblock %}
@@ -117,6 +121,20 @@
   </div>
 </div>
 
+{# ---- Sales saved without internet ---- #}
+<div class="modal fade" id="offlineModal" tabindex="-1" aria-labelledby="offlineTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header"><h2 class="modal-title fs-5" id="offlineTitle"><i class="bi bi-wifi-off"></i> {% translate "Sales saved without internet" %}</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% translate 'Close' %}"></button></div>
+      <div class="modal-body">
+        <p class="small text-body-secondary">{% translate "When the internet drops, the POS keeps selling from a copy of your medicines, stock and customers on this computer. These sales go to the server by themselves when it's back; the server checks each one again." %}</p>
+        <div data-offline-list></div>
+      </div>
+      <div class="modal-footer"><button type="button" class="btn btn-primary" data-offline-sync><i class="bi bi-arrow-repeat"></i> {% translate "Send now" %}</button></div>
+    </div>
+  </div>
+</div>
+
 {# ---- Done ---- #}
 <div class="modal fade" id="doneModal" tabindex="-1" aria-labelledby="doneTitle" aria-hidden="true" data-bs-backdrop="static">
   <div class="modal-dialog modal-dialog-centered modal-sm">
@@ -130,6 +148,7 @@
         <p class="small mb-0 mt-2 d-none" data-done-points></p>
         <p class="small text-success mb-0 mt-1 d-none" data-done-sent></p>
         <a class="btn btn-sm btn-soft tone-teal mt-2 d-none" data-done-whatsapp target="_blank" rel="noopener"><i class="bi bi-whatsapp"></i> {% translate "Send the bill on WhatsApp" %}</a>
+        <p class="small alert alert-warning py-2 mt-2 mb-0 d-none" data-done-offline><i class="bi bi-wifi-off"></i> {% translate "No internet: the sale is saved on this computer with a temporary number. It is sent and gets its invoice number when the internet is back." %}</p>
       </div>
       <div class="modal-footer justify-content-center border-0 pb-4">
         <button type="button" class="btn btn-outline-primary" data-print><i class="bi bi-printer"></i> {% translate "Print receipt" %}</button>
@@ -199,5 +218,16 @@
 {% endblock %}
 {% block extra_js %}
 {% load static %}
-<script src="{% static 'js/pos.js' %}?v=8"></script>
+<script src="{% static 'js/pos_offline.js' %}?v=1"></script>
+<script>
+  // Keep this page and every file it loaded, so it opens again without internet.
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.ready.then(function (reg) {
+      var urls = [window.location.pathname].concat(Array.prototype.map.call(
+        document.querySelectorAll("link[rel=stylesheet][href], script[src]"), function (node) { return node.href || node.src; }));
+      if (reg.active) reg.active.postMessage({ type: "keep", urls: urls });
+    });
+  }
+</script>
+<script src="{% static 'js/pos.js' %}?v=9"></script>
 {% endblock %}

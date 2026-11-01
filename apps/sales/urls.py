@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import views
+from . import offline, views
 
 app_name = "sales"
 
@@ -9,6 +9,8 @@ urlpatterns = [
     path("pos/search/", views.pos_search, name="pos_search"),
     path("pos/batches/", views.pos_batches, name="pos_batches"),
     path("pos/checkout/", views.pos_checkout, name="pos_checkout"),
+    path("pos/offline-data/", offline.offline_data, name="pos_offline_data"),
+    path("pos/sync/", offline.sync, name="pos_sync"),
     path("pos/hold/", views.pos_hold, name="pos_hold"),
     path("pos/held/", views.pos_held, name="pos_held"),
     path("pos/recall/", views.pos_recall, name="pos_recall"),

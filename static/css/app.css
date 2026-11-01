@@ -1,39 +1,40 @@
-/* ThingBD MediPOS theme — tokens first, dark mode overrides the same tokens. */
+/* ThingBD MediPOS theme — ThingBD's own colours (thingbd.com): purple on white, and near-black in dark mode.
+   Tokens first; dark mode overrides the same tokens. */
 :root {
-  --mp-primary: #6d5dfc;
-  --mp-primary-rgb: 109, 93, 252;
-  --mp-primary-hover: #5b4ae8;
-  --mp-primary-2: #9a8fff;
-  --mp-primary-subtle: rgba(109, 93, 252, .12);
-  --mp-body-bg: #f5f5f9;
+  --mp-primary: #8b5cf6;
+  --mp-primary-rgb: 139, 92, 246;
+  --mp-primary-hover: #7c3aed;
+  --mp-primary-2: #c4b5fd;
+  --mp-primary-subtle: rgba(139, 92, 246, .12);
+  --mp-body-bg: #f8f7fc;
   --mp-surface: #ffffff;
-  --mp-border: #e6e6ef;
-  --mp-text: #3b3747;
-  --mp-heading: #2b2838;
-  --mp-muted: #75718a;
-  --mp-hover: rgba(47, 43, 61, .06);
-  --mp-shadow: 0 3px 12px rgba(47, 43, 61, .08);
+  --mp-border: #ebe8f3;
+  --mp-text: #3a3646;
+  --mp-heading: #17141f;
+  --mp-muted: #6f6a80;
+  --mp-hover: rgba(23, 20, 31, .05);
+  --mp-shadow: 0 3px 12px rgba(23, 20, 31, .07);
   --mp-sidebar-w: 260px;
   --mp-topbar-h: 62px;
   --mp-radius: 10px;
 }
 
 [data-bs-theme="dark"] {
-  --mp-primary-subtle: rgba(109, 93, 252, .2);
-  --mp-body-bg: #1f2233;
-  --mp-surface: #2a2e42;
-  --mp-border: #3d4260;
-  --mp-text: #cfd3ec;
-  --mp-heading: #e6e8f7;
-  --mp-muted: #9a9fbf;
+  --mp-primary-subtle: rgba(139, 92, 246, .22);
+  --mp-body-bg: #050505;
+  --mp-surface: #111017;
+  --mp-border: #26232f;
+  --mp-text: #d9d6e2;
+  --mp-heading: #fafafa;
+  --mp-muted: #a19dab;
   --mp-hover: rgba(255, 255, 255, .06);
-  --mp-shadow: 0 3px 14px rgba(0, 0, 0, .3);
+  --mp-shadow: 0 3px 16px rgba(0, 0, 0, .55);
 }
 
 /* Map tokens onto Bootstrap's variables (this file loads after Bootstrap). */
 :root,
 [data-bs-theme] {
-  --bs-body-font-family: "Public Sans", "Hind Siliguri", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --bs-body-font-family: "Outfit", "Hind Siliguri", system-ui, -apple-system, "Segoe UI", sans-serif;
   --bs-body-font-size: .9375rem;
   --bs-body-bg: var(--mp-body-bg);
   --bs-body-color: var(--mp-text);
@@ -45,7 +46,7 @@
   --bs-link-color: var(--mp-primary);
   --bs-link-color-rgb: var(--mp-primary-rgb);
   --bs-link-hover-color: var(--mp-primary-hover);
-  --bs-link-hover-color-rgb: 91, 74, 232;
+  --bs-link-hover-color-rgb: 124, 58, 237;
   --bs-heading-color: var(--mp-heading);
 }
 
@@ -97,18 +98,11 @@ a { text-decoration: none; }
 .modal-content { background: var(--mp-surface); }
 
 /* Brand */
-.brand-mark {
-  width: 34px; height: 34px; border-radius: 9px; flex: none;
-  display: grid; place-items: center;
-  background: linear-gradient(135deg, var(--mp-primary), var(--mp-primary-2));
-  color: #fff; font-size: 1.1rem;
-}
-.brand-text { font-weight: 700; font-size: 1.3rem; line-height: 1.1; color: var(--mp-heading); letter-spacing: -.01em; }
-.brand-text small {
-  display: block;
-  font-size: .625rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
-  color: var(--mp-primary);
-}
+/* ThingBD's mark: a white T on purple, and "Thing" + "bd" in purple. */
+.brand-mark { width: 34px; height: 34px; flex: none; display: block; }
+.brand-text { font-weight: 700; font-size: 1.3rem; line-height: 1.05; color: var(--mp-heading); letter-spacing: -.01em; }
+.brand-text small { display: block; font-size: .78rem; font-weight: 700; letter-spacing: 0; color: var(--mp-heading); }
+.brand-text small span { color: var(--mp-primary); }
 
 /* Sidebar */
 .app-sidebar {
@@ -427,7 +421,7 @@ html[lang="bn"] body { font-family: "Hind Siliguri", "Public Sans", system-ui, s
   display: flex; align-items: center; gap: .6rem;
   height: var(--pos-bar-h); padding: 0 1rem;
   background: var(--mp-surface); box-shadow: var(--mp-shadow);
-  border-style: solid; border-width: 3px 0 0; border-image: linear-gradient(90deg, #6d5dfc, #d6409f 50%, #f08c2b) 1;
+  border-style: solid; border-width: 3px 0 0; border-image: linear-gradient(90deg, #8b5cf6, #d6409f 50%, #f08c2b) 1;
 }
 .pos-brand { display: flex; align-items: center; gap: .5rem; text-decoration: none; }
 .pos-brand .brand-text { font-size: 1.1rem; }
@@ -535,7 +529,7 @@ html[lang="bn"] body { font-family: "Hind Siliguri", "Public Sans", system-ui, s
 .pay-total strong { font-size: 1.6rem; color: var(--mp-primary); }
 .pay-change { font-size: 1.4rem; font-weight: 700; color: #1fa65a; }
 /* Colour families for the POS ("tone-*" sets --tone; the soft fill and outline are mixed from it) */
-.tone-violet { --tone: #7c5cfc; } .tone-teal { --tone: #12a389; } .tone-orange { --tone: #ef8a2a; } .tone-sky { --tone: #2f95dc; }
+.tone-violet { --tone: #8b5cf6; } .tone-teal { --tone: #12a389; } .tone-orange { --tone: #ef8a2a; } .tone-sky { --tone: #2f95dc; }
 .tone-red { --tone: #e5484d; } .tone-pink { --tone: #d6409f; } .tone-cyan { --tone: #0ea5b7; } .tone-amber { --tone: #d4930a; }
 .tone-indigo { --tone: #5b6cf0; } .tone-slate { --tone: #6b7280; } .tone-rose { --tone: #f2545b; }
 .pos-cat, .pos-result, .btn-soft {
@@ -774,7 +768,7 @@ span.flatpickr-weekday { background: transparent; color: var(--mp-muted); font-s
 }
 
 /* Dashboard chart (single series: violet, a lighter step in dark mode) and share bars */
-:root { --chart-1: #6d5dfc; }
+:root { --chart-1: #8b5cf6; }
 [data-bs-theme="dark"] { --chart-1: #8b7dff; }
 .mp-chart-box { position: relative; }
 .mp-chart { display: block; width: 100%; height: auto; overflow: visible; }
@@ -903,8 +897,8 @@ span.flatpickr-weekday { background: transparent; color: var(--mp-muted); font-s
 .shift-row { display: grid; grid-template-columns: minmax(140px, 1fr) minmax(0, 1.6fr); gap: .5rem .75rem; align-items: center; padding: .6rem 0; border-bottom: 1px solid var(--mp-border); }
 .shift-row:last-child { border-bottom: 0; }
 .shift-row strong { color: var(--mp-heading); }
-.shift-hours { color: #6a4fe0; font-variant-numeric: tabular-nums; }
-[data-bs-theme="dark"] .shift-hours { color: #b3a4ff; }
+.shift-hours { color: #7c3aed; font-variant-numeric: tabular-nums; }
+[data-bs-theme="dark"] .shift-hours { color: #c4b5fd; }
 .shift-picks { display: flex; flex-wrap: wrap; gap: .35rem; justify-content: flex-end; margin: 0; padding: 0; border: 0; min-width: 0; }
 .shift-picks .att-pill small { opacity: .8; font-variant-numeric: tabular-nums; }
 .shift-people { display: flex; flex-wrap: wrap; gap: .25rem .75rem; margin-top: .3rem; font-size: .8125rem; color: var(--mp-text); }
@@ -986,7 +980,7 @@ span.flatpickr-weekday { background: transparent; color: var(--mp-muted); font-s
 
 /* Support chat */
 .support-widget { position: fixed; right: 20px; bottom: 20px; z-index: 1080; }
-.support-fab { width: 54px; height: 54px; border: 0; border-radius: 50%; background: var(--mp-primary); color: #fff; font-size: 1.4rem; box-shadow: 0 6px 20px rgba(109, 93, 252, .4); }
+.support-fab { width: 54px; height: 54px; border: 0; border-radius: 50%; background: var(--mp-primary); color: #fff; font-size: 1.4rem; box-shadow: 0 6px 20px rgba(139, 92, 246, .4); }
 .support-fab:hover { filter: brightness(1.08); }
 .support-fab:focus-visible { outline: 3px solid color-mix(in srgb, var(--mp-primary) 45%, transparent); outline-offset: 3px; }
 .support-widget.is-open .support-fab { display: none; }
@@ -1007,3 +1001,13 @@ span.flatpickr-weekday { background: transparent; color: var(--mp-muted); font-s
 .support-form textarea { flex: 1; resize: none; border: 1px solid var(--mp-border); border-radius: 10px; padding: .45rem .6rem; font: inherit; font-size: .875rem; background: var(--mp-surface); color: var(--mp-text); }
 .support-note { margin: 0; padding: 0 .75rem .55rem; font-size: .7rem; color: var(--mp-muted); }
 @media print { .support-widget { display: none; } }
+
+/* POS without internet */
+.pos-net { display: inline-flex; align-items: center; gap: .4rem; padding: .25rem .6rem; border: 1px solid var(--mp-border); border-radius: 999px; background: var(--mp-surface); color: var(--mp-heading); font-size: .8125rem; }
+.pos-net-dot { width: 9px; height: 9px; border-radius: 50%; background: #12a389; box-shadow: 0 0 0 3px color-mix(in srgb, #12a389 20%, transparent); }
+.pos-net.is-offline { border-color: #d4930a; background: color-mix(in srgb, #d4930a 12%, var(--mp-surface)); }
+.pos-net.is-offline .pos-net-dot { background: #d4930a; box-shadow: 0 0 0 3px color-mix(in srgb, #d4930a 25%, transparent); }
+.pos-net.has-failed .badge { background: #e5484d !important; color: #fff !important; }
+.offline-row { display: flex; justify-content: space-between; align-items: center; gap: .75rem; padding: .55rem 0; border-bottom: 1px solid var(--mp-border); }
+.offline-row:last-child { border-bottom: 0; }
+.offline-row.is-failed strong { color: #b42318; }

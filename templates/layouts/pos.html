@@ -1,12 +1,12 @@
 {% extends "layouts/app.html" %}
-{% load i18n %}
+{% load i18n static %}
 {# The POS takes the whole screen: no sidebar, just a slim bar with the way back and the till's own links. #}
 {% block body %}
 <div class="pos-shell">
   <header class="pos-bar">
     <a class="pos-brand" href="{% url 'core:dashboard' %}" title="{% translate 'Back to dashboard' %}">
-      <span class="brand-mark"><i class="bi bi-capsule-pill"></i></span>
-      <span class="brand-text d-none d-md-block"><small>{{ APP_COMPANY }}</small>{{ APP_PRODUCT }}</span>
+      <img class="brand-mark" src="{% static 'img/pwa-192.png' %}" alt="" width="34" height="34">
+      <span class="brand-text d-none d-md-block"><small>Thing<span>bd</span></small>{{ APP_PRODUCT }}</span>
     </a>
     <a class="btn btn-sm btn-outline-secondary" href="{% url 'core:dashboard' %}"><i class="bi bi-arrow-left"></i><span class="d-none d-sm-inline"> {% translate "Dashboard" %}</span></a>
     {% block pos_bar_info %}{% endblock %}

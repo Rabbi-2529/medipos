@@ -133,6 +133,14 @@ BEHIND_PROXY = env.bool("BEHIND_PROXY", default=False)
 # Messages. Links in SMS and email (a customer's bill) start with SITE_URL when there is no request to take it from.
 SITE_URL = env("SITE_URL", default="http://localhost:8000").rstrip("/")
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="MediPOS <no-reply@medipos.local>")
+# The mail server for bills, reminders and password resets (Gmail: smtp.gmail.com, 587, TLS and an app password).
+EMAIL_HOST = env("EMAIL_HOST", default="") or "localhost"
+EMAIL_PORT = env.int("EMAIL_PORT", default=25)
+EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
+EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=False)
+EMAIL_USE_SSL = env.bool("EMAIL_USE_SSL", default=False)
+EMAIL_TIMEOUT = 20
 # The platform's SMS account, used by pharmacies on MediPOS SMS credits. With no URL, SMS are only logged (development).
 # The URL holds {to}, {message}, {sender} and {api_key}; SUCCESS_TEXT is something the provider's answer contains on success.
 SMS_GATEWAY_URL = env("SMS_GATEWAY_URL", default="")

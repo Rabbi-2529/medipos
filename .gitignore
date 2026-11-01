@@ -19,3 +19,4 @@ db.sqlite3-journal
 .idea/
 Thumbs.db
 .DS_Store
+/logs/

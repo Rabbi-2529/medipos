@@ -271,7 +271,7 @@ def totals(lines, *, cart_discount, settings):
 
 @transaction.atomic
 def complete_sale(*, tenant, outlet, user, lines, payments, register=None, customer=None, price_type=Sale.PriceType.RETAIL,
-                  cart_discount=0, cash_tendered=None, rx_checked=False, note="", now=None, quotation_id=None, points=0):
+                  cart_discount=0, cash_tendered=None, rx_checked=False, note="", now=None, quotation_id=None, points=0, offline_ref=""):
     """Validate the cart, take stock (FEFO), record payments and the customer's due. All or nothing.
     `points`: loyalty points the customer spends; their value comes off the bill like a discount."""
     now = now or timezone.now()
@@ -318,7 +318,8 @@ def complete_sale(*, tenant, outlet, user, lines, payments, register=None, custo
     sale = Sale.objects.create(
         number=number, outlet=outlet, register=register, customer=customer, sold_at=now, price_type=price_type,
         paid=paid, cash_tendered=_money(cash_tendered, _("Cash tendered")) if cash_tendered not in (None, "") else None,
-        rx_checked=rx_checked, note=note[:255], created_by=user, points_redeemed=points, points_discount=points_discount, **amounts,
+        rx_checked=rx_checked, note=note[:255], created_by=user, points_redeemed=points, points_discount=points_discount,
+        offline_ref=offline_ref[:40], **amounts,
     )
     ref = ("sale", sale.pk, number)
     cost_total = ZERO
