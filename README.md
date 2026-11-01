@@ -65,6 +65,7 @@ apps/inventory/    transfers between outlets, damage/expired write-offs, stock c
 apps/reports/      report engine + 23 reports (sales, profit, stock, ledgers, staff), dashboard figures
 apps/hr/           attendance (sheet, calendar, shifts, shop networks, self check-in), advances, payroll, payslips
 apps/messaging/    SMS/WhatsApp/email outbox, gateways, SMS credits, bills, due reminders, stock alerts, campaigns, loyalty points
+apps/backup/       Excel export of any list, full .zip backup, export log
 locale/bn/         Bangla translations (django.po source, django.mo compiled)
 templates/         layouts, partials, pages
 static/            css/app.css (theme tokens, dark mode), js/app.js, js/pos.js, js/stock_lines.js
@@ -129,6 +130,12 @@ Use a list ThingBD has the right to use, such as DGDA's registered-drug list.
 venv/Scripts/python.exe manage.py rebuild_books            # every pharmacy
 venv/Scripts/python.exe manage.py rebuild_books --tenant lazz-pharma-demo
 ```
+
+## Invoices and data export
+
+- Every printed bill goes through `sales.views.render_receipt()` (receipt, the customer's bill link, the settings preview); what shows is on `BusinessSettings` (Invoice & printing page) and the language comes from `setup.services.document_language()`.
+- QR codes are inline SVG from `segno` (`{% qr_svg text %}` in the `shop` template tags).
+- `apps.backup.exports`: `DATASETS` lists what the Excel export offers (any model, every stored column, links by name); `full_backup()` serialises every `TenantOwnedModel` of the current pharmacy. Add a dataset there when a new kind of record should be exportable.
 
 ## Messages and loyalty
 

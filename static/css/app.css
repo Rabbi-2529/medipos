@@ -943,3 +943,16 @@ span.flatpickr-weekday { background: transparent; color: var(--mp-muted); font-s
 .settings-save { position: sticky; top: 88px; z-index: 2; }
 .pos-points-note { display: block; font-size: .7rem; color: var(--mp-muted); font-weight: 400; }
 .pos-points-value { display: block; margin-top: .15rem; font-size: .75rem; color: #0f8a74; text-align: right; }
+
+/* Invoice & printing */
+.show-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 0 1rem; }
+.show-grid .form-check { margin-bottom: .6rem; }
+.letterhead-preview { padding: .5rem; border: 1px dashed var(--mp-border); border-radius: 10px; background: #fff; }
+.letterhead-preview img { display: block; width: 100%; max-height: 120px; object-fit: contain; }
+.invoice-preview { position: sticky; top: 88px; }
+.invoice-preview iframe { display: block; width: 100%; height: 70vh; min-height: 520px; border: 0; border-radius: 0 0 var(--bs-card-inner-border-radius) var(--bs-card-inner-border-radius); background: #eceaf3; }
+.print-frame { position: fixed; right: 0; bottom: 0; width: 0; height: 0; border: 0; visibility: hidden; }
+.export-groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: .75rem 1.25rem; margin-bottom: 1rem; }
+.export-group { margin: 0; padding: 0; border: 0; min-width: 0; }
+.export-group legend { font-size: .75rem; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--mp-muted); margin-bottom: .35rem; }
+.export-group .form-check { margin-bottom: .3rem; }

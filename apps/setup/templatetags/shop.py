@@ -1,4 +1,5 @@
 from django import template
+from django.utils.safestring import mark_safe
 from django.utils.translation import get_language
 
 from apps.setup.services import format_money, format_shop_date, get_business_settings
@@ -38,3 +39,13 @@ def shop_date(context, value):
     """{% shop_date some_date %} in the pharmacy's date format."""
     settings = _settings(context)
     return format_shop_date(value, settings) if settings else value
+
+
+@register.simple_tag
+def qr_svg(data, scale=2):
+    """{% qr_svg text %}: a QR code as inline SVG (prints sharp on thermal and A4 paper)."""
+    if not data:
+        return ""
+    import segno
+
+    return mark_safe(segno.make(str(data), error="m").svg_inline(scale=scale, border=1, dark="#111"))

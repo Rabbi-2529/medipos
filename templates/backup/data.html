@@ -1,0 +1,81 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+{% block title %}{% translate "Data export & backup" %}{% endblock %}
+{% block page_title %}{% translate "Data export & backup" %}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% translate "Your data is yours: take it to Excel for your accountant, or keep a full copy somewhere safe." %}</p>{% endblock %}
+{% block content %}
+<div class="row g-4">
+  <div class="col-xl-8">
+    <form class="card voucher-card tone-teal mb-4" method="post" novalidate>
+      {% csrf_token %}<input type="hidden" name="action" value="excel">
+      <div class="card-header"><h2 class="card-title"><i class="bi bi-file-earmark-spreadsheet"></i> {% translate "Excel workbook" %}</h2></div>
+      <div class="card-body">
+        <p class="small text-body-secondary">{% translate "One sheet per list you tick, with every column. Lists marked with a calendar only take what happened between the dates; the others are taken whole." %}</p>
+        {% for e in form.datasets.errors %}<div class="alert alert-danger py-2">{{ e }}</div>{% endfor %}
+        <div class="export-groups">
+          {% for label, datasets in groups %}
+          <fieldset class="export-group">
+            <legend>{{ label }}</legend>
+            {% for d in datasets %}
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" name="datasets" value="{{ d.key }}" id="ds-{{ d.key }}" {% if d.key in checked %}checked{% endif %}>
+              <label class="form-check-label" for="ds-{{ d.key }}">{{ d.label }}{% if d.key in dated %} <i class="bi bi-calendar3 text-body-secondary" title="{% translate 'Between the dates' %}"></i>{% endif %}</label>
+            </div>
+            {% endfor %}
+          </fieldset>
+          {% endfor %}
+        </div>
+        <div class="d-flex flex-wrap gap-2 mb-3">
+          <button class="btn btn-sm btn-outline-secondary" type="button" data-tick="all">{% translate "Tick all" %}</button>
+          <button class="btn btn-sm btn-outline-secondary" type="button" data-tick="none">{% translate "Untick all" %}</button>
+        </div>
+        <div class="row g-2 align-items-end">
+          <div class="col-sm-4">{% include "partials/_field.html" with field=form.start %}</div>
+          <div class="col-sm-4">{% include "partials/_field.html" with field=form.end %}</div>
+          <div class="col-sm-4 mb-3"><button class="btn btn-primary w-100" type="submit"><i class="bi bi-download"></i> {% translate "Download Excel" %}</button></div>
+        </div>
+      </div>
+    </form>
+
+    <form class="card voucher-card tone-violet" method="post">
+      {% csrf_token %}<input type="hidden" name="action" value="backup">
+      <div class="card-header"><h2 class="card-title"><i class="bi bi-archive"></i> {% translate "Full backup" %}</h2></div>
+      <div class="card-body">
+        <p>{% translate "Everything the pharmacy has in MediPOS in one .zip file: every record as JSON, plus your logo, letterhead and medicine pictures." %}</p>
+        <ul class="small text-body-secondary">
+          <li>{% translate "Passwords and SMS/WhatsApp gateway keys are left out." %}</li>
+          <li>{% translate "It holds your customers' names and phone numbers: keep it somewhere safe." %}</li>
+          <li>{% translate "To restore a backup into MediPOS, contact ThingBD support." %}</li>
+        </ul>
+        <button class="btn btn-primary" type="submit"><i class="bi bi-cloud-download"></i> {% translate "Download full backup" %}</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="col-xl-4">
+    <div class="card">
+      <div class="card-header"><h2 class="card-title"><i class="bi bi-clock-history"></i> {% translate "Recent downloads" %}</h2></div>
+      <div class="card-body">
+        {% if log %}
+        <ul class="list-unstyled sent-list mb-0">
+          {% for e in log %}
+          <li><i class="bi {% if e.kind == 'backup' %}bi-archive{% else %}bi-file-earmark-spreadsheet{% endif %} text-body-secondary"></i>
+            <span><strong>{{ e.get_kind_display }}</strong> · {{ e.size|filesizeformat }}
+              <small class="d-block text-body-secondary">{{ e.created_at|date:"d M Y, h:i A" }} · {{ e.created_by|default:"—" }}{% if e.start %} · {{ e.start|date:"d M Y" }} – {{ e.end|date:"d M Y" }}{% endif %}</small></span></li>
+          {% endfor %}
+        </ul>
+        {% else %}<p class="text-body-secondary mb-0">{% translate "Nothing downloaded yet." %}</p>{% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+  document.querySelectorAll("[data-tick]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      document.querySelectorAll("[name=datasets]").forEach(function (box) { box.checked = button.dataset.tick === "all"; });
+    });
+  });
+</script>
+{% endblock %}

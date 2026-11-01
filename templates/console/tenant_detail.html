@@ -11,6 +11,7 @@
     <li><button class="dropdown-item" type="button" data-bs-toggle="modal" data-bs-target="#planModal"><i class="bi bi-arrow-repeat"></i> {% translate "Change plan" %}</button></li>
     {% if tenant.status == "trial" %}
     <li><button class="dropdown-item" type="button" data-bs-toggle="modal" data-bs-target="#smsModal"><i class="bi bi-chat-left-text"></i> {% translate "Add SMS credits" %}</button></li>
+    <li><form method="post" action="{% url 'platform:tenant_backup' tenant.pk %}">{% csrf_token %}<button class="dropdown-item" type="submit"><i class="bi bi-cloud-download"></i> {% translate "Download full backup" %}</button></form></li>
     <li><button class="dropdown-item" type="button" data-bs-toggle="modal" data-bs-target="#trialModal"><i class="bi bi-hourglass-split"></i> {% translate "Extend trial" %}</button></li>
     {% endif %}
     <li><hr class="dropdown-divider"></li>

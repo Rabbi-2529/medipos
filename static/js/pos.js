@@ -378,7 +378,9 @@
 
   // ---- pay ----------------------------------------------------------------------
   var paymentsBox = q("[data-payments]"), payments = [];
-  var cashAccount = cfg.accounts.find(function (a) { return a.kind === "cash"; }) || cfg.accounts[0];
+  // The payment the pay box starts with: the shop's choice (Invoice & printing settings), else cash.
+  var cashAccount = cfg.accounts.find(function (a) { return a.id === cfg.defaultAccount; })
+    || cfg.accounts.find(function (a) { return a.kind === "cash"; }) || cfg.accounts[0];
 
   function renderPayments() {
     paymentsBox.replaceChildren();
@@ -465,11 +467,23 @@
       sent.textContent = sale.sent && sale.sent.length ? T.sent + " " + sale.sent.join(", ") : ""; sent.classList.toggle("d-none", !sent.textContent);
       whatsapp.href = sale.whatsappUrl || "#"; whatsapp.classList.toggle("d-none", !sale.whatsappUrl);
       modal("doneModal").show();
+      if (cfg.autoPrint) printQuietly(sale.receiptUrl);
       reset();
     }).catch(function (err) {
       var box = q("[data-pay-error]"); box.textContent = err.message; box.classList.remove("d-none");
     }).finally(function () { completing = false; });
   });
+
+  // Prints from a hidden frame on this page, so no pop-up window (or pop-up blocker) is involved.
+  function printQuietly(url) {
+    var frame = document.getElementById("print-frame");
+    if (!frame) {
+      frame = document.createElement("iframe");
+      frame.id = "print-frame"; frame.className = "print-frame"; frame.setAttribute("aria-hidden", "true"); frame.tabIndex = -1;
+      document.body.appendChild(frame);
+    }
+    frame.src = url + "?print=1&size=" + cfg.receiptSize;
+  }
 
   q("[data-print]").addEventListener("click", function () {
     if (lastReceipt) window.open(lastReceipt + "?print=1&size=" + cfg.receiptSize, "_blank", "width=420,height=640");

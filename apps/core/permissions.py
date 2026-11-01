@@ -72,6 +72,8 @@ MODULES = (
     Module("outlet", _("Outlets"), SHOP, (LIST, CREATE, EDIT, DELETE)),
     Module("counter", _("Counters"), SHOP, (LIST, CREATE, EDIT, DELETE)),
     Module("subscription", _("Subscription"), SHOP, (SHOW,)),
+    # Downloads everything (customers, sales, staff): only the owner has it unless they give it in a role.
+    Module("backup", _("Export & backup data"), SHOP, (CREATE,)),
     Module("payment_account", _("Payment accounts"), ACCOUNTS, (LIST, CREATE, EDIT, DELETE)),
     Module("expense", _("Expenses"), ACCOUNTS, (LIST, CREATE, DELETE)),
     Module("income", _("Other income"), ACCOUNTS, (LIST, CREATE, DELETE)),

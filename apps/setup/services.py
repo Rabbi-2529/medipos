@@ -82,3 +82,10 @@ def format_money(value, settings):
 
 def format_shop_date(value, settings):
     return date_format(value, settings.date_format) if value else ""
+
+
+def document_language(settings, person_language=None):
+    """The language invoices and quotations print in: the shop's fixed choice, else the person printing, else the shop default."""
+    if settings.receipt_language in ("en", "bn"):
+        return settings.receipt_language
+    return (person_language or settings.default_language or "en")[:2]

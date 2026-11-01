@@ -10,15 +10,21 @@
     :root { color-scheme: light; }
     * { box-sizing: border-box; }
     body { margin: 0; background: #eceaf3; color: #111; font-family: "Public Sans", "Hind Siliguri", system-ui, sans-serif; }
+    body.is-preview { background: transparent; }
+    .is-preview.size-a4 .paper { zoom: .5; margin: 12px auto; }
     .paper { margin: 16px auto; background: #fff; padding: 10px 12px; box-shadow: 0 2px 10px rgba(0,0,0,.12); }
     .size-58 .paper { width: 58mm; font-size: 10px; }
     .size-80 .paper { width: 80mm; font-size: 11.5px; }
+    .size-58.font-small .paper { font-size: 9px; } .size-58.font-large .paper { font-size: 11.5px; }
+    .size-80.font-small .paper { font-size: 10.5px; } .size-80.font-large .paper { font-size: 13px; }
     .size-a4 .paper { width: 210mm; min-height: 297mm; padding: 18mm; font-size: 13px; }
     .center { text-align: center; }
     .shop { font-size: 1.35em; font-weight: 700; }
     .muted { color: #555; }
+    .note { display: block; color: #555; font-size: .88em; }
     .logo { max-height: 48px; max-width: 70%; }
     .size-a4 .logo { max-height: 70px; }
+    .letterhead { display: block; width: 100%; max-height: 45mm; object-fit: contain; margin-bottom: 4mm; }
     hr { border: 0; border-top: 1px dashed #999; margin: 6px 0; }
     table { width: 100%; border-collapse: collapse; }
     th, td { padding: 2px 0; vertical-align: top; }
@@ -27,7 +33,11 @@
     .size-a4 th, .size-a4 td { padding: 6px 4px; border-bottom: 1px solid #e5e5e5; }
     .size-a4 .head { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; }
     .size-a4 .head .center { text-align: left; }
+    .size-a4 .head.has-letterhead { display: block; }
     .grand td { font-size: 1.2em; font-weight: 700; border-top: 1px solid #111; padding-top: 4px; }
+    .qr { margin: 6px 0; }
+    .qr svg { display: inline-block; }
+    .terms { margin-top: 10mm; padding-top: 3mm; border-top: 1px solid #ddd; font-size: .82em; color: #444; }
     .tools { text-align: center; margin: 12px; }
     .tools button, .tools a { font: inherit; margin: 0 4px; padding: 6px 12px; border-radius: 6px; border: 1px solid #6d5dfc; background: #fff; color: #6d5dfc; text-decoration: none; cursor: pointer; }
     @media print {
@@ -38,28 +48,39 @@
     }
   </style>
 </head>
-<body class="size-{{ size }}">
+<body class="size-{{ size }} font-{{ shop.receipt_font }}{% if preview %} is-preview{% endif %}">
 {% with bn=shop.receipt_bangla_digits %}
+{% if not preview %}
 <div class="tools">
   <button type="button" onclick="window.print()">{% translate "Print" %}</button>
   {% if not public %}<a href="?size=58">58 mm</a><a href="?size=80">80 mm</a><a href="?size=a4">A4</a>{% endif %}
 </div>
+{% endif %}
 <div class="paper">
-  <div class="head">
+  {% translate "Invoice" as default_title %}
+  <div class="head{% if size == 'a4' and shop.letterhead %} has-letterhead{% endif %}">
+    {% if size == "a4" and shop.letterhead %}
+    <img class="letterhead" src="{{ shop.letterhead.url }}" alt="{{ tenant.name }}">
+    {% else %}
     <div class="center">
-      {% if shop.logo %}<img class="logo" src="{{ shop.logo.url }}" alt=""><br>{% endif %}
+      {% if shop.show_logo and shop.logo %}<img class="logo" src="{{ shop.logo.url }}" alt=""><br>{% endif %}
       <div class="shop">{{ tenant.name }}</div>
+      {% if shop.show_address %}
       <div class="muted">{{ sale.outlet.name }}{% if sale.outlet.address %} · {{ sale.outlet.address }}{% endif %}</div>
       <div class="muted">{% if sale.outlet.phone %}{{ sale.outlet.phone|bn_digits:bn }}{% else %}{{ tenant.phone|bn_digits:bn }}{% endif %}</div>
+      {% endif %}
+      {% if shop.show_license %}
       {% if shop.drug_license_no %}<div class="muted">{% translate "Drug license" %}: {{ shop.drug_license_no }}</div>{% endif %}
       {% if shop.vat_number %}<div class="muted">{% translate "BIN" %}: {{ shop.vat_number }}</div>{% endif %}
+      {% endif %}
     </div>
+    {% endif %}
     <div>
-      {% if size == "a4" %}<h2 style="margin:0 0 6px">{% translate "Invoice" %}</h2>{% else %}<hr>{% endif %}
-      <div>{% translate "Invoice" %}: <strong>{{ sale.number }}</strong></div>
+      {% if size == "a4" %}<h2 style="margin:0 0 6px">{% firstof shop.invoice_title default_title %}</h2>{% else %}<hr>{% if shop.invoice_title %}<div class="center"><strong>{{ shop.invoice_title }}</strong></div>{% endif %}{% endif %}
+      <div>{{ default_title }}: <strong>{{ sale.number }}</strong></div>
       <div>{% translate "Date" %}: {{ sale.sold_at|date:"d/m/Y h:i A"|bn_digits:bn }}</div>
-      <div>{% translate "Cashier" %}: {{ sale.created_by|default:"—" }}</div>
-      {% if sale.customer %}<div>{% translate "Customer" %}: {{ sale.customer.name }}{% if sale.customer.phone %} · {{ sale.customer.phone|bn_digits:bn }}{% endif %}</div>{% endif %}
+      {% if shop.show_cashier %}<div>{% translate "Cashier" %}: {{ sale.created_by|default:"—" }}</div>{% endif %}
+      {% if sale.customer %}<div>{% translate "Customer" %}: {{ sale.customer.name }}{% if shop.show_customer_phone and sale.customer.phone %} · {{ sale.customer.phone|bn_digits:bn }}{% endif %}</div>{% endif %}
     </div>
   </div>
   <hr>
@@ -68,7 +89,10 @@
     <tbody>
       {% for line in lines %}
       <tr>
-        <td>{{ line.medicine.display_name }}{% if size != "a4" %}<br><span class="muted">{% money line.unit_price as p %}{{ p|bn_digits:bn }} × {{ line.quantity|bn_digits:bn }}{% if line.discount %} − {% money line.discount as d %}{{ d|bn_digits:bn }}{% endif %}</span>{% endif %}</td>
+        <td>{{ line.medicine.display_name }}
+          {% if shop.show_generic and line.medicine.generic %}<span class="note">{{ line.medicine.generic.name }}</span>{% endif %}
+          {% if shop.show_batch and line.batch_note %}<span class="note">{% translate "Batch" %}: {{ line.batch_note|bn_digits:bn }}</span>{% endif %}
+          {% if size != "a4" %}<span class="note">{% money line.unit_price as p %}{{ p|bn_digits:bn }} × {{ line.quantity|bn_digits:bn }}{% if line.discount %} − {% money line.discount as d %}{{ d|bn_digits:bn }}{% endif %}</span>{% endif %}</td>
         <td class="r">{{ line.unit_qty|bn_digits:bn }} {{ line.unit_label }}</td>
         {% if size == "a4" %}<td class="r">{% money line.unit_price as p %}{{ p|bn_digits:bn }}</td><td class="r">{% if line.discount %}{% money line.discount as d %}{{ d|bn_digits:bn }}{% else %}—{% endif %}</td>{% endif %}
         <td class="r">{% money line.line_total as t %}{{ t|bn_digits:bn }}</td>
@@ -87,12 +111,15 @@
     {% for p in payments %}<tr><td>{{ p.account.name }}</td><td class="r">{% money p.amount as v %}{{ v|bn_digits:bn }}</td></tr>{% endfor %}
     {% if sale.change %}<tr><td>{% translate "Cash received" %}</td><td class="r">{% money sale.cash_tendered as v %}{{ v|bn_digits:bn }}</td></tr><tr><td>{% translate "Change" %}</td><td class="r">{% money sale.change as v %}{{ v|bn_digits:bn }}</td></tr>{% endif %}
     {% if sale.due > 0 %}<tr><td><strong>{% translate "Due" %}</strong></td><td class="r"><strong>{% money sale.due as v %}{{ v|bn_digits:bn }}</strong></td></tr>{% endif %}
+    {% if customer_due and customer_due > 0 %}<tr><td>{% translate "Total due (all bills)" %}</td><td class="r">{% money customer_due as v %}{{ v|bn_digits:bn }}</td></tr>{% endif %}
   </table>
   <hr>
-  {% if sale.points_earned or sale.points_redeemed %}<p class="center">{% if sale.points_earned %}{% blocktranslate with n=sale.points_earned|bn_digits:bn %}Points earned: {{ n }}{% endblocktranslate %} · {% endif %}{% blocktranslate with n=points_after|default:0|bn_digits:bn %}Your points: {{ n }}{% endblocktranslate %}</p>{% endif %}
+  {% if shop.show_points %}{% if sale.points_earned or sale.points_redeemed %}<p class="center">{% if sale.points_earned %}{% blocktranslate with n=sale.points_earned|bn_digits:bn %}Points earned: {{ n }}{% endblocktranslate %} · {% endif %}{% blocktranslate with n=points_after|default:0|bn_digits:bn %}Your points: {{ n }}{% endblocktranslate %}</p>{% endif %}{% endif %}
   {% if sale.rx_checked %}<p class="center muted">℞ {% translate "Prescription checked" %}</p>{% endif %}
   {% if shop.invoice_footer %}<p class="center">{{ shop.invoice_footer|linebreaksbr }}</p>{% endif %}
-  <p class="center muted">{% translate "Thank you. Get well soon!" %}</p>
+  {% if qr %}<div class="center qr">{% if size == "a4" %}{% qr_svg qr 3 %}{% else %}{% qr_svg qr 2 %}{% endif %}</div>{% endif %}
+  <p class="center muted">{% if shop.thank_you %}{{ shop.thank_you }}{% else %}{% translate "Thank you. Get well soon!" %}{% endif %}</p>
+  {% if size == "a4" and shop.invoice_terms %}<div class="terms">{{ shop.invoice_terms|linebreaksbr }}</div>{% endif %}
   <p class="center muted" style="font-size:.85em">ThingBD MediPOS</p>
 </div>
 {% endwith %}

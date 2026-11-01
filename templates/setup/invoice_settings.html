@@ -1,0 +1,111 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+{% block title %}{% translate "Invoice & printing" %}{% endblock %}
+{% block page_title %}{% translate "Invoice & printing" %}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% translate "What receipts, A4 invoices and quotations show, the language they print in, and how the POS prints." %}</p>{% endblock %}
+{% block page_actions %}<a class="btn btn-outline-secondary" href="{% url 'setup:settings' %}"><i class="bi bi-gear"></i> {% translate "Business settings" %}</a>{% endblock %}
+{% block content %}
+<div class="row g-4">
+  <div class="col-xxl-7 col-xl-7">
+    <form method="post" enctype="multipart/form-data" novalidate id="invoice-form">
+      {% csrf_token %}
+      <input type="hidden" name="preview_size" value="{{ size }}" data-preview-size>
+      {% if form.non_field_errors %}<div class="alert alert-danger">{% for e in form.non_field_errors %}{{ e }}{% endfor %}</div>{% endif %}
+
+      <div class="card voucher-card tone-violet mb-4">
+        <div class="card-header"><h2 class="card-title"><i class="bi bi-receipt"></i> {% translate "Paper and language" %}</h2></div>
+        <div class="card-body">
+          <div class="row g-2">
+            <div class="col-md-6">{% include "partials/_field.html" with field=form.receipt_size %}</div>
+            <div class="col-md-6">{% include "partials/_field.html" with field=form.receipt_font %}</div>
+            <div class="col-md-6">{% include "partials/_field.html" with field=form.receipt_language %}</div>
+            <div class="col-md-6">{% include "partials/_field.html" with field=form.invoice_title %}</div>
+            <div class="col-12">{% include "partials/_field.html" with field=form.receipt_bangla_digits %}</div>
+          </div>
+          <p class="form-text mb-0">{% translate "With “the language of whoever prints it”, a cashier using Bangla prints Bangla bills. Pick English or বাংলা to print every bill the same way. The customer's bill link uses the shop's default language." %}</p>
+        </div>
+      </div>
+
+      <div class="card voucher-card tone-sky mb-4">
+        <div class="card-header"><h2 class="card-title"><i class="bi bi-ui-checks"></i> {% translate "Show on the invoice" %}</h2></div>
+        <div class="card-body">
+          <div class="show-grid">{% for field in show_fields %}{% include "partials/_field.html" with field=field %}{% endfor %}</div>
+          {% if not settings_obj.logo %}<p class="form-text mb-0"><i class="bi bi-info-circle"></i> {% translate "No logo yet: add one in Business settings." %}</p>{% endif %}
+        </div>
+      </div>
+
+      <div class="card voucher-card tone-teal mb-4">
+        <div class="card-header"><h2 class="card-title"><i class="bi bi-image"></i> {% translate "A4 letterhead" %}</h2></div>
+        <div class="card-body">
+          {% if settings_obj.letterhead %}
+          <div class="letterhead-preview mb-2"><img src="{{ settings_obj.letterhead.url }}" alt="{% translate 'Current letterhead' %}"></div>
+          {% if can_edit %}<button class="btn btn-sm btn-outline-danger mb-3" type="submit" form="remove-letterhead"><i class="bi bi-trash3"></i> {% translate "Remove letterhead" %}</button>{% endif %}
+          {% endif %}
+          {% include "partials/_field.html" with field=form.letterhead %}
+          <p class="form-text mb-0">{% translate "PNG, JPG or WebP up to 2 MB, about 1800 × 300 pixels. Thermal receipts keep the name and address." %}</p>
+        </div>
+      </div>
+
+      <div class="card voucher-card tone-amber mb-4">
+        <div class="card-header"><h2 class="card-title"><i class="bi bi-text-paragraph"></i> {% translate "Text and QR code" %}</h2></div>
+        <div class="card-body">
+          {% include "partials/_field.html" with field=form.invoice_footer %}
+          {% include "partials/_field.html" with field=form.thank_you %}
+          {% include "partials/_field.html" with field=form.invoice_terms %}
+          <div class="row g-2">
+            <div class="col-md-6">{% include "partials/_field.html" with field=form.qr_code %}</div>
+            <div class="col-md-6" data-qr-text>{% include "partials/_field.html" with field=form.qr_text %}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card voucher-card tone-rose mb-4">
+        <div class="card-header"><h2 class="card-title"><i class="bi bi-cart3"></i> {% translate "POS and printing" %}</h2></div>
+        <div class="card-body">
+          {% include "partials/_field.html" with field=form.auto_print %}
+          <p class="form-text">{% translate "The receipt goes to the computer's default printer dialog. For one-click printing on a thermal printer, set it as the default printer and choose its paper size there once." %}</p>
+          <div class="row g-2"><div class="col-md-6">{% include "partials/_field.html" with field=form.pos_default_account %}</div></div>
+        </div>
+      </div>
+
+      {% if can_edit %}<button class="btn btn-primary" type="submit"><i class="bi bi-check2-circle"></i> {% translate "Save and update the preview" %}</button>{% endif %}
+    </form>
+    <form method="post" id="remove-letterhead" data-confirm="{% translate 'Remove the letterhead?' %}">{% csrf_token %}<input type="hidden" name="action" value="remove_letterhead"></form>
+  </div>
+
+  <div class="col-xxl-5 col-xl-5">
+    <div class="card invoice-preview">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h2 class="card-title mb-0"><i class="bi bi-eye"></i> {% translate "Preview" %}</h2>
+        <div class="btn-group btn-group-sm" role="group" aria-label="{% translate 'Paper' %}">
+          {% for value, label in form.fields.receipt_size.choices %}
+          <button type="button" class="btn btn-outline-primary{% if value == size %} active{% endif %}" data-size="{{ value }}" aria-pressed="{% if value == size %}true{% else %}false{% endif %}">{% if value == "a4" %}A4{% else %}{{ value }} mm{% endif %}</button>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="card-body p-0">
+        <iframe title="{% translate 'Invoice preview' %}" src="{% url 'setup:invoice_preview' %}?size={{ size }}" data-preview data-base="{% url 'setup:invoice_preview' %}"></iframe>
+      </div>
+      <div class="card-footer small text-body-secondary">{% translate "A made-up bill, shown with the saved settings." %}</div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+  (function () {
+    var frame = document.querySelector("[data-preview]"), sizeInput = document.querySelector("[data-preview-size]");
+    document.querySelectorAll("[data-size]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        document.querySelectorAll("[data-size]").forEach(function (b) { b.classList.toggle("active", b === button); b.setAttribute("aria-pressed", b === button); });
+        frame.src = frame.dataset.base + "?size=" + button.dataset.size;
+        sizeInput.value = button.dataset.size;
+      });
+    });
+    var qr = document.querySelector("[name=qr_code]"), qrText = document.querySelector("[data-qr-text]");
+    function sync() { qrText.hidden = qr.value !== "text"; }
+    $(qr).on("change", sync);
+    sync();
+  })();
+</script>
+{% endblock %}

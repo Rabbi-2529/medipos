@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     "apps.reports",
     "apps.hr",
     "apps.messaging",
+    "apps.backup",
 ]
 
 MIDDLEWARE = [

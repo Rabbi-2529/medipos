@@ -393,7 +393,7 @@ def adjust_points(request, pk):
 
 def public_bill(request, token):
     """No login: the signed link is the key. Shows the same receipt the shop prints."""
-    from apps.sales.views import _sale_context
+    from apps.sales.views import render_receipt
 
     found = read_bill_token(token)
     tenant = Tenant.objects.filter(pk=found[0]).first() if found else None
@@ -404,8 +404,4 @@ def public_bill(request, token):
         if sale is None:
             raise Http404
         request.tenant = tenant  # the money tags read the shop's currency from here
-        settings = get_business_settings(tenant)
-        context = _sale_context(sale)
-        context.update({"size": "80", "auto_print": False, "shop": settings, "tenant": tenant, "public": True,
-                        "total_discount": sale.discount + sale.line_discount - sale.points_discount})
-        return render(request, "sales/receipt.html", context)
+        return render_receipt(request, sale, tenant=tenant, size="80", public=True)

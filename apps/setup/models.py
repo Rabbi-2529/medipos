@@ -14,6 +14,24 @@ class ReceiptSize(models.TextChoices):
     MM80 = "80", _("80 mm thermal")
     A4 = "a4", _("A4 invoice")
 
+class ReceiptLanguage(models.TextChoices):
+    AUTO = "auto", _("The language of whoever prints it")
+    EN = "en", "English"
+    BN = "bn", "বাংলা"
+
+
+class QrCode(models.TextChoices):
+    NONE = "none", _("No QR code")
+    BILL = "bill", _("Link to the customer's copy of the bill")
+    TEXT = "text", _("My own text or link")
+
+
+class FontSize(models.TextChoices):
+    SMALL = "small", _("Small")
+    NORMAL = "normal", _("Normal")
+    LARGE = "large", _("Large")
+
+
 DATE_FORMATS = [
     ("d M Y", "31 Oct 2026"),
     ("d/m/Y", "31/10/2026"),
@@ -25,6 +43,10 @@ DATE_FORMATS = [
 
 def logo_path(instance, filename):
     return f"tenants/{instance.tenant_id}/logo/{filename}"
+
+
+def letterhead_path(instance, filename):
+    return f"tenants/{instance.tenant_id}/letterhead/{filename}"
 
 
 class BusinessSettings(TenantOwnedModel):
@@ -57,6 +79,35 @@ class BusinessSettings(TenantOwnedModel):
                                         help_text=_("Staff who haven't picked a language see this one."))
     receipt_bangla_digits = models.BooleanField(_("Bangla digits on receipts"), default=False,
                                                 help_text=_("Prints ১২৩ instead of 123 when the receipt is in Bangla."))
+
+    # Invoice design (receipts, A4 invoices, quotations and the customer's bill link)
+    invoice_title = models.CharField(_("invoice title"), max_length=40, blank=True, help_text=_("Empty = “Invoice”. e.g. Cash memo, Bill."))
+    receipt_language = models.CharField(_("print invoices in"), max_length=5, choices=ReceiptLanguage.choices, default=ReceiptLanguage.AUTO)
+    show_logo = models.BooleanField(_("Logo"), default=True)
+    letterhead = models.ImageField(_("A4 letterhead"), upload_to=letterhead_path, blank=True,
+                                   help_text=_("A wide image across the top of A4 invoices, in place of the name and address."))
+    show_address = models.BooleanField(_("Outlet address and phone"), default=True)
+    show_license = models.BooleanField(_("Drug license and BIN"), default=True)
+    show_cashier = models.BooleanField(_("Cashier"), default=True)
+    show_customer_phone = models.BooleanField(_("Customer's phone"), default=True)
+    show_generic = models.BooleanField(_("Generic name under each medicine"), default=False)
+    show_batch = models.BooleanField(_("Batch and expiry under each medicine"), default=False)
+    show_customer_due = models.BooleanField(_("Customer's total due"), default=True)
+    show_points = models.BooleanField(_("Loyalty points"), default=True)
+    thank_you = models.CharField(_("closing line"), max_length=120, blank=True, help_text=_("Empty = “Thank you. Get well soon!”"))
+    invoice_terms = models.TextField(_("terms and conditions"), blank=True,
+                                     help_text=_("Printed small at the bottom of A4 invoices and quotations, e.g. your returns policy."))
+    qr_code = models.CharField(_("QR code"), max_length=5, choices=QrCode.choices, default=QrCode.NONE)
+    qr_text = models.CharField(_("QR code text"), max_length=300, blank=True,
+                               help_text=_("e.g. your website, Facebook page or bKash merchant number."))
+    receipt_font = models.CharField(_("text size on thermal receipts"), max_length=6, choices=FontSize.choices, default=FontSize.NORMAL)
+
+    # POS and printing
+    auto_print = models.BooleanField(_("Print the receipt after each sale"), default=False,
+                                     help_text=_("The print dialog opens by itself after “Complete sale”."))
+    pos_default_account = models.ForeignKey("accounting.PaymentAccount", on_delete=models.SET_NULL, null=True, blank=True,
+                                            related_name="+", verbose_name=_("payment method the POS starts with"),
+                                            help_text=_("Empty = cash."))
 
     class Meta:
         verbose_name_plural = "business settings"

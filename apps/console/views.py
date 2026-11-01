@@ -178,6 +178,17 @@ def _sms_summary(tenant):
 
 @platform_admin_required
 @require_POST
+def tenant_backup(request, pk):
+    """Support: a pharmacy's full backup (logged in its own export history)."""
+    from apps.backup.views import backup_response
+
+    tenant = get_object_or_404(Tenant, pk=pk)
+    with tenant_context(tenant):
+        return backup_response(tenant, request.user)
+
+
+@platform_admin_required
+@require_POST
 def tenant_action(request, pk, action):
     tenant = get_object_or_404(Tenant, pk=pk)
     actor = request.user

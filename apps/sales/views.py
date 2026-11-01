@@ -10,8 +10,10 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.utils.html import format_html
+from django.utils import translation
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
+from django.views.decorators.clickjacking import xframe_options_sameorigin
 from django.views.decorators.http import require_POST
 
 from apps.accounting.models import PaymentAccount
@@ -73,7 +75,8 @@ def pos(request):
         "config": {
             "currency": settings.currency_symbol, "decimals": settings.decimal_places,
             "vatPercent": str(settings.vat_percent), "roundTotal": settings.round_total,
-            "accounts": accounts, "receiptSize": settings.receipt_size,
+            "accounts": accounts, "receiptSize": settings.receipt_size, "autoPrint": settings.auto_print,
+            "defaultAccount": settings.pos_default_account_id,
             "urls": {
                 "search": reverse("sales:pos_search"), "batches": reverse("sales:pos_batches"), "checkout": reverse("sales:pos_checkout"),
                 "hold": reverse("sales:pos_hold"), "held": reverse("sales:pos_held"), "recall": reverse("sales:pos_recall"),
@@ -431,7 +434,7 @@ def sale_data(request):
 
 
 def _sale_context(sale):
-    lines = list(sale.lines.select_related("medicine", "promotion").prefetch_related("allocations__batch"))
+    lines = list(sale.lines.select_related("medicine", "medicine__generic", "promotion").prefetch_related("allocations__batch"))
     return {
         "sale": sale, "lines": lines,
         "payments": sale.payments.select_related("account"),
@@ -451,16 +454,43 @@ def sale_detail(request, pk):
     return render(request, "sales/sale_detail.html", {**_sale_context(sale), "send": sale_panel(request, sale)})
 
 
+@xframe_options_sameorigin  # the POS prints it from a hidden frame
 @shop_permission_required("sale.list")
 def receipt(request, pk):
     """Printable receipt: ?size=58|80|a4 (default from settings), ?print=1 opens the print dialog."""
     sale = get_object_or_404(_sales(request).select_related("customer", "outlet", "created_by"), pk=pk)
-    settings = get_business_settings(request.tenant)
-    size = request.GET.get("size") if request.GET.get("size") in ("58", "80", "a4") else settings.receipt_size
-    context = _sale_context(sale)
-    context.update({"size": size, "auto_print": request.GET.get("print") == "1", "shop": settings, "tenant": request.tenant,
-                    "total_discount": sale.discount + sale.line_discount - sale.points_discount})
-    return render(request, "sales/receipt.html", context)
+    return render_receipt(request, sale, size=request.GET.get("size"), auto_print=request.GET.get("print") == "1")
+
+
+def render_receipt(request, sale, *, tenant=None, size=None, auto_print=False, public=False, preview=False, context=None):
+    """The printed bill, laid out by the shop's invoice settings and in the language they print in.
+    `context` replaces the sale's own (the settings page's sample bill)."""
+    from apps.customers.services import balance
+    from apps.messaging.services import bill_url
+    from apps.setup.models import QrCode
+    from apps.setup.services import document_language
+
+    tenant = tenant or request.tenant
+    settings = get_business_settings(tenant)
+    if context is None:
+        context = _sale_context(sale)
+        for line in context["lines"]:
+            line.batch_note = ", ".join(
+                f"{a.batch.batch_no or '—'}{' · ' + a.batch.expiry_date.strftime('%m/%Y') if a.batch.expiry_date else ''}"
+                for a in line.allocations.all())
+        context["total_discount"] = sale.discount + sale.line_discount - sale.points_discount
+        context["customer_due"] = balance(sale.customer) if sale.customer_id and settings.show_customer_due else None
+        qr_bill = bill_url(sale, request.build_absolute_uri("/")) if settings.qr_code == QrCode.BILL else ""
+    else:
+        qr_bill = request.build_absolute_uri("/b/sample/")
+    context.update({
+        "size": size if size in ("58", "80", "a4") else settings.receipt_size, "auto_print": auto_print, "shop": settings,
+        "tenant": tenant, "public": public, "preview": preview,
+        "qr": qr_bill if settings.qr_code == QrCode.BILL else settings.qr_text if settings.qr_code == QrCode.TEXT else "",
+    })
+    language = document_language(settings, None if public else getattr(request, "LANGUAGE_CODE", None))
+    with translation.override(language):
+        return render(request, "sales/receipt.html", context)
 
 
 @shop_permission_required("sale_return.create")
@@ -576,11 +606,15 @@ def quotation_detail(request, pk):
 
 @shop_permission_required("quotation.list")
 def quotation_print(request, pk):
+    from apps.setup.services import document_language
+
     quotation = get_object_or_404(_quotations(request).select_related("customer", "outlet", "created_by"), pk=pk)
-    return render(request, "sales/quotation_print.html", {
-        "quotation": quotation, "lines": quotation.lines.select_related("medicine"),
-        "shop": get_business_settings(request.tenant), "tenant": request.tenant, "auto_print": request.GET.get("print") == "1",
-    })
+    settings = get_business_settings(request.tenant)
+    with translation.override(document_language(settings, getattr(request, "LANGUAGE_CODE", None))):
+        return render(request, "sales/quotation_print.html", {
+            "quotation": quotation, "lines": quotation.lines.select_related("medicine"),
+            "shop": settings, "tenant": request.tenant, "auto_print": request.GET.get("print") == "1",
+        })
 
 
 @shop_permission_required("quotation.delete")

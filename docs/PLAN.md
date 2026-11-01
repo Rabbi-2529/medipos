@@ -250,10 +250,21 @@ Simplifications: VAT on returned sales stays in sales returns; transfers between
 - Demo: 500 SMS credits, bill SMS / due reminders / daily alert on, loyalty on with points from past bills and welcome points, three more customers, bills and an Eid campaign in the outbox, a draft campaign.
 - 271 tests; Bangla 2091/2091.
 
-### Phase 11 — Settings polish, printing, Bangla
-- Invoice designer settings (fields, labels, logo/letterhead, terms, QR code), printer and POS settings.
-- Translate the screens added after Phase 5 into Bangla, plus Bangla invoice labels. The language switcher itself ships in Phase 5.
-- Per-tenant data export/backup.
+### Phase 11 — Settings polish, printing, Bangla ✅
+- **Invoice & printing** (Settings → Invoice & printing, `settings.show` to see, `settings.edit` to change) with a live sample bill at 58 mm / 80 mm / A4:
+  - paper size and text size for thermal receipts; invoice title (e.g. Cash memo);
+  - show or hide: logo, outlet address and phone, drug license and BIN, cashier, customer's phone, generic name, batch and expiry, the customer's total due, loyalty points;
+  - an **A4 letterhead** image (replaces the name and address on A4 invoices and quotations); footer, closing line, **terms and conditions** (A4 and quotations);
+  - **QR code**: none, the customer's bill link (Phase 10's signed link), or the shop's own text/link (website, bKash number). Drawn server-side as SVG with `segno`.
+  - POS: **print the receipt after each sale** (from a hidden frame on the POS page, so no pop-up) and the payment method the pay box starts with.
+  - The receipt and preview send `X-Frame-Options: SAMEORIGIN` (everything else stays DENY).
+- **Bangla invoices**: "print invoices in" = the language of whoever prints it, English, or বাংলা, for receipts, A4 invoices, quotations and the customer's bill link (which uses the shop default when set to "whoever prints it"); Bangla digits optional.
+- Bangla: every screen was translated as each phase shipped; this phase added the server error page and the new screens (2180/2180). Scripts take their words from the server; the date picker switches to Bangla.
+- **Data export & backup** (Settings → Data export & backup, permission `backup.create`, owner only unless given in a role; template managers don't get it):
+  - **Excel workbook**: tick any of 21 lists (medicines with stock, stock by batch, stock movements, customers with their due, sales, sale items, returns, collections, suppliers with balance, purchases, purchase items, purchase returns, supplier payments, expenses & income, deposits & transfers, journal, employees, attendance, payroll, messages, points); dated lists take the chosen period.
+  - **Full backup (.zip)**: every record the pharmacy owns as JSON (one file per kind), its logins without passwords, uploaded files, a manifest and a README; SMS/WhatsApp API keys are left out. Restoring is done by ThingBD support.
+  - Every download is logged (who, when, what, size); the platform console can download a pharmacy's backup for support.
+- 279 tests; Bangla 2180/2180.
 
 ### Phase 12 — Production deploy
 - Docker Compose (web, PostgreSQL, Redis, Celery, Nginx) and HTTPS.

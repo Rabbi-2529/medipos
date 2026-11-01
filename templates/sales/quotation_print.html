@@ -31,6 +31,8 @@
     .tools { text-align: center; margin: 12px; }
     .tools button, .tools a { font: inherit; margin: 0 4px; padding: 6px 12px; border-radius: 6px; border: 1px solid #6d5dfc; background: #fff; color: #6d5dfc; text-decoration: none; cursor: pointer; }
     @media print { body { background: #fff; } .paper { margin: 0; box-shadow: none; } .tools { display: none; } @page { size: A4; margin: 10mm; } }
+    .letterhead { display: block; width: 100%; max-height: 45mm; object-fit: contain; margin-bottom: 4mm; }
+    .terms { margin-top: 10mm; padding-top: 3mm; border-top: 1px solid #ddd; font-size: .82em; color: #444; }
   </style>
 </head>
 <body>
@@ -40,13 +42,18 @@
   <a href="{% url 'sales:quotation' quotation.pk %}">{% translate "Back" %}</a>
 </div>
 <div class="paper">
+  {% if shop.letterhead %}<img class="letterhead" src="{{ shop.letterhead.url }}" alt="{{ tenant.name }}">{% endif %}
   <div class="head">
     <div>
-      {% if shop.logo %}<img class="logo" src="{{ shop.logo.url }}" alt=""><br>{% endif %}
+      {% if not shop.letterhead %}
+      {% if shop.show_logo and shop.logo %}<img class="logo" src="{{ shop.logo.url }}" alt=""><br>{% endif %}
       <div class="shop">{{ tenant.name }}</div>
+      {% if shop.show_address %}
       <div class="muted">{{ quotation.outlet.name }}{% if quotation.outlet.address %} · {{ quotation.outlet.address }}{% endif %}</div>
       <div class="muted">{% if quotation.outlet.phone %}{{ quotation.outlet.phone|bn_digits:bn }}{% else %}{{ tenant.phone|bn_digits:bn }}{% endif %}</div>
-      {% if shop.drug_license_no %}<div class="muted">{% translate "Drug license" %}: {{ shop.drug_license_no }}</div>{% endif %}
+      {% endif %}
+      {% if shop.show_license and shop.drug_license_no %}<div class="muted">{% translate "Drug license" %}: {{ shop.drug_license_no }}</div>{% endif %}
+      {% endif %}
     </div>
     <div class="meta">
       <h1>{% translate "Quotation" %}</h1>
@@ -86,6 +93,7 @@
   <div class="valid">{% shop_date quotation.valid_until as until %}{% blocktranslate with until=until %}Prices are valid until {{ until }}. Stock is not reserved until you buy.{% endblocktranslate %}</div>
   {% if quotation.note %}<p class="foot">{{ quotation.note }}</p>{% endif %}
   {% if shop.invoice_footer %}<p class="foot">{{ shop.invoice_footer|linebreaksbr }}</p>{% endif %}
+  {% if shop.invoice_terms %}<div class="terms">{{ shop.invoice_terms|linebreaksbr }}</div>{% endif %}
 </div>
 {% endwith %}
 {% if auto_print %}<script>window.addEventListener("load", function () { window.print(); });</script>{% endif %}

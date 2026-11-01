@@ -43,9 +43,9 @@
             <div class="col-md-4">{% include "partials/_field.html" with field=numbering.prefix %}</div>
             <div class="col-md-4">{% include "partials/_field.html" with field=numbering.next_value %}</div>
             <div class="col-md-4">{% include "partials/_field.html" with field=numbering.padding %}</div>
-            <div class="col-12">{% include "partials/_field.html" with field=shop.invoice_footer %}</div>
           </div>
-          <p class="form-text mb-0">{% translate "Next invoice will be" %} <strong>{{ examples.invoice }}</strong></p>
+          <p class="form-text">{% translate "Next invoice will be" %} <strong>{{ examples.invoice }}</strong></p>
+          <a class="btn btn-soft tone-violet" href="{% url 'setup:invoice' %}"><i class="bi bi-printer"></i> {% translate "Invoice design, paper and printing" %}</a>
         </div>
       </div>
     </div>
@@ -56,14 +56,12 @@
         <div class="card-body">
           {% include "partials/_field.html" with field=shop.vat_percent %}
           {% include "partials/_field.html" with field=shop.round_total %}
-          {% include "partials/_field.html" with field=shop.receipt_size %}
         </div>
       </div>
       <div class="card mb-4">
         <div class="card-header"><h2 class="card-title">{% translate "Language" %}</h2></div>
         <div class="card-body">
           {% include "partials/_field.html" with field=shop.default_language %}
-          {% include "partials/_field.html" with field=shop.receipt_bangla_digits %}
           <p class="form-text mb-0">{% translate "Each person can still pick their own language from the top bar or their profile." %}</p>
         </div>
       </div>
