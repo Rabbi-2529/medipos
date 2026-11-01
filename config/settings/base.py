@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     "apps.hr",
     "apps.messaging",
     "apps.backup",
+    "apps.audit",
 ]
 
 MIDDLEWARE = [
@@ -52,6 +53,8 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     # Must come after AuthenticationMiddleware: it reads request.user.tenant.
     "apps.core.middleware.TenantMiddleware",
+    # Who is doing what, for the audit log (needs request.user).
+    "apps.audit.context.AuditMiddleware",
     "apps.core.middleware.UserLanguageMiddleware",
     # Locks out pharmacies whose trial/subscription has lapsed. Needs request.tenant.
     "apps.billing.middleware.SubscriptionGateMiddleware",

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ThingBD MediPOS VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-01 10:52+0600\n"
+"POT-Creation-Date: 2026-11-01 11:20+0600\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: bn\n"
@@ -60,7 +60,7 @@ msgid "Sales returns"
 msgstr "বিক্রয় ফেরত"
 
 #: apps/accounting/chart.py:27 apps/accounting/reports.py:27
-#: apps/core/menu.py:131 apps/core/permissions.py:79
+#: apps/core/menu.py:131 apps/core/permissions.py:81
 #: templates/accounting/cash_entry_list.html:3
 #: templates/accounting/cash_entry_list.html:4
 #: templates/accounting/category_list.html:7
@@ -143,7 +143,7 @@ msgstr "এই হিসাবে লেনদেন আছে, তাই এর
 #: templates/accounting/entry_detail.html:20
 #: templates/accounting/journal.html:21 templates/accounting/statement.html:26
 #: templates/accounting/transfer_list.html:45 templates/core/dashboard.html:139
-#: templates/customers/customer_detail.html:41
+#: templates/customers/customer_detail.html:42
 #: templates/customers/receipt_list.html:10 templates/hr/advances.html:51
 #: templates/hr/attendance.html:14 templates/hr/my_attendance.html:23
 #: templates/inventory/count_list.html:20
@@ -162,7 +162,7 @@ msgstr "এই হিসাবে লেনদেন আছে, তাই এর
 msgid "Date"
 msgstr "তারিখ"
 
-#: apps/accounting/forms.py:45 apps/items/forms.py:25
+#: apps/accounting/forms.py:45 apps/audit/registry.py:77 apps/items/forms.py:25
 #: apps/items/setup_views.py:22 apps/reports/other_reports.py:96
 #: apps/reports/sales_reports.py:54 apps/stock/views.py:210
 #: templates/accounting/cash_entry_list.html:56
@@ -182,7 +182,7 @@ msgid "Paid from"
 msgstr "যে হিসাব থেকে পরিশোধ"
 
 #: apps/accounting/forms.py:47 apps/accounting/forms.py:73
-#: apps/customers/forms.py:23 apps/hr/forms.py:19 apps/sales/views.py:168
+#: apps/customers/forms.py:23 apps/hr/forms.py:19 apps/sales/views.py:169
 #: apps/suppliers/forms.py:27 templates/accounting/cash_entry_list.html:56
 #: templates/accounting/journal.html:21
 #: templates/accounting/transfer_list.html:45
@@ -194,12 +194,12 @@ msgstr "যে হিসাব থেকে পরিশোধ"
 msgid "Amount"
 msgstr "পরিমাণ"
 
-#: apps/accounting/forms.py:48 apps/inventory/forms.py:22
-#: apps/inventory/forms.py:29 apps/reports/other_reports.py:52
-#: apps/reports/other_reports.py:96 apps/reports/other_reports.py:145
-#: apps/reports/other_reports.py:302 apps/reports/sales_reports.py:124
-#: apps/stock/views.py:312 apps/stock/views.py:322
-#: templates/accounting/entry_detail.html:23
+#: apps/accounting/forms.py:48 apps/audit/registry.py:87
+#: apps/inventory/forms.py:22 apps/inventory/forms.py:29
+#: apps/reports/other_reports.py:52 apps/reports/other_reports.py:96
+#: apps/reports/other_reports.py:145 apps/reports/other_reports.py:302
+#: apps/reports/sales_reports.py:124 apps/stock/views.py:312
+#: apps/stock/views.py:322 templates/accounting/entry_detail.html:23
 #: templates/accounting/profit_loss.html:11
 #: templates/inventory/count_list.html:12
 #: templates/inventory/count_list.html:20
@@ -213,7 +213,7 @@ msgstr "পরিমাণ"
 #: templates/purchases/return_list.html:10 templates/reports/report.html:19
 #: templates/sales/quotation_detail.html:24
 #: templates/sales/quotation_list.html:21 templates/sales/register_list.html:10
-#: templates/sales/sale_detail.html:19 templates/sales/sale_list.html:16
+#: templates/sales/sale_detail.html:20 templates/sales/sale_list.html:16
 #: templates/sales/sale_list.html:31 templates/stock/expiring.html:25
 #: templates/stock/expiring.html:43 templates/stock/low_stock.html:19
 #: templates/stock/stock_card.html:29 templates/stock/stock_card.html:54
@@ -270,12 +270,13 @@ msgid "Pick a category"
 msgstr "একটি খাত বেছে নিন"
 
 #: apps/accounting/forms.py:68 templates/accounting/transfer_list.html:16
+#: templates/audit/log.html:17 templates/audit/log.html:40
 msgid "What happened"
 msgstr "কী হয়েছে"
 
 #: apps/accounting/forms.py:71 apps/backup/forms.py:13
 #: templates/accounting/_period.html:5
-#: templates/accounting/transfer_list.html:45
+#: templates/accounting/transfer_list.html:45 templates/audit/log.html:31
 #: templates/inventory/transfer_detail.html:26
 #: templates/inventory/transfer_list.html:31
 msgid "From"
@@ -284,7 +285,7 @@ msgstr "যেখান থেকে"
 #: apps/accounting/forms.py:72 apps/backup/forms.py:14
 #: apps/messaging/forms.py:99 apps/messaging/forms.py:160
 #: templates/accounting/_period.html:9
-#: templates/accounting/transfer_list.html:45
+#: templates/accounting/transfer_list.html:45 templates/audit/log.html:35
 #: templates/inventory/transfer_detail.html:28
 #: templates/inventory/transfer_list.html:31
 #: templates/messaging/campaign_list.html:12 templates/messaging/outbox.html:60
@@ -312,7 +313,7 @@ msgid "e.g. Shop furniture bought on loan"
 msgstr "যেমন: ঋণে কেনা দোকানের আসবাব"
 
 #: apps/accounting/models.py:15 apps/billing/models.py:51
-#: apps/setup/forms.py:76 apps/setup/views.py:112
+#: apps/setup/forms.py:76 apps/setup/views.py:114
 msgid "Cash"
 msgstr "নগদ টাকা"
 
@@ -627,7 +628,7 @@ msgid "Opening balances of accounts"
 msgstr "হিসাবগুলোর শুরুর ব্যালেন্স"
 
 #: apps/accounting/reports.py:28 apps/accounting/views.py:275
-#: apps/core/menu.py:129 apps/core/permissions.py:78
+#: apps/core/menu.py:129 apps/core/permissions.py:80
 #: templates/accounting/cash_entry_list.html:3
 #: templates/accounting/cash_entry_list.html:4
 #: templates/accounting/category_list.html:7
@@ -636,13 +637,13 @@ msgstr "হিসাবগুলোর শুরুর ব্যালেন্�
 msgid "Expenses"
 msgstr "ব্যয়"
 
-#: apps/accounting/reports.py:29 apps/core/permissions.py:80
+#: apps/accounting/reports.py:29 apps/core/permissions.py:82
 #: templates/accounting/transfer_list.html:4
 msgid "Deposits, withdrawals & transfers"
 msgstr "জমা, উত্তোলন ও স্থানান্তর"
 
-#: apps/accounting/reports.py:31 apps/backup/exports.py:86
-#: apps/core/menu.py:153 templates/hr/advances.html:6
+#: apps/accounting/reports.py:31 apps/audit/registry.py:90
+#: apps/backup/exports.py:86 apps/core/menu.py:153 templates/hr/advances.html:6
 #: templates/hr/payroll_list.html:3 templates/hr/payroll_list.html:4
 msgid "Payroll"
 msgstr "বেতন"
@@ -716,7 +717,7 @@ msgid "Entries made by documents change only with their document."
 msgstr "কাগজপত্র থেকে তৈরি জাবেদা শুধু সেই কাগজ বদলালেই বদলায়।"
 
 #: apps/accounting/views.py:39 apps/core/menu.py:127
-#: apps/core/permissions.py:77
+#: apps/core/permissions.py:79
 msgid "Payment accounts"
 msgstr "পেমেন্ট হিসাব"
 
@@ -846,6 +847,297 @@ msgstr "প্রোফাইল হালনাগাদ হয়েছে।"
 msgid "Password changed."
 msgstr "পাসওয়ার্ড বদলানো হয়েছে।"
 
+#: apps/audit/apps.py:8 apps/backup/exports.py:87 apps/core/menu.py:165
+#: apps/core/permissions.py:78 templates/audit/entry.html:3
+#: templates/audit/entry.html:5 templates/audit/log.html:3
+#: templates/audit/log.html:4
+msgid "Audit log"
+msgstr "অডিট লগ"
+
+#: apps/audit/models.py:12 apps/items/tools_views.py:56
+msgid "Added"
+msgstr "যোগ হয়েছে"
+
+#: apps/audit/models.py:13
+msgid "Changed"
+msgstr "পরিবর্তিত"
+
+#: apps/audit/models.py:14
+msgid "Deleted"
+msgstr "মুছে ফেলা"
+
+#: apps/audit/models.py:15
+msgid "Signed in"
+msgstr "সাইন ইন করেছেন"
+
+#: apps/audit/models.py:16
+msgid "Signed out"
+msgstr "সাইন আউট করেছেন"
+
+#: apps/audit/models.py:17
+msgid "Wrong password"
+msgstr "ভুল পাসওয়ার্ড"
+
+#: apps/audit/registry.py:77 templates/accounts/login.html:3
+#: templates/accounts/login.html:26
+#: templates/accounts/password_reset_complete.html:7
+#: templates/people/employee_form.html:23
+#: templates/people/employee_list.html:24
+msgid "Login"
+msgstr "লগইন"
+
+#: apps/audit/registry.py:77 apps/items/models.py:60
+#: apps/reports/other_reports.py:82 apps/reports/other_reports.py:145
+#: apps/reports/sales_reports.py:54 apps/reports/sales_reports.py:149
+#: apps/stock/views.py:210 apps/stock/views.py:312
+#: templates/console/catalog_list.html:13
+#: templates/inventory/count_detail.html:17
+#: templates/inventory/transfer_detail.html:38
+#: templates/inventory/write_off_detail.html:30
+#: templates/items/bulk_price.html:79 templates/items/catalog_browse.html:33
+#: templates/items/labels.html:15 templates/items/medicine_list.html:54
+#: templates/messaging/email/stock_alert.html:16
+#: templates/messaging/email/stock_alert.html:24
+#: templates/purchases/purchase_detail.html:72
+#: templates/purchases/purchase_form.html:36
+#: templates/purchases/return_form.html:14 templates/reports/report.html:44
+#: templates/sales/quotation_detail.html:49
+#: templates/sales/quotation_print.html:72 templates/sales/return_form.html:14
+#: templates/sales/sale_detail.html:52 templates/stock/expiring.html:43
+#: templates/stock/low_stock.html:34 templates/stock/opening_preview.html:27
+#: templates/stock/stock_list.html:36
+msgid "Medicine"
+msgstr "ওষুধ"
+
+#: apps/audit/registry.py:77 apps/items/forms.py:21
+#: apps/items/setup_views.py:24 apps/reports/sales_reports.py:55
+#: templates/console/catalog_list.html:13 templates/items/bulk_price.html:24
+#: templates/items/catalog_browse.html:34
+#: templates/items/import_preview.html:36 templates/items/medicine_list.html:32
+msgid "Generic"
+msgstr "জেনেরিক"
+
+#: apps/audit/registry.py:78 apps/items/forms.py:23
+#: apps/items/setup_views.py:26 apps/reports/other_reports.py:96
+#: apps/reports/sales_reports.py:55 templates/console/catalog_list.html:13
+#: templates/items/bulk_price.html:12 templates/items/catalog_browse.html:15
+#: templates/items/catalog_browse.html:35
+#: templates/items/import_preview.html:36 templates/items/medicine_list.html:28
+#: templates/items/medicine_list.html:55
+msgid "Manufacturer"
+msgstr "প্রস্তুতকারক"
+
+#: apps/audit/registry.py:78 apps/items/setup_views.py:28
+#: apps/stock/views.py:210 apps/stock/views.py:312
+#: templates/items/import_preview.html:36 templates/sales/pos.html:48
+msgid "Unit"
+msgstr "একক"
+
+#: apps/audit/registry.py:78 apps/items/setup_views.py:30
+#: templates/items/medicine_list.html:60
+msgid "Rack"
+msgstr "র‍্যাক"
+
+#: apps/audit/registry.py:79 apps/customers/forms.py:20
+#: apps/messaging/services.py:215 apps/messaging/services.py:401
+#: apps/reports/other_reports.py:174 apps/reports/other_reports.py:427
+#: apps/reports/sales_reports.py:123 apps/reports/sales_reports.py:149
+#: apps/reports/sales_reports.py:220 apps/reports/sales_reports.py:322
+#: templates/customers/customer_list.html:28
+#: templates/customers/receipt_list.html:10
+#: templates/messaging/due_reminders.html:26 templates/messaging/points.html:40
+#: templates/reports/report.html:28 templates/sales/pos.html:41
+#: templates/sales/quotation_detail.html:23
+#: templates/sales/quotation_list.html:21 templates/sales/receipt.html:83
+#: templates/sales/return_list.html:10 templates/sales/sale_detail.html:21
+#: templates/sales/sale_list.html:31
+msgid "Customer"
+msgstr "গ্রাহক"
+
+#: apps/audit/registry.py:79 apps/core/permissions.py:50
+msgid "Due collection"
+msgstr "বাকি আদায়"
+
+#: apps/audit/registry.py:80 apps/purchases/forms.py:15
+#: apps/reports/other_reports.py:51 apps/reports/other_reports.py:198
+#: apps/reports/sales_reports.py:355 apps/stock/views.py:312
+#: apps/suppliers/forms.py:24 templates/purchases/purchase_detail.html:39
+#: templates/purchases/purchase_list.html:28
+#: templates/purchases/purchase_list.html:33
+#: templates/purchases/return_list.html:10 templates/reports/report.html:36
+#: templates/stock/expiring.html:43 templates/suppliers/payment_list.html:10
+#: templates/suppliers/supplier_list.html:31
+msgid "Supplier"
+msgstr "সরবরাহকারী"
+
+#: apps/audit/registry.py:80
+msgid "Supplier payment"
+msgstr "সরবরাহকারীকে পেমেন্ট"
+
+#: apps/audit/registry.py:81 apps/customers/models.py:53
+#: apps/stock/models.py:60 templates/customers/receipt_list.html:10
+#: templates/items/import_preview.html:36 templates/sales/return_list.html:10
+msgid "Sale"
+msgstr "বিক্রয়"
+
+#: apps/audit/registry.py:81 apps/customers/models.py:55
+#: apps/stock/models.py:61 templates/sales/return_form.html:3
+msgid "Sale return"
+msgstr "বিক্রয় ফেরত"
+
+#: apps/audit/registry.py:81 templates/sales/register_detail.html:3
+msgid "Cash register"
+msgstr "ক্যাশ রেজিস্টার"
+
+#: apps/audit/registry.py:82
+msgid "Promotion"
+msgstr "প্রমোশন"
+
+#: apps/audit/registry.py:82 templates/sales/quotation_detail.html:4
+#: templates/sales/quotation_print.html:59
+msgid "Quotation"
+msgstr "কোটেশন"
+
+#: apps/audit/registry.py:83 apps/reports/other_reports.py:51
+#: apps/reports/sales_reports.py:355 apps/stock/models.py:58
+#: apps/suppliers/models.py:37 templates/items/import_preview.html:36
+#: templates/items/medicine_list.html:58
+#: templates/purchases/purchase_detail.html:4
+#: templates/purchases/return_list.html:10
+#: templates/suppliers/payment_list.html:10
+msgid "Purchase"
+msgstr "ক্রয়"
+
+#: apps/audit/registry.py:83 apps/stock/models.py:59
+#: apps/suppliers/models.py:39
+msgid "Purchase return"
+msgstr "ক্রয় ফেরত"
+
+#: apps/audit/registry.py:84
+msgid "Stock transfer"
+msgstr "স্টক স্থানান্তর"
+
+#: apps/audit/registry.py:84
+msgid "Damage / expired write-off"
+msgstr "নষ্ট / মেয়াদোত্তীর্ণ বাদ"
+
+#: apps/audit/registry.py:84 apps/inventory/services.py:206
+#: templates/inventory/count_detail.html:4
+#: templates/inventory/count_form.html:3
+msgid "Stock count"
+msgstr "স্টক গণনা"
+
+#: apps/audit/registry.py:85
+msgid "Payment account"
+msgstr "পেমেন্ট অ্যাকাউন্ট"
+
+#: apps/audit/registry.py:85
+msgid "Ledger account"
+msgstr "খতিয়ান হিসাব"
+
+#: apps/audit/registry.py:85 templates/accounting/chart.html:7
+#: templates/accounting/entry_detail.html:4
+#: templates/accounting/entry_form.html:3 templates/accounting/journal.html:6
+msgid "Journal entry"
+msgstr "জাবেদা এন্ট্রি"
+
+#: apps/audit/registry.py:86
+msgid "Expense / income"
+msgstr "খরচ / আয়"
+
+#: apps/audit/registry.py:86
+msgid "Deposit / transfer"
+msgstr "জমা / স্থানান্তর"
+
+#: apps/audit/registry.py:87 apps/people/forms.py:24
+#: templates/people/employee_list.html:25 templates/people/role_list.html:13
+msgid "Role"
+msgstr "রোল"
+
+#: apps/audit/registry.py:87 apps/hr/forms.py:18
+#: apps/reports/other_reports.py:271 apps/reports/other_reports.py:339
+#: apps/reports/other_reports.py:368 templates/hr/advances.html:51
+#: templates/hr/attendance.html:39 templates/hr/payroll_detail.html:48
+#: templates/hr/payslip.html:92
+msgid "Employee"
+msgstr "কর্মী"
+
+#: apps/audit/registry.py:87 templates/outlets/counter_list.html:13
+#: templates/sales/register_open.html:18
+msgid "Counter"
+msgstr "কাউন্টার"
+
+#: apps/audit/registry.py:88 apps/core/menu.py:162 apps/core/permissions.py:71
+#: templates/setup/invoice_settings.html:6 templates/setup/settings.html:3
+#: templates/setup/settings.html:4
+msgid "Business settings"
+msgstr "ব্যবসার সেটিংস"
+
+#: apps/audit/registry.py:88
+msgid "Document numbering"
+msgstr "ডকুমেন্ট নম্বর"
+
+#: apps/audit/registry.py:89
+msgid "Shift"
+msgstr "শিফট"
+
+#: apps/audit/registry.py:89
+msgid "Shop network"
+msgstr "দোকানের নেটওয়ার্ক"
+
+#: apps/audit/registry.py:89 apps/backup/exports.py:85 apps/core/menu.py:148
+#: apps/core/permissions.py:91 templates/hr/attendance.html:3
+#: templates/hr/attendance.html:4 templates/hr/payslip.html:87
+msgid "Attendance"
+msgstr "হাজিরা"
+
+#: apps/audit/registry.py:89 apps/hr/services.py:218
+msgid "Advance"
+msgstr "অগ্রিম"
+
+#: apps/audit/registry.py:90 apps/core/menu.py:103
+#: templates/messaging/outbox.html:8 templates/messaging/settings.html:3
+#: templates/messaging/settings.html:4
+msgid "Message settings"
+msgstr "মেসেজ সেটিংস"
+
+#: apps/audit/registry.py:90 apps/core/menu.py:107
+#: templates/messaging/loyalty_settings.html:3
+#: templates/messaging/loyalty_settings.html:4
+#: templates/messaging/points.html:6
+msgid "Loyalty settings"
+msgstr "লয়্যালটি সেটিংস"
+
+#: apps/audit/registry.py:91 apps/messaging/models.py:134
+#: templates/messaging/campaign_list.html:12
+msgid "Campaign"
+msgstr "ক্যাম্পেইন"
+
+#: apps/audit/registry.py:91 apps/messaging/forms.py:166
+#: apps/tenants/models.py:136 templates/console/tenant_detail.html:51
+msgid "SMS credits"
+msgstr "এসএমএস ক্রেডিট"
+
+#: apps/audit/registry.py:91
+msgid "Points correction"
+msgstr "পয়েন্ট সংশোধন"
+
+#: apps/audit/registry.py:92
+msgid "Data export"
+msgstr "ডেটা এক্সপোর্ট"
+
+#: apps/audit/views.py:55
+msgid "Yes"
+msgstr "হ্যাঁ"
+
+#: apps/audit/views.py:57
+msgid "No"
+msgstr "না"
+
+#: apps/audit/views.py:97 templates/audit/entry.html:18
+msgid "System"
+msgstr "সিস্টেম"
+
 #: apps/backup/apps.py:8
 msgid "Data export and backup"
 msgstr "ডেটা এক্সপোর্ট ও ব্যাকআপ"
@@ -949,24 +1241,18 @@ msgstr "জমা ও স্থানান্তর"
 msgid "Journal (double entry)"
 msgstr "জার্নাল (ডাবল এন্ট্রি)"
 
-#: apps/backup/exports.py:84 apps/core/menu.py:146 apps/core/permissions.py:86
+#: apps/backup/exports.py:84 apps/core/menu.py:146 apps/core/permissions.py:88
 #: templates/people/employee_list.html:3 templates/people/employee_list.html:4
 #: templates/people/role_list.html:15
 msgid "Employees"
 msgstr "কর্মচারী"
 
-#: apps/backup/exports.py:85 apps/core/menu.py:148 apps/core/permissions.py:89
-#: templates/hr/attendance.html:3 templates/hr/attendance.html:4
-#: templates/hr/payslip.html:87
-msgid "Attendance"
-msgstr "হাজিরা"
-
-#: apps/backup/exports.py:87 apps/reports/other_reports.py:378
+#: apps/backup/exports.py:88 apps/reports/other_reports.py:378
 #: templates/messaging/_customer_panel.html:51
 msgid "Messages sent"
 msgstr "পাঠানো মেসেজ"
 
-#: apps/backup/exports.py:88 apps/core/menu.py:105 apps/core/permissions.py:57
+#: apps/backup/exports.py:89 apps/core/menu.py:105 apps/core/permissions.py:57
 #: apps/reports/other_reports.py:407 apps/setup/models.py:96
 #: templates/messaging/_customer_panel.html:5
 #: templates/messaging/loyalty_settings.html:5
@@ -994,7 +1280,7 @@ msgstr "সম্পূর্ণ ব্যাকআপ"
 msgid "Check the lists and dates."
 msgstr "তালিকা ও তারিখগুলো দেখে নিন।"
 
-#: apps/billing/limits.py:9 apps/core/menu.py:165 apps/core/permissions.py:72
+#: apps/billing/limits.py:9 apps/core/menu.py:166 apps/core/permissions.py:72
 #: apps/outlets/views.py:31 apps/people/forms.py:27
 #: templates/console/plan_list.html:17 templates/people/employee_list.html:26
 msgid "Outlets"
@@ -1574,11 +1860,11 @@ msgstr "অফার"
 msgid "Customer list"
 msgstr "গ্রাহকের তালিকা"
 
-#: apps/core/menu.py:96 templates/customers/customer_detail.html:7
+#: apps/core/menu.py:96 templates/customers/customer_detail.html:8
 #: templates/customers/customer_list.html:6
 #: templates/customers/receipt_form.html:3
 #: templates/customers/receipt_form.html:4
-#: templates/customers/receipt_list.html:5 templates/sales/sale_detail.html:9
+#: templates/customers/receipt_list.html:5 templates/sales/sale_detail.html:10
 msgid "Collect due"
 msgstr "বাকি আদায়"
 
@@ -1606,20 +1892,9 @@ msgstr "ক্যাম্পেইন"
 msgid "Due reminders"
 msgstr "বাকির রিমাইন্ডার"
 
-#: apps/core/menu.py:103 templates/messaging/outbox.html:8
-#: templates/messaging/settings.html:3 templates/messaging/settings.html:4
-msgid "Message settings"
-msgstr "মেসেজ সেটিংস"
-
 #: apps/core/menu.py:106
 msgid "Points history"
 msgstr "পয়েন্টের হিসাব"
-
-#: apps/core/menu.py:107 templates/messaging/loyalty_settings.html:3
-#: templates/messaging/loyalty_settings.html:4
-#: templates/messaging/points.html:6
-msgid "Loyalty settings"
-msgstr "লয়্যালটি সেটিংস"
 
 #: apps/core/menu.py:112
 msgid "Add purchase"
@@ -1716,7 +1991,7 @@ msgstr "হিসাবের তালিকা"
 msgid "People"
 msgstr "জনবল"
 
-#: apps/core/menu.py:147 apps/core/permissions.py:87
+#: apps/core/menu.py:147 apps/core/permissions.py:89
 #: templates/people/role_list.html:3 templates/people/role_list.html:4
 msgid "Roles & permissions"
 msgstr "রোল ও অনুমতি"
@@ -1744,7 +2019,7 @@ msgid "Advances"
 msgstr "অগ্রিম"
 
 #: apps/core/menu.py:158 apps/core/menu.py:159 apps/core/permissions.py:41
-#: apps/core/permissions.py:84 templates/reports/index.html:3
+#: apps/core/permissions.py:86 templates/reports/index.html:3
 #: templates/reports/index.html:4
 msgid "Reports"
 msgstr "রিপোর্ট"
@@ -1752,12 +2027,6 @@ msgstr "রিপোর্ট"
 #: apps/core/menu.py:161 apps/core/permissions.py:34
 msgid "Shop setup"
 msgstr "দোকানের সেটআপ"
-
-#: apps/core/menu.py:162 apps/core/permissions.py:71
-#: templates/setup/invoice_settings.html:6 templates/setup/settings.html:3
-#: templates/setup/settings.html:4
-msgid "Business settings"
-msgstr "ব্যবসার সেটিংস"
 
 #: apps/core/menu.py:163 templates/setup/invoice_settings.html:3
 #: templates/setup/invoice_settings.html:4
@@ -1769,16 +2038,16 @@ msgstr "ইনভয়েস ও প্রিন্টিং"
 msgid "Data export & backup"
 msgstr "ডেটা এক্সপোর্ট ও ব্যাকআপ"
 
-#: apps/core/menu.py:166
+#: apps/core/menu.py:167
 msgid "Outlet list"
 msgstr "শাখার তালিকা"
 
-#: apps/core/menu.py:167 apps/core/permissions.py:73 apps/outlets/views.py:98
+#: apps/core/menu.py:168 apps/core/permissions.py:73 apps/outlets/views.py:98
 #: templates/outlets/outlet_list.html:16
 msgid "Counters"
 msgstr "কাউন্টার"
 
-#: apps/core/menu.py:169 apps/core/permissions.py:74
+#: apps/core/menu.py:170 apps/core/permissions.py:74
 #: templates/billing/subscription.html:3 templates/billing/subscription.html:4
 #: templates/console/tenant_detail.html:35
 #: templates/console/tenant_form.html:33 templates/core/dashboard.html:247
@@ -1803,7 +2072,7 @@ msgstr "যোগ"
 #: templates/accounting/chart.html:30
 #: templates/accounting/payment_account_list.html:32
 #: templates/console/plan_list.html:40
-#: templates/customers/customer_detail.html:8
+#: templates/customers/customer_detail.html:9
 #: templates/hr/attendance_settings.html:64
 #: templates/messaging/campaign_detail.html:8
 #: templates/outlets/counter_list.html:28 templates/outlets/outlet_list.html:33
@@ -1836,10 +2105,6 @@ msgstr "পিওএস (বিক্রি)"
 msgid "Cash registers of all staff"
 msgstr "সব কর্মীর ক্যাশ রেজিস্টার"
 
-#: apps/core/permissions.py:50
-msgid "Due collection"
-msgstr "বাকি আদায়"
-
 #: apps/core/permissions.py:55
 msgid "SMS, email & campaigns"
 msgstr "এসএমএস, ইমেইল ও ক্যাম্পেইন"
@@ -1864,15 +2129,15 @@ msgstr "ওষুধের সেটআপ তালিকা"
 msgid "Export & backup data"
 msgstr "ডেটা এক্সপোর্ট ও ব্যাকআপ"
 
-#: apps/core/permissions.py:82
+#: apps/core/permissions.py:84
 msgid "Accounting books & reports"
 msgstr "হিসাবের খাতা ও রিপোর্ট"
 
-#: apps/core/permissions.py:85
+#: apps/core/permissions.py:87
 msgid "Profit reports (costs & margins)"
 msgstr "মুনাফার রিপোর্ট (খরচ ও মার্জিন)"
 
-#: apps/core/permissions.py:90
+#: apps/core/permissions.py:92
 msgid "Payroll & advances"
 msgstr "বেতন ও অগ্রিম"
 
@@ -1907,21 +2172,6 @@ msgstr "কর্মচারী যোগ করে তাদের রোল �
 #: apps/core/views.py:23
 msgid "Add bKash/Nagad/bank account numbers"
 msgstr "বিকাশ/নগদ/ব্যাংক হিসাব নম্বর যোগ করুন"
-
-#: apps/customers/forms.py:20 apps/messaging/services.py:215
-#: apps/messaging/services.py:401 apps/reports/other_reports.py:174
-#: apps/reports/other_reports.py:427 apps/reports/sales_reports.py:123
-#: apps/reports/sales_reports.py:149 apps/reports/sales_reports.py:220
-#: apps/reports/sales_reports.py:322 templates/customers/customer_list.html:28
-#: templates/customers/receipt_list.html:10
-#: templates/messaging/due_reminders.html:26 templates/messaging/points.html:40
-#: templates/reports/report.html:28 templates/sales/pos.html:41
-#: templates/sales/quotation_detail.html:23
-#: templates/sales/quotation_list.html:21 templates/sales/receipt.html:83
-#: templates/sales/return_list.html:10 templates/sales/sale_detail.html:20
-#: templates/sales/sale_list.html:31
-msgid "Customer"
-msgstr "গ্রাহক"
 
 #: apps/customers/forms.py:21
 msgid "Against sale"
@@ -1988,21 +2238,10 @@ msgstr "এই ফোন নম্বরে একজন গ্রাহক আ�
 msgid "Opening due"
 msgstr "প্রারম্ভিক বাকি"
 
-#: apps/customers/models.py:53 apps/stock/models.py:60
-#: templates/customers/receipt_list.html:10
-#: templates/items/import_preview.html:36 templates/sales/return_list.html:10
-msgid "Sale"
-msgstr "বিক্রয়"
-
 #: apps/customers/models.py:54 apps/sales/services.py:299
 #: apps/suppliers/models.py:38 templates/sales/pos.html:96
 msgid "Payment"
 msgstr "পেমেন্ট"
-
-#: apps/customers/models.py:55 apps/stock/models.py:61
-#: templates/sales/return_form.html:3
-msgid "Sale return"
-msgstr "বিক্রয় ফেরত"
 
 #: apps/customers/models.py:56 apps/sales/services.py:450
 msgid "Refund"
@@ -2031,11 +2270,11 @@ msgstr "%(number)s-এ শুধু %(due)s বাকি আছে।"
 msgid "For %(sale)s"
 msgstr "%(sale)s-এর জন্য"
 
-#: apps/customers/views.py:47 templates/customers/customer_detail.html:18
+#: apps/customers/views.py:47 templates/customers/customer_detail.html:19
 msgid "No limit"
 msgstr "সীমা নেই"
 
-#: apps/customers/views.py:48 apps/sales/models.py:162 apps/sales/views.py:555
+#: apps/customers/views.py:48 apps/sales/models.py:162 apps/sales/views.py:557
 #: apps/suppliers/views.py:46 templates/accounting/entry_detail.html:8
 #: templates/core/dashboard.html:227 templates/sales/quotation_list.html:14
 #: templates/sales/register_list.html:21
@@ -2060,13 +2299,6 @@ msgstr "%(number)s: %(name)s-এর কাছ থেকে %(amount)s আদা�
 #, python-format
 msgid "%(name)s owes %(amount)s in total."
 msgstr "%(name)s-এর মোট বাকি %(amount)s।"
-
-#: apps/hr/forms.py:18 apps/reports/other_reports.py:271
-#: apps/reports/other_reports.py:339 apps/reports/other_reports.py:368
-#: templates/hr/advances.html:51 templates/hr/attendance.html:39
-#: templates/hr/payroll_detail.html:48 templates/hr/payslip.html:92
-msgid "Employee"
-msgstr "কর্মী"
 
 #: apps/hr/forms.py:23
 msgid "e.g. Eid advance"
@@ -2252,10 +2484,6 @@ msgstr "অন্যান্য কর্তন"
 #: apps/hr/services.py:217 templates/hr/payroll_detail.html:73
 msgid "Absence deduction"
 msgstr "অনুপস্থিতির কর্তন"
-
-#: apps/hr/services.py:218
-msgid "Advance"
-msgstr "অগ্রিম"
 
 #: apps/hr/services.py:221
 #, python-format
@@ -2455,7 +2683,7 @@ msgid "number"
 msgstr "নম্বর"
 
 #: apps/inventory/models.py:59 apps/inventory/views.py:78
-#: apps/sales/views.py:164 apps/sales/views.py:555 apps/tenants/models.py:18
+#: apps/sales/views.py:165 apps/sales/views.py:557 apps/tenants/models.py:18
 #: templates/sales/quotation_list.html:15 templates/stock/stock_card.html:35
 msgid "Expired"
 msgstr "মেয়াদোত্তীর্ণ"
@@ -2546,17 +2774,12 @@ msgstr "%(name)s: যে ব্যাচ পেয়েছেন তার ম�
 msgid "Enter the counted quantity for at least one batch."
 msgstr "অন্তত একটি ব্যাচের গোনা পরিমাণ লিখুন।"
 
-#: apps/inventory/services.py:206 templates/inventory/count_detail.html:4
-#: templates/inventory/count_form.html:3
-msgid "Stock count"
-msgstr "স্টক গণনা"
-
 #: apps/inventory/views.py:78 apps/reports/sales_reports.py:150
 #: apps/stock/views.py:312 templates/inventory/_lines_editor.html:17
 #: templates/inventory/transfer_detail.html:38
 #: templates/inventory/write_off_detail.html:30
 #: templates/purchases/purchase_detail.html:72
-#: templates/sales/quotation_detail.html:49 templates/sales/sale_detail.html:51
+#: templates/sales/quotation_detail.html:49 templates/sales/sale_detail.html:52
 #: templates/stock/expiring.html:43 templates/stock/opening_upload.html:34
 #: templates/stock/stock_card.html:29
 msgid "Quantity"
@@ -2585,7 +2808,7 @@ msgstr "ব্যাচ নং"
 msgid "Expiry"
 msgstr "মেয়াদ"
 
-#: apps/inventory/views.py:79 apps/sales/views.py:164
+#: apps/inventory/views.py:79 apps/sales/views.py:165
 #: templates/hr/attendance_settings.html:26
 msgid "Remove"
 msgstr "সরান"
@@ -2616,7 +2839,7 @@ msgstr "%(units)s ইউনিট, ক্রয়মূল্যে %(value)s"
 msgid "Difference: %(units)s units, %(value)s at cost"
 msgstr "পার্থক্য: %(units)s ইউনিট, ক্রয়মূল্যে %(value)s"
 
-#: apps/inventory/views.py:84 apps/sales/views.py:168
+#: apps/inventory/views.py:84 apps/sales/views.py:169
 msgid "Something went wrong. Please try again."
 msgstr "কিছু একটা সমস্যা হয়েছে। আবার চেষ্টা করুন।"
 
@@ -2734,26 +2957,9 @@ msgstr "মাউথওয়াশ"
 msgid "Shampoo"
 msgstr "শ্যাম্পু"
 
-#: apps/items/forms.py:21 apps/items/setup_views.py:24
-#: apps/reports/sales_reports.py:55 templates/console/catalog_list.html:13
-#: templates/items/bulk_price.html:24 templates/items/catalog_browse.html:34
-#: templates/items/import_preview.html:36 templates/items/medicine_list.html:32
-msgid "Generic"
-msgstr "জেনেরিক"
-
 #: apps/items/forms.py:22
 msgid "Search or type a generic"
 msgstr "জেনেরিক খুঁজুন বা লিখুন"
-
-#: apps/items/forms.py:23 apps/items/setup_views.py:26
-#: apps/reports/other_reports.py:96 apps/reports/sales_reports.py:55
-#: templates/console/catalog_list.html:13 templates/items/bulk_price.html:12
-#: templates/items/catalog_browse.html:15
-#: templates/items/catalog_browse.html:35
-#: templates/items/import_preview.html:36 templates/items/medicine_list.html:28
-#: templates/items/medicine_list.html:55
-msgid "Manufacturer"
-msgstr "প্রস্তুতকারক"
 
 #: apps/items/forms.py:24
 msgid "Search or type a company"
@@ -2799,28 +3005,6 @@ msgstr "ইমপোর্ট শেষ: %(created)sটি যোগ, %(updated)
 #: apps/items/models.py:24
 msgid "An entry with this name already exists."
 msgstr "এই নামে আগে থেকেই একটি আছে।"
-
-#: apps/items/models.py:60 apps/reports/other_reports.py:82
-#: apps/reports/other_reports.py:145 apps/reports/sales_reports.py:54
-#: apps/reports/sales_reports.py:149 apps/stock/views.py:210
-#: apps/stock/views.py:312 templates/console/catalog_list.html:13
-#: templates/inventory/count_detail.html:17
-#: templates/inventory/transfer_detail.html:38
-#: templates/inventory/write_off_detail.html:30
-#: templates/items/bulk_price.html:79 templates/items/catalog_browse.html:33
-#: templates/items/labels.html:15 templates/items/medicine_list.html:54
-#: templates/messaging/email/stock_alert.html:16
-#: templates/messaging/email/stock_alert.html:24
-#: templates/purchases/purchase_detail.html:72
-#: templates/purchases/purchase_form.html:36
-#: templates/purchases/return_form.html:14 templates/reports/report.html:44
-#: templates/sales/quotation_detail.html:49
-#: templates/sales/quotation_print.html:72 templates/sales/return_form.html:14
-#: templates/sales/sale_detail.html:51 templates/stock/expiring.html:43
-#: templates/stock/low_stock.html:34 templates/stock/opening_preview.html:27
-#: templates/stock/stock_list.html:36
-msgid "Medicine"
-msgstr "ওষুধ"
 
 #: apps/items/models.py:61
 msgid "General item"
@@ -2930,18 +3114,9 @@ msgstr "ওষুধের মূল উপাদান। কাউন্টা
 msgid "Pharmaceutical companies and brand owners."
 msgstr "ওষুধ কোম্পানি ও ব্র্যান্ডের মালিক।"
 
-#: apps/items/setup_views.py:28 apps/stock/views.py:210 apps/stock/views.py:312
-#: templates/items/import_preview.html:36 templates/sales/pos.html:48
-msgid "Unit"
-msgstr "একক"
-
 #: apps/items/setup_views.py:29
 msgid "How items are counted and bought: Piece, Strip, Box, Bottle…"
 msgstr "পণ্য যেভাবে গোনা ও কেনা হয়: পিস, পাতা, বক্স, বোতল…"
-
-#: apps/items/setup_views.py:30 templates/items/medicine_list.html:60
-msgid "Rack"
-msgstr "র‍্যাক"
 
 #: apps/items/setup_views.py:31
 msgid "Shelf locations, so staff can find items quickly."
@@ -2982,10 +3157,6 @@ msgstr "%(thing)s সম্পাদনা"
 #, python-format
 msgid "Add %(thing)s"
 msgstr "%(thing)s যোগ করুন"
-
-#: apps/items/tools_views.py:56
-msgid "Added"
-msgstr "যোগ হয়েছে"
 
 #: apps/items/tools_views.py:76
 #, python-format
@@ -3112,7 +3283,7 @@ msgstr "শূন্যের বেশি হতে হবে।"
 msgid "Between 1 and 100."
 msgstr "১ থেকে ১০০ এর মধ্যে।"
 
-#: apps/messaging/forms.py:151 apps/sales/views.py:174
+#: apps/messaging/forms.py:151 apps/sales/views.py:175
 #: templates/messaging/points.html:40 templates/sales/pos.html:65
 msgid "Points"
 msgstr "পয়েন্ট"
@@ -3128,11 +3299,6 @@ msgstr "কেন"
 #: apps/messaging/forms.py:159 apps/messaging/views.py:196
 msgid "WhatsApp gateway"
 msgstr "হোয়াটসঅ্যাপ গেটওয়ে"
-
-#: apps/messaging/forms.py:166 apps/tenants/models.py:136
-#: templates/console/tenant_detail.html:51
-msgid "SMS credits"
-msgstr "এসএমএস ক্রেডিট"
 
 #: apps/messaging/forms.py:166
 msgid "One credit = one SMS part. A minus number takes credits away."
@@ -3203,7 +3369,7 @@ msgstr "হোয়াটসঅ্যাপ"
 
 #: apps/messaging/models.py:16 apps/people/forms.py:21
 #: templates/console/tenant_detail.html:70 templates/core/dashboard.html:245
-#: templates/customers/customer_detail.html:20
+#: templates/customers/customer_detail.html:21
 #: templates/messaging/settings.html:43
 #: templates/suppliers/supplier_detail.html:26
 msgid "Email"
@@ -3336,7 +3502,7 @@ msgstr "সতর্কবার্তার ইমেইল"
 
 #: apps/messaging/models.py:75 apps/reports/other_reports.py:56
 #: apps/reports/other_reports.py:244
-#: templates/customers/customer_detail.html:41
+#: templates/customers/customer_detail.html:42
 msgid "Bought"
 msgstr "কিনেছেন"
 
@@ -3416,10 +3582,6 @@ msgstr "বাকির রিমাইন্ডার"
 #: apps/messaging/models.py:133
 msgid "Stock alert"
 msgstr "স্টক সতর্কবার্তা"
-
-#: apps/messaging/models.py:134 templates/messaging/campaign_list.html:12
-msgid "Campaign"
-msgstr "ক্যাম্পেইন"
 
 #: apps/messaging/models.py:135
 msgid "Test"
@@ -3701,14 +3863,14 @@ msgid "Manager"
 msgstr "ম্যানেজার"
 
 #: apps/people/defaults.py:26
-msgid "Runs the shop day to day: everything except roles, the subscription and data export."
-msgstr "প্রতিদিন দোকান চালান: রোল, সাবস্ক্রিপশন ও ডেটা এক্সপোর্ট ছাড়া সবকিছু।"
+msgid "Runs the shop day to day: everything except roles, the subscription, data export and the audit log."
+msgstr "প্রতিদিন দোকান চালান: রোল, সাবস্ক্রিপশন, ডেটা এক্সপোর্ট ও অডিট লগ ছাড়া সবকিছু।"
 
 #: apps/people/defaults.py:30 apps/reports/other_reports.py:302
 #: apps/reports/sales_reports.py:123 apps/setup/models.py:91
-#: apps/setup/views.py:108 templates/reports/report.html:60
-#: templates/sales/receipt.html:82 templates/sales/register_list.html:10
-#: templates/sales/sale_detail.html:21 templates/sales/sale_list.html:31
+#: templates/reports/report.html:60 templates/sales/receipt.html:82
+#: templates/sales/register_list.html:10 templates/sales/sale_detail.html:22
+#: templates/sales/sale_list.html:31
 msgid "Cashier"
 msgstr "ক্যাশিয়ার"
 
@@ -3744,11 +3906,6 @@ msgstr "লগইনের জন্য ব্যবহার হয়।"
 msgid "Confirm password"
 msgstr "পাসওয়ার্ড আবার লিখুন"
 
-#: apps/people/forms.py:24 templates/people/employee_list.html:25
-#: templates/people/role_list.html:13
-msgid "Role"
-msgstr "রোল"
-
 #: apps/people/forms.py:24 apps/people/forms.py:58
 msgid "No role (no access)"
 msgstr "কোনো রোল নয় (প্রবেশাধিকার নেই)"
@@ -3772,7 +3929,7 @@ msgstr "এনআইডি নম্বর"
 
 #: apps/people/forms.py:30 apps/tenants/forms.py:13
 #: templates/console/tenant_detail.html:71
-#: templates/customers/customer_detail.html:21
+#: templates/customers/customer_detail.html:22
 #: templates/suppliers/supplier_detail.html:27
 msgid "Address"
 msgstr "ঠিকানা"
@@ -3959,18 +4116,6 @@ msgstr "%(role)s রোলটি কর্মচারীদের দেওয�
 msgid "Role deleted."
 msgstr "রোল মুছে ফেলা হয়েছে।"
 
-#: apps/purchases/forms.py:15 apps/reports/other_reports.py:51
-#: apps/reports/other_reports.py:198 apps/reports/sales_reports.py:355
-#: apps/stock/views.py:312 apps/suppliers/forms.py:24
-#: templates/purchases/purchase_detail.html:39
-#: templates/purchases/purchase_list.html:28
-#: templates/purchases/purchase_list.html:33
-#: templates/purchases/return_list.html:10 templates/reports/report.html:36
-#: templates/stock/expiring.html:43 templates/suppliers/payment_list.html:10
-#: templates/suppliers/supplier_list.html:31
-msgid "Supplier"
-msgstr "সরবরাহকারী"
-
 #: apps/purchases/forms.py:16
 msgid "Receive at"
 msgstr "যে শাখায় গ্রহণ"
@@ -3985,15 +4130,15 @@ msgstr "সরবরাহকারীর চালান নম্বর"
 
 #: apps/purchases/forms.py:19 apps/reports/sales_reports.py:151
 #: apps/sales/services.py:240 apps/sales/services.py:259
-#: apps/sales/services.py:294 apps/sales/views.py:169
+#: apps/sales/services.py:294 apps/sales/views.py:170
 #: templates/purchases/purchase_detail.html:55
 #: templates/purchases/purchase_form.html:69 templates/sales/pos.html:58
 #: templates/sales/quotation_detail.html:37
 #: templates/sales/quotation_detail.html:49
 #: templates/sales/quotation_print.html:72
 #: templates/sales/quotation_print.html:88 templates/sales/receipt.html:88
-#: templates/sales/receipt.html:106 templates/sales/sale_detail.html:34
-#: templates/sales/sale_detail.html:51
+#: templates/sales/receipt.html:106 templates/sales/sale_detail.html:35
+#: templates/sales/sale_detail.html:52
 msgid "Discount"
 msgstr "ছাড়"
 
@@ -4146,7 +4291,7 @@ msgstr "%(number)s-এর বিপরীতে ফেরত"
 #: apps/purchases/views.py:73 apps/reports/other_reports.py:53
 #: apps/reports/sales_reports.py:125 apps/reports/sales_reports.py:129
 #: apps/reports/sales_reports.py:222 apps/reports/sales_reports.py:225
-#: apps/sales/views.py:167 templates/core/dashboard.html:184
+#: apps/sales/views.py:168 templates/core/dashboard.html:184
 #: templates/messaging/email/bill.html:11
 #: templates/purchases/purchase_detail.html:6
 #: templates/purchases/purchase_detail.html:60
@@ -4217,15 +4362,6 @@ msgstr "কর্মী ও রেজিস্টার"
 msgid "Received purchases with what was paid, returned and is still owed."
 msgstr "গ্রহণ করা ক্রয়, কত পরিশোধ ও ফেরত হয়েছে আর কত দেনা বাকি।"
 
-#: apps/reports/other_reports.py:51 apps/reports/sales_reports.py:355
-#: apps/stock/models.py:58 apps/suppliers/models.py:37
-#: templates/items/import_preview.html:36 templates/items/medicine_list.html:58
-#: templates/purchases/purchase_detail.html:4
-#: templates/purchases/return_list.html:10
-#: templates/suppliers/payment_list.html:10
-msgid "Purchase"
-msgstr "ক্রয়"
-
 #: apps/reports/other_reports.py:51 templates/purchases/purchase_detail.html:42
 msgid "Supplier invoice"
 msgstr "সরবরাহকারীর চালান"
@@ -4249,8 +4385,8 @@ msgstr "সরবরাহকারীর চালান"
 #: templates/sales/quotation_list.html:21
 #: templates/sales/quotation_print.html:72
 #: templates/sales/quotation_print.html:91 templates/sales/receipt.html:88
-#: templates/sales/receipt.html:110 templates/sales/sale_detail.html:38
-#: templates/sales/sale_detail.html:51 templates/sales/sale_list.html:31
+#: templates/sales/receipt.html:110 templates/sales/sale_detail.html:39
+#: templates/sales/sale_detail.html:52 templates/sales/sale_list.html:31
 msgid "Total"
 msgstr "মোট"
 
@@ -4348,12 +4484,12 @@ msgid "All movements"
 msgstr "সব আসা-যাওয়া"
 
 #: apps/reports/other_reports.py:145 apps/reports/sales_reports.py:123
-#: templates/sales/sale_detail.html:18 templates/sales/sale_list.html:31
+#: templates/sales/sale_detail.html:19 templates/sales/sale_list.html:31
 msgid "Time"
 msgstr "সময়"
 
 #: apps/reports/other_reports.py:145 apps/reports/sales_reports.py:355
-#: apps/sales/views.py:163 apps/stock/views.py:312
+#: apps/sales/views.py:164 apps/stock/views.py:312
 #: templates/inventory/_lines_editor.html:13
 #: templates/inventory/count_detail.html:17
 #: templates/inventory/transfer_detail.html:38
@@ -4362,7 +4498,7 @@ msgstr "সময়"
 #: templates/purchases/purchase_detail.html:72
 #: templates/purchases/purchase_form.html:37
 #: templates/purchases/return_form.html:14 templates/sales/receipt.html:94
-#: templates/sales/sale_detail.html:51 templates/stock/expiring.html:43
+#: templates/sales/sale_detail.html:52 templates/stock/expiring.html:43
 #: templates/stock/opening_preview.html:27 templates/stock/stock_card.html:29
 #: templates/stock/stock_card.html:62
 msgid "Batch"
@@ -4440,14 +4576,14 @@ msgid "Bought (all time)"
 msgstr "মোট কেনা"
 
 #: apps/reports/other_reports.py:175 apps/reports/other_reports.py:228
-#: apps/sales/views.py:159 templates/customers/customer_detail.html:41
+#: apps/sales/views.py:160 templates/customers/customer_detail.html:42
 #: templates/customers/customer_list.html:28
 #: templates/messaging/due_reminders.html:26
 msgid "Owes"
 msgstr "বাকি"
 
 #: apps/reports/other_reports.py:175
-#: templates/customers/customer_detail.html:18
+#: templates/customers/customer_detail.html:19
 #: templates/customers/customer_list.html:28 templates/sales/pos.html:188
 msgid "Credit limit"
 msgstr "বাকির সীমা"
@@ -4498,7 +4634,7 @@ msgstr "একজন গ্রাহকের বিক্রয়, পরি�
 
 #: apps/reports/other_reports.py:226 apps/reports/other_reports.py:243
 #: templates/accounting/statement.html:26
-#: templates/customers/customer_detail.html:41
+#: templates/customers/customer_detail.html:42
 #: templates/suppliers/supplier_detail.html:47
 msgid "Entry"
 msgstr "এন্ট্রি"
@@ -4508,7 +4644,7 @@ msgid "Bought / refunded"
 msgstr "কেনা / ফেরত দেওয়া টাকা"
 
 #: apps/reports/other_reports.py:227 apps/reports/other_reports.py:244
-#: templates/customers/customer_detail.html:41
+#: templates/customers/customer_detail.html:42
 #: templates/suppliers/supplier_detail.html:47
 msgid "Paid / returned"
 msgstr "পরিশোধ / ফেরত"
@@ -4708,7 +4844,7 @@ msgid "Worth"
 msgstr "মূল্য"
 
 #: apps/reports/other_reports.py:431 templates/messaging/email/bill.html:12
-#: templates/sales/sale_detail.html:41
+#: templates/sales/sale_detail.html:42
 msgid "Points earned"
 msgstr "অর্জিত পয়েন্ট"
 
@@ -4739,11 +4875,11 @@ msgstr "ছাড়"
 #: apps/reports/sales_reports.py:91 templates/sales/pos.html:73
 #: templates/sales/quotation_detail.html:38
 #: templates/sales/quotation_print.html:89 templates/sales/receipt.html:108
-#: templates/sales/register_detail.html:17 templates/sales/sale_detail.html:36
+#: templates/sales/register_detail.html:17 templates/sales/sale_detail.html:37
 msgid "VAT"
 msgstr "ভ্যাট"
 
-#: apps/reports/sales_reports.py:92 templates/sales/sale_detail.html:39
+#: apps/reports/sales_reports.py:92 templates/sales/sale_detail.html:40
 msgid "Paid at counter"
 msgstr "কাউন্টারে পরিশোধিত"
 
@@ -4754,7 +4890,7 @@ msgstr "বাকিতে দেওয়া"
 #: apps/reports/sales_reports.py:93 apps/reports/sales_reports.py:99
 #: apps/reports/sales_reports.py:191
 #: templates/purchases/purchase_detail.html:107
-#: templates/sales/register_detail.html:19 templates/sales/sale_detail.html:78
+#: templates/sales/register_detail.html:19 templates/sales/sale_detail.html:79
 msgid "Returns"
 msgstr "ফেরত"
 
@@ -4778,10 +4914,10 @@ msgid "Only with money due"
 msgstr "শুধু বাকি থাকা"
 
 #: apps/reports/sales_reports.py:119 apps/reports/sales_reports.py:144
-#: apps/reports/sales_reports.py:319 apps/sales/views.py:419
-#: apps/sales/views.py:537 apps/sales/views.py:581
+#: apps/reports/sales_reports.py:319 apps/sales/views.py:420
+#: apps/sales/views.py:539 apps/sales/views.py:583
 #: templates/core/dashboard.html:183 templates/sales/quotation_detail.html:23
-#: templates/sales/return_form.html:5 templates/sales/sale_detail.html:20
+#: templates/sales/return_form.html:5 templates/sales/sale_detail.html:21
 msgid "Walk-in"
 msgstr "সাধারণ গ্রাহক"
 
@@ -4861,7 +4997,7 @@ msgstr "পেমেন্ট মাধ্যম অনুযায়ী বি
 msgid "Money taken per account (cash, bKash, bank…): at the counter, due collected, refunds."
 msgstr "প্রতিটি হিসাবে নেওয়া টাকা (নগদ, বিকাশ, ব্যাংক…): কাউন্টারে, বাকি আদায়, ফেরত।"
 
-#: apps/reports/sales_reports.py:248 apps/sales/views.py:168
+#: apps/reports/sales_reports.py:248 apps/sales/views.py:169
 #: templates/accounting/cash_flow.html:35
 #: templates/accounting/entry_detail.html:30
 #: templates/accounting/entry_form.html:19
@@ -4869,7 +5005,7 @@ msgstr "প্রতিটি হিসাবে নেওয়া টাকা
 #: templates/accounting/statement.html:9
 #: templates/accounting/trial_balance.html:19
 #: templates/accounts/profile.html:27
-#: templates/customers/customer_detail.html:36
+#: templates/customers/customer_detail.html:37
 msgid "Account"
 msgstr "হিসাব"
 
@@ -5007,7 +5143,7 @@ msgstr "% ছাড়"
 msgid "Amount off each unit"
 msgstr "প্রতি ইউনিটে টাকা ছাড়"
 
-#: apps/sales/models.py:113 apps/sales/views.py:638
+#: apps/sales/models.py:113 apps/sales/views.py:640
 msgid "Every medicine"
 msgstr "সব ওষুধ"
 
@@ -5056,7 +5192,7 @@ msgstr "শেষ"
 msgid "Leave empty to run until you switch it off."
 msgstr "ফাঁকা রাখলে বন্ধ না করা পর্যন্ত চলবে।"
 
-#: apps/sales/models.py:163 apps/sales/views.py:555
+#: apps/sales/models.py:163 apps/sales/views.py:557
 #: templates/sales/quotation_list.html:16
 msgid "Sold"
 msgstr "বিক্রি হয়েছে"
@@ -5088,7 +5224,7 @@ msgstr "এই রেজিস্টার আগেই বন্ধ হয়�
 msgid "Counted cash"
 msgstr "গোনা নগদ"
 
-#: apps/sales/services.py:120 apps/setup/views.py:99
+#: apps/sales/services.py:120 apps/setup/views.py:101
 msgid "Strip"
 msgstr "পাতা"
 
@@ -5103,7 +5239,7 @@ msgid "%(name)s: only %(have)s in stock that hasn't expired, %(want)s needed."
 msgstr "%(name)s: মেয়াদ আছে এমন স্টক মাত্র %(have)sটি, দরকার %(want)sটি।"
 
 #: apps/sales/services.py:216 apps/sales/services.py:388
-#: apps/sales/views.py:164 templates/sales/pos.html:51
+#: apps/sales/views.py:165 templates/sales/pos.html:51
 msgid "The cart is empty."
 msgstr "কার্ট খালি।"
 
@@ -5178,203 +5314,203 @@ msgstr "এই বিক্রিতে কোনো গ্রাহক নে�
 msgid "Choose where the refund is paid from."
 msgstr "ফেরত টাকা কোন হিসাব থেকে যাবে বেছে নিন।"
 
-#: apps/sales/views.py:58
+#: apps/sales/views.py:59
 msgid "You haven't been given an outlet to sell in."
 msgstr "আপনাকে বিক্রির জন্য কোনো শাখা দেওয়া হয়নি।"
 
-#: apps/sales/views.py:159
+#: apps/sales/views.py:160
 msgid "Walk-in customer (search name or phone)"
 msgstr "সাধারণ গ্রাহক (নাম বা ফোন দিয়ে খুঁজুন)"
 
-#: apps/sales/views.py:159
+#: apps/sales/views.py:160
 msgid "limit"
 msgstr "সীমা"
 
-#: apps/sales/views.py:160
+#: apps/sales/views.py:161
 msgid "no credit limit"
 msgstr "বাকির সীমা নেই"
 
-#: apps/sales/views.py:160
+#: apps/sales/views.py:161
 msgid "no credit allowed"
 msgstr "বাকি দেওয়া যাবে না"
 
-#: apps/sales/views.py:160
+#: apps/sales/views.py:161
 msgid "default discount"
 msgstr "ডিফল্ট ছাড়"
 
-#: apps/sales/views.py:161
+#: apps/sales/views.py:162
 msgid "in stock"
 msgstr "স্টকে আছে"
 
-#: apps/sales/views.py:161 apps/stock/views.py:195
+#: apps/sales/views.py:162 apps/stock/views.py:195
 #: templates/core/dashboard.html:84 templates/stock/low_stock.html:11
 msgid "Out of stock"
 msgstr "স্টক নেই"
 
-#: apps/sales/views.py:161
+#: apps/sales/views.py:162
 msgid "exp."
 msgstr "মেয়াদ"
 
-#: apps/sales/views.py:162
+#: apps/sales/views.py:163
 msgid "No medicine matches. Check the spelling or scan again."
 msgstr "কোনো ওষুধ মেলেনি। বানান দেখুন বা আবার স্ক্যান করুন।"
 
-#: apps/sales/views.py:162
+#: apps/sales/views.py:163
 #, python-format
 msgid "Only %(n)s in stock."
 msgstr "স্টকে আছে মাত্র %(n)sটি।"
 
-#: apps/sales/views.py:163
+#: apps/sales/views.py:164
 msgid "Automatic (earliest expiry first)"
 msgstr "স্বয়ংক্রিয় (আগে মেয়াদ শেষ যেটার)"
 
-#: apps/sales/views.py:163
+#: apps/sales/views.py:164
 msgid "choose batch"
 msgstr "ব্যাচ বেছে নিন"
 
-#: apps/sales/views.py:164
+#: apps/sales/views.py:165
 msgid "Cart held."
 msgstr "কার্ট হোল্ড করা হয়েছে।"
 
-#: apps/sales/views.py:165
+#: apps/sales/views.py:166
 msgid "No held carts."
 msgstr "কোনো হোল্ড করা কার্ট নেই।"
 
-#: apps/sales/views.py:165
+#: apps/sales/views.py:166
 msgid "items"
 msgstr "আইটেম"
 
-#: apps/sales/views.py:165
+#: apps/sales/views.py:166
 msgid "Clear the whole cart?"
 msgstr "পুরো কার্ট খালি করবেন?"
 
-#: apps/sales/views.py:166
+#: apps/sales/views.py:167
 #, python-format
 msgid "Pick a customer to leave %(due)s on due."
 msgstr "বাকি %(due)s রাখতে একজন গ্রাহক বেছে নিন।"
 
-#: apps/sales/views.py:167
+#: apps/sales/views.py:168
 #, python-format
 msgid "%(due)s will be added to the customer’s due."
 msgstr "%(due)s গ্রাহকের বাকিতে যোগ হবে।"
 
-#: apps/sales/views.py:167 templates/items/bulk_price.html:44
+#: apps/sales/views.py:168 templates/items/bulk_price.html:44
 #: templates/sales/pos.html:106 templates/sales/receipt.html:112
 msgid "Change"
 msgstr "ফেরত"
 
-#: apps/sales/views.py:169 templates/messaging/email/stock_alert.html:24
+#: apps/sales/views.py:170 templates/messaging/email/stock_alert.html:24
 #: templates/purchases/purchase_form.html:39 templates/sales/pos.html:48
 #: templates/sales/quotation_print.html:72 templates/sales/receipt.html:88
 msgid "Qty"
 msgstr "পরিমাণ"
 
-#: apps/sales/views.py:169
+#: apps/sales/views.py:170
 msgid "One less"
 msgstr "একটি কম"
 
-#: apps/sales/views.py:169
+#: apps/sales/views.py:170
 msgid "One more"
 msgstr "একটি বেশি"
 
-#: apps/sales/views.py:170
+#: apps/sales/views.py:171
 #, python-format
 msgid "%(exact)s rounded to %(total)s"
 msgstr "%(exact)s থেকে %(total)s-এ রাউন্ড করা হয়েছে"
 
-#: apps/sales/views.py:171
+#: apps/sales/views.py:172
 msgid "No medicines here yet."
 msgstr "এখানে এখনো কোনো ওষুধ নেই।"
 
-#: apps/sales/views.py:171
+#: apps/sales/views.py:172
 msgid "No sales yet. These are the medicines you have most of."
 msgstr "এখনো কোনো বিক্রয় হয়নি। যেসব ওষুধ সবচেয়ে বেশি আছে সেগুলো দেখানো হচ্ছে।"
 
-#: apps/sales/views.py:172
+#: apps/sales/views.py:173
 #, python-format
 msgid "Showing the first %(n)s. Search to find the rest."
 msgstr "প্রথম %(n)sটি দেখানো হচ্ছে। বাকিগুলো খুঁজে নিন।"
 
-#: apps/sales/views.py:173 templates/sales/sale_detail.html:55
+#: apps/sales/views.py:174 templates/sales/sale_detail.html:56
 msgid "Offer"
 msgstr "অফার"
 
-#: apps/sales/views.py:173
+#: apps/sales/views.py:174
 #, python-format
 msgid "Quotation %(number)s saved."
 msgstr "কোটেশন %(number)s সংরক্ষিত।"
 
-#: apps/sales/views.py:173
+#: apps/sales/views.py:174
 #, python-format
 msgid "Loaded from quotation %(number)s"
 msgstr "কোটেশন %(number)s থেকে আনা হয়েছে"
 
-#: apps/sales/views.py:174
+#: apps/sales/views.py:175
 #, python-format
 msgid "has %(n)s · up to %(most)s here"
 msgstr "আছে %(n)s · এখানে সর্বোচ্চ %(most)s"
 
-#: apps/sales/views.py:174
+#: apps/sales/views.py:175
 #, python-format
 msgid "at least %(n)s at a time"
 msgstr "একবারে অন্তত %(n)s"
 
-#: apps/sales/views.py:175
+#: apps/sales/views.py:176
 #, python-format
 msgid "Points earned: %(earned)s · now has %(balance)s"
 msgstr "অর্জিত পয়েন্ট: %(earned)s · এখন আছে %(balance)s"
 
-#: apps/sales/views.py:175
+#: apps/sales/views.py:176
 msgid "Sent:"
 msgstr "পাঠানো হয়েছে:"
 
-#: apps/sales/views.py:255
+#: apps/sales/views.py:256
 msgid "Open your cash register first."
 msgstr "আগে আপনার ক্যাশ রেজিস্টার খুলুন।"
 
-#: apps/sales/views.py:321
+#: apps/sales/views.py:322
 #, python-format
 msgid "Cart %(n)s"
 msgstr "কার্ট %(n)s"
 
-#: apps/sales/views.py:372
+#: apps/sales/views.py:373
 msgid "Register closed."
 msgstr "রেজিস্টার বন্ধ হয়েছে।"
 
-#: apps/sales/views.py:383
+#: apps/sales/views.py:384
 msgid "Your register isn't open."
 msgstr "আপনার রেজিস্টার খোলা নেই।"
 
-#: apps/sales/views.py:514
+#: apps/sales/views.py:516
 #, python-format
 msgid "Return %(number)s saved: stock back on the shelf."
 msgstr "ফেরত %(number)s সংরক্ষিত: স্টক আবার তাকে উঠেছে।"
 
-#: apps/sales/views.py:624
+#: apps/sales/views.py:626
 #, python-format
 msgid "Quotation %(number)s deleted."
 msgstr "কোটেশন %(number)s মুছে ফেলা হয়েছে।"
 
-#: apps/sales/views.py:651 templates/sales/promotion_list.html:6
+#: apps/sales/views.py:653 templates/sales/promotion_list.html:6
 #: templates/sales/promotion_list.html:51
 msgid "New promotion"
 msgstr "নতুন অফার"
 
-#: apps/sales/views.py:659
+#: apps/sales/views.py:661
 msgid "Edit promotion"
 msgstr "অফার সম্পাদনা"
 
-#: apps/sales/views.py:672
+#: apps/sales/views.py:674
 #, python-format
 msgid "%(name)s switched on."
 msgstr "%(name)s চালু করা হয়েছে।"
 
-#: apps/sales/views.py:672
+#: apps/sales/views.py:674
 #, python-format
 msgid "%(name)s switched off."
 msgstr "%(name)s বন্ধ করা হয়েছে।"
 
-#: apps/sales/views.py:682
+#: apps/sales/views.py:684
 #, python-format
 msgid "%(name)s deleted. Past sales keep their discounts."
 msgstr "%(name)s মুছে ফেলা হয়েছে। আগের বিক্রিতে ছাড় থেকে যাবে।"
@@ -5415,7 +5551,7 @@ msgstr "৫৮ মিমি থার্মাল"
 msgid "80 mm thermal"
 msgstr "৮০ মিমি থার্মাল"
 
-#: apps/setup/models.py:15 templates/sales/sale_detail.html:8
+#: apps/setup/models.py:15 templates/sales/sale_detail.html:9
 msgid "A4 invoice"
 msgstr "A4 ইনভয়েস"
 
@@ -5635,23 +5771,23 @@ msgstr "পরের নম্বর"
 msgid "digits"
 msgstr "অঙ্ক"
 
-#: apps/setup/views.py:35
+#: apps/setup/views.py:36
 msgid "Business settings saved."
 msgstr "ব্যবসার সেটিংস সংরক্ষিত হয়েছে।"
 
-#: apps/setup/views.py:68
+#: apps/setup/views.py:69
 msgid "Letterhead removed."
 msgstr "লেটারহেড সরানো হয়েছে।"
 
-#: apps/setup/views.py:72
+#: apps/setup/views.py:73
 msgid "Invoice settings saved."
 msgstr "ইনভয়েস সেটিংস সংরক্ষিত।"
 
-#: apps/setup/views.py:98 apps/tenants/services.py:56
+#: apps/setup/views.py:100 apps/tenants/services.py:56
 msgid "Main branch"
 msgstr "প্রধান শাখা"
 
-#: apps/setup/views.py:99
+#: apps/setup/views.py:101
 msgid "Piece"
 msgstr "পিস"
 
@@ -5674,10 +5810,6 @@ msgstr "এই ব্যাচের সর্বশেষ ক্রয় থ�
 #: apps/stock/models.py:30
 msgid "No batch no."
 msgstr "ব্যাচ নম্বর নেই"
-
-#: apps/stock/models.py:59 apps/suppliers/models.py:39
-msgid "Purchase return"
-msgstr "ক্রয় ফেরত"
 
 #: apps/stock/models.py:62
 msgid "Adjustment"
@@ -6247,11 +6379,6 @@ msgstr "লুকানো খাত নতুন এন্ট্রিতে �
 msgid "Every amount in the books sits in one of these accounts. Accounts with a lock are kept by the app; add your own for new expense types, loans or fixed assets."
 msgstr "খাতার প্রতিটি টাকা এই হিসাবগুলোর কোনো একটিতে থাকে। তালাওয়ালা হিসাবগুলো অ্যাপ নিজে রাখে; নতুন খরচের খাত, ঋণ বা স্থায়ী সম্পদের জন্য নিজের হিসাব যোগ করুন।"
 
-#: templates/accounting/chart.html:7 templates/accounting/entry_detail.html:4
-#: templates/accounting/entry_form.html:3 templates/accounting/journal.html:6
-msgid "Journal entry"
-msgstr "জাবেদা এন্ট্রি"
-
 #: templates/accounting/chart.html:34
 msgid "No accounts yet."
 msgstr "এখনো কোনো হিসাব নেই।"
@@ -6429,13 +6556,6 @@ msgstr "নির্দিষ্ট দিনে প্রতিটি হিস
 msgid "Nothing in the books yet."
 msgstr "খাতায় এখনো কিছু নেই।"
 
-#: templates/accounts/login.html:3 templates/accounts/login.html:26
-#: templates/accounts/password_reset_complete.html:7
-#: templates/people/employee_form.html:23
-#: templates/people/employee_list.html:24
-msgid "Login"
-msgstr "লগইন"
-
 #: templates/accounts/login.html:5
 msgid "Welcome back"
 msgstr "আবার স্বাগতম"
@@ -6572,6 +6692,106 @@ msgstr "আপনি অনুরোধ না করে থাকলে এই 
 #: templates/accounts/email/password_reset_subject.txt:1
 msgid "Reset your ThingBD MediPOS password"
 msgstr "আপনার ThingBD MediPOS পাসওয়ার্ড রিসেট করুন"
+
+#: templates/audit/entry.html:7
+msgid "Everything about this record"
+msgstr "এই রেকর্ডের পুরো ইতিহাস"
+
+#: templates/audit/entry.html:8
+msgid "Open it"
+msgstr "খুলুন"
+
+#: templates/audit/entry.html:17 templates/audit/log.html:40
+#: templates/messaging/outbox.html:60 templates/sales/promotion_form.html:35
+#: templates/stock/stock_card.html:62
+msgid "When"
+msgstr "কখন"
+
+#: templates/audit/entry.html:18 templates/audit/log.html:11
+#: templates/audit/log.html:40
+msgid "Who"
+msgstr "কে"
+
+#: templates/audit/entry.html:19 templates/audit/log.html:24
+#: templates/audit/log.html:40
+msgid "Record"
+msgstr "রেকর্ড"
+
+#: templates/audit/entry.html:20
+msgid "IP address"
+msgstr "আইপি ঠিকানা"
+
+#: templates/audit/entry.html:21
+msgid "Page"
+msgstr "পাতা"
+
+#: templates/audit/entry.html:22
+msgid "Browser"
+msgstr "ব্রাউজার"
+
+#: templates/audit/entry.html:29
+msgid "What changed"
+msgstr "কী বদলেছে"
+
+#: templates/audit/entry.html:29
+msgid "What was deleted"
+msgstr "কী মুছে ফেলা হয়েছে"
+
+#: templates/audit/entry.html:29
+msgid "What was added"
+msgstr "কী যোগ হয়েছে"
+
+#: templates/audit/entry.html:29 templates/audit/log.html:40
+#: templates/people/employee_form.html:57
+msgid "Details"
+msgstr "বিস্তারিত"
+
+#: templates/audit/entry.html:34
+msgid "Field"
+msgstr "ঘর"
+
+#: templates/audit/entry.html:34
+msgid "Before"
+msgstr "আগে"
+
+#: templates/audit/entry.html:34 templates/items/bulk_price.html:79
+msgid "After"
+msgstr "পরে"
+
+#: templates/audit/entry.html:34 templates/purchases/return_list.html:10
+#: templates/sales/return_list.html:10
+msgid "Value"
+msgstr "মূল্য"
+
+#: templates/audit/entry.html:44
+msgid "Nothing more to show."
+msgstr "দেখানোর মতো আর কিছু নেই।"
+
+#: templates/audit/log.html:4
+#, python-format
+msgid "History of %(kind)s “%(name)s”"
+msgstr "%(kind)s “%(name)s”-এর ইতিহাস"
+
+#: templates/audit/log.html:5
+msgid "Whole audit log"
+msgstr "পুরো অডিট লগ"
+
+#: templates/audit/log.html:5
+msgid "Who added, changed or deleted what, and when, with the values before and after. Sign-ins are here too."
+msgstr "কে কখন কী যোগ, পরিবর্তন বা মুছে ফেলেছেন, আগের ও পরের মানসহ। সাইন-ইনও এখানে আছে।"
+
+#: templates/audit/log.html:12 templates/people/employee_list.html:13
+#: templates/reports/report.html:61
+msgid "Everyone"
+msgstr "সবাই"
+
+#: templates/audit/log.html:18
+msgid "Anything"
+msgstr "যেকোনো কিছু"
+
+#: templates/audit/log.html:25
+msgid "Any record"
+msgstr "যেকোনো রেকর্ড"
 
 #: templates/backup/data.html:5
 msgid "Your data is yours: take it to Excel for your accountant, or keep a full copy somewhere safe."
@@ -6880,7 +7100,7 @@ msgstr "ব্যবহার বনাম প্ল্যান"
 
 #: templates/console/tenant_detail.html:115
 #: templates/purchases/purchase_detail.html:95
-#: templates/sales/sale_detail.html:70
+#: templates/sales/sale_detail.html:71
 msgid "Payments"
 msgstr "পেমেন্ট"
 
@@ -7129,12 +7349,12 @@ msgid "Nothing sold yet this month."
 msgstr "এই মাসে এখনো কিছু বিক্রি হয়নি।"
 
 #: templates/core/dashboard.html:177
-#: templates/customers/customer_detail.html:59
+#: templates/customers/customer_detail.html:60
 msgid "Recent sales"
 msgstr "সাম্প্রতিক বিক্রয়"
 
 #: templates/core/dashboard.html:186
-#: templates/customers/customer_detail.html:63
+#: templates/customers/customer_detail.html:64
 msgid "No sales yet."
 msgstr "এখনো কোনো বিক্রয় নেই।"
 
@@ -7174,43 +7394,48 @@ msgstr "ইনভয়েস"
 msgid "Hide table"
 msgstr "টেবিল লুকান"
 
-#: templates/customers/customer_detail.html:15
+#: templates/customers/customer_detail.html:7
+#: templates/sales/sale_detail.html:7
+msgid "History"
+msgstr "ইতিহাস"
+
+#: templates/customers/customer_detail.html:16
 msgid "Owes you"
 msgstr "আপনার পাওনা"
 
-#: templates/customers/customer_detail.html:15
+#: templates/customers/customer_detail.html:16
 msgid "Advance (you owe them)"
 msgstr "অগ্রিম (আপনি তাদের দেবেন)"
 
-#: templates/customers/customer_detail.html:19
+#: templates/customers/customer_detail.html:20
 msgid "Default discount"
 msgstr "ডিফল্ট ছাড়"
 
-#: templates/customers/customer_detail.html:22
+#: templates/customers/customer_detail.html:23
 msgid "Notes"
 msgstr "নোট"
 
-#: templates/customers/customer_detail.html:23
+#: templates/customers/customer_detail.html:24
 msgid "Offers"
 msgstr "অফার"
 
-#: templates/customers/customer_detail.html:23
+#: templates/customers/customer_detail.html:24
 msgid "No offers"
 msgstr "অফার নয়"
 
-#: templates/customers/customer_detail.html:29
+#: templates/customers/customer_detail.html:30
 msgid "Hide this customer from the POS?"
 msgstr "এই গ্রাহককে পিওএস থেকে লুকাবেন?"
 
-#: templates/customers/customer_detail.html:30
+#: templates/customers/customer_detail.html:31
 msgid "Deactivate customer"
 msgstr "গ্রাহক বন্ধ করুন"
 
-#: templates/customers/customer_detail.html:30
+#: templates/customers/customer_detail.html:31
 msgid "Activate customer"
 msgstr "গ্রাহক চালু করুন"
 
-#: templates/customers/customer_detail.html:55
+#: templates/customers/customer_detail.html:56
 #: templates/suppliers/supplier_detail.html:61
 msgid "No transactions yet."
 msgstr "এখনো কোনো লেনদেন নেই।"
@@ -7858,14 +8083,14 @@ msgstr "২. কী বদলাবেন"
 #: templates/sales/quotation_detail.html:49
 #: templates/sales/quotation_print.html:69
 #: templates/sales/quotation_print.html:72 templates/sales/receipt.html:88
-#: templates/sales/sale_detail.html:22 templates/sales/sale_detail.html:51
+#: templates/sales/sale_detail.html:23 templates/sales/sale_detail.html:52
 msgid "Price"
 msgstr "দাম"
 
 #: templates/items/bulk_price.html:54 templates/sales/pos.html:74
 #: templates/sales/quotation_detail.html:39
 #: templates/sales/quotation_print.html:90 templates/sales/receipt.html:109
-#: templates/sales/sale_detail.html:37
+#: templates/sales/sale_detail.html:38
 msgid "Rounding"
 msgstr "রাউন্ডিং"
 
@@ -7892,10 +8117,6 @@ msgstr "প্রয়োগ করুন"
 #: templates/items/bulk_price.html:79 templates/sales/promotion_list.html:25
 msgid "Now"
 msgstr "এখন"
-
-#: templates/items/bulk_price.html:79
-msgid "After"
-msgstr "পরে"
 
 #: templates/items/bulk_price.html:85
 msgid "no purchase price"
@@ -8467,11 +8688,6 @@ msgstr "এখন পাঠান"
 msgid "Sent by"
 msgstr "পাঠানোর মাধ্যম"
 
-#: templates/messaging/outbox.html:60 templates/sales/promotion_form.html:35
-#: templates/stock/stock_card.html:62
-msgid "When"
-msgstr "কখন"
-
 #: templates/messaging/outbox.html:69
 msgid "Send a test"
 msgstr "পরীক্ষামূলক পাঠান"
@@ -8663,10 +8879,6 @@ msgstr "মেয়াদের তালিকা খুলুন"
 msgid "Tills inside each outlet. Cash is counted per counter when the POS arrives."
 msgstr "প্রতিটি শাখার ভেতরের ক্যাশ কাউন্টার। কাউন্টার অনুযায়ী নগদ গোনা হয়।"
 
-#: templates/outlets/counter_list.html:13 templates/sales/register_open.html:18
-msgid "Counter"
-msgstr "কাউন্টার"
-
 #: templates/outlets/outlet_list.html:5
 msgid "Branches of your pharmacy. Stock and sales are kept per outlet."
 msgstr "আপনার ফার্মেসির শাখাগুলো। স্টক ও বিক্রয় শাখা অনুযায়ী রাখা হয়।"
@@ -8743,10 +8955,6 @@ msgstr "রোল পরিচালনা"
 msgid "This is the owner's account: full access to every screen and outlet."
 msgstr "এটি মালিকের অ্যাকাউন্ট: সব পেজ ও শাখায় পূর্ণ প্রবেশাধিকার।"
 
-#: templates/people/employee_form.html:57
-msgid "Details"
-msgstr "বিস্তারিত"
-
 #: templates/people/employee_form.html:75
 msgid "Reset password"
 msgstr "পাসওয়ার্ড রিসেট"
@@ -8795,10 +9003,6 @@ msgstr "এই ব্যক্তিকে নিষ্ক্রিয় কর
 #, python-format
 msgid "%(used)s of %(limit)s logins used on your plan."
 msgstr "আপনার প্ল্যানে %(limit)sটির মধ্যে %(used)sটি লগইন ব্যবহার হয়েছে।"
-
-#: templates/people/employee_list.html:13 templates/reports/report.html:61
-msgid "Everyone"
-msgstr "সবাই"
 
 #: templates/people/role_form.html:5
 msgid "All roles"
@@ -8852,7 +9056,7 @@ msgid "Receive stock"
 msgstr "স্টক গ্রহণ করুন"
 
 #: templates/purchases/purchase_detail.html:28
-#: templates/purchases/return_form.html:3 templates/sales/sale_detail.html:10
+#: templates/purchases/return_form.html:3 templates/sales/sale_detail.html:11
 msgid "Return items"
 msgstr "পণ্য ফেরত"
 
@@ -8868,7 +9072,7 @@ msgstr "তৈরি করেছেন"
 #: templates/purchases/purchase_form.html:68 templates/sales/pos.html:55
 #: templates/sales/quotation_detail.html:36
 #: templates/sales/quotation_print.html:87 templates/sales/receipt.html:105
-#: templates/sales/sale_detail.html:32
+#: templates/sales/sale_detail.html:33
 msgid "Subtotal"
 msgstr "উপমোট"
 
@@ -8883,7 +9087,7 @@ msgid "Cost / pack"
 msgstr "খরচ / প্যাক"
 
 #: templates/purchases/purchase_detail.html:112
-#: templates/sales/sale_detail.html:80
+#: templates/sales/sale_detail.html:81
 msgid "No returns."
 msgstr "কোনো ফেরত নেই।"
 
@@ -8966,10 +9170,6 @@ msgstr "ফেরত সংরক্ষণ করুন"
 #: templates/purchases/return_list.html:5
 msgid "Start a return from the purchase it belongs to."
 msgstr "যে ক্রয়ের অংশ সেখান থেকে ফেরত শুরু করুন।"
-
-#: templates/purchases/return_list.html:10 templates/sales/return_list.html:10
-msgid "Value"
-msgstr "মূল্য"
 
 #: templates/reports/index.html:5
 msgid "Every report can be filtered by dates and outlet, downloaded to Excel, or printed / saved as PDF."
@@ -9069,7 +9269,7 @@ msgstr "আইটেম"
 msgid "Disc."
 msgstr "ছাড়"
 
-#: templates/sales/pos.html:56 templates/sales/sale_detail.html:33
+#: templates/sales/pos.html:56 templates/sales/sale_detail.html:34
 msgid "Item discounts"
 msgstr "আইটেমের ছাড়"
 
@@ -9129,7 +9329,7 @@ msgstr "বিক্রয় সম্পন্ন"
 msgid "Send the bill on WhatsApp"
 msgstr "হোয়াটসঅ্যাপে বিল পাঠান"
 
-#: templates/sales/pos.html:135 templates/sales/sale_detail.html:7
+#: templates/sales/pos.html:135 templates/sales/sale_detail.html:8
 msgid "Print receipt"
 msgstr "রসিদ প্রিন্ট করুন"
 
@@ -9235,11 +9435,6 @@ msgstr "এখনো কোনো অফার নেই"
 msgid "For example: 10%% off all syrups this month, or ৳0.50 off each Napa tablet."
 msgstr "যেমন: এই মাসে সব সিরাপে ১০%% ছাড়, বা প্রতিটি নাপা ট্যাবলেটে ৳০.৫০ ছাড়।"
 
-#: templates/sales/quotation_detail.html:4
-#: templates/sales/quotation_print.html:59
-msgid "Quotation"
-msgstr "কোটেশন"
-
 #: templates/sales/quotation_detail.html:5
 msgid "All quotations"
 msgstr "সব কোটেশন"
@@ -9298,7 +9493,7 @@ msgstr "দাম %(until)s পর্যন্ত বৈধ। কেনার �
 msgid "BIN"
 msgstr "বিআইএন"
 
-#: templates/sales/receipt.html:107 templates/sales/sale_detail.html:35
+#: templates/sales/receipt.html:107 templates/sales/sale_detail.html:36
 #, python-format
 msgid "Points spent (%(n)s)"
 msgstr "খরচ করা পয়েন্ট (%(n)s)"
@@ -9320,10 +9515,6 @@ msgstr "আপনার পয়েন্ট: %(n)s"
 #: templates/sales/receipt.html:118
 msgid "Prescription checked"
 msgstr "প্রেসক্রিপশন দেখা হয়েছে"
-
-#: templates/sales/register_detail.html:3
-msgid "Cash register"
-msgstr "ক্যাশ রেজিস্টার"
 
 #: templates/sales/register_detail.html:4 templates/sales/register_list.html:21
 msgid "Z-report"
@@ -9443,19 +9634,19 @@ msgstr "যে বিক্রয়ের অংশ সেখান থেক�
 msgid "All sales"
 msgstr "সব বিক্রয়"
 
-#: templates/sales/sale_detail.html:23
+#: templates/sales/sale_detail.html:24
 msgid "Prescription"
 msgstr "প্রেসক্রিপশন"
 
-#: templates/sales/sale_detail.html:23
+#: templates/sales/sale_detail.html:24
 msgid "checked"
 msgstr "দেখা হয়েছে"
 
-#: templates/sales/sale_detail.html:40
+#: templates/sales/sale_detail.html:41
 msgid "Still due"
 msgstr "এখনো বাকি"
 
-#: templates/sales/sale_detail.html:72
+#: templates/sales/sale_detail.html:73
 msgid "Nothing paid at the counter."
 msgstr "কাউন্টারে কিছু পরিশোধ হয়নি।"
 

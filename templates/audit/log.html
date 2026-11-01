@@ -1,0 +1,63 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+{% block title %}{% translate "Audit log" %}{% endblock %}
+{% block page_title %}{% if record %}{% blocktranslate with kind=record.kind name=record.name %}History of {{ kind }} “{{ name }}”{% endblocktranslate %}{% else %}{% translate "Audit log" %}{% endif %}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% if record %}<a href="{% url 'audit:log' %}"><i class="bi bi-chevron-left"></i> {% translate "Whole audit log" %}</a>{% else %}{% translate "Who added, changed or deleted what, and when, with the values before and after. Sign-ins are here too." %}{% endif %}</p>{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <div class="table-filters">
+      <div class="table-filter">
+        <label class="form-label" for="f-user">{% translate "Who" %}</label>
+        <select id="f-user" class="form-select" data-mp-select data-allow-clear data-placeholder="{% translate 'Everyone' %}" data-filter="user">
+          <option></option>{% for u in people %}<option value="{{ u.pk }}">{{ u.get_full_name|default:u.email }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="table-filter">
+        <label class="form-label" for="f-action">{% translate "What happened" %}</label>
+        <select id="f-action" class="form-select" data-mp-select data-no-search data-allow-clear data-placeholder="{% translate 'Anything' %}" data-filter="action">
+          <option></option>{% for value, label in actions %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+        </select>
+      </div>
+      {% if not record %}
+      <div class="table-filter">
+        <label class="form-label" for="f-model">{% translate "Record" %}</label>
+        <select id="f-model" class="form-select" data-mp-select data-allow-clear data-placeholder="{% translate 'Any record' %}" data-filter="model">
+          <option></option>{% for value, label in kinds %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+        </select>
+      </div>
+      {% endif %}
+      <div class="table-filter">
+        <label class="form-label" for="f-start">{% translate "From" %}</label>
+        <input id="f-start" class="form-control" type="date" data-filter="start">
+      </div>
+      <div class="table-filter">
+        <label class="form-label" for="f-end">{% translate "To" %}</label>
+        <input id="f-end" class="form-control" type="date" data-filter="end">
+      </div>
+    </div>
+    <table id="audit-table" class="table table-hover align-middle w-100">
+      <thead><tr><th>{% translate "When" %}</th><th>{% translate "Who" %}</th><th>{% translate "What happened" %}</th><th>{% translate "Record" %}</th><th>{% translate "Details" %}</th></tr></thead>
+    </table>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+  (function () {
+    var params = new URLSearchParams(window.location.search), filters = document.querySelectorAll("[data-filter]");
+    var table = MP.dataTable("#audit-table", {
+      ajax: {
+        url: "{% url 'audit:data' %}",
+        data: function (d) {
+          filters.forEach(function (f) { d[f.dataset.filter] = $(f).val() || ""; });
+          ["model", "object"].forEach(function (key) { if (params.get(key) && !d[key]) d[key] = params.get(key); });
+        }
+      },
+      order: [[0, "desc"]],
+      columnDefs: [{ targets: 4, orderable: false, className: "audit-cell" }]
+    });
+    filters.forEach(function (f) { $(f).on("change input", function () { table.ajax.reload(); }); });
+  })();
+</script>
+{% endblock %}

@@ -266,6 +266,14 @@ Simplifications: VAT on returned sales stays in sales returns; transfers between
   - Every download is logged (who, when, what, size); the platform console can download a pharmacy's backup for support.
 - 279 tests; Bangla 2180/2180.
 
+### Extra — Audit log ✅ (asked for after Phase 11)
+- **`apps.audit`** (Settings → Audit log, permission `audit.list`, owner only unless given in a role): who added, changed or deleted what, when, from which IP, page and browser, with every changed field's value **before and after**; sign-ins, sign-outs and wrong passwords too.
+- Recorded from model signals for the records people manage (medicines and setup lists, customers, suppliers, sales, returns, registers, promotions, quotations, purchases, transfers, write-offs, stock counts, payment accounts, manual journal entries, expenses/income, roles, employees with their outlets and shifts, outlets, settings, shifts, networks, attendance, advances, payroll, message and loyalty settings, campaigns, SMS credit purchases, points corrections, data exports). Lines and ledgers the system writes for each document are left out; the document is logged.
+- A sale is one "Added" line (the system's finishing saves in the same request aren't "changes"); running document numbers aren't logged; secrets show as dots; a role's permission list shows what was added and removed.
+- List with filters (who, what happened, record type, dates, search), a page per entry, and **History** on customer and sale pages (the log filtered to that record). Exportable in Data export. Entries are never edited or deleted from the app.
+- Demo seeding and new-pharmacy setup aren't logged. `queryset.update()` / `bulk_create()` bypass it (used only for system bookkeeping).
+- 285 tests; Bangla 2221/2221.
+
 ### Phase 12 — Production deploy
 - Docker Compose (web, PostgreSQL, Redis, Celery, Nginx) and HTTPS.
 - Optional subdomain per pharmacy.

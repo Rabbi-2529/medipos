@@ -23,8 +23,11 @@ DEFAULT_CATEGORIES = [
 
 
 def provision_tenant(tenant):
-    """Starting data every pharmacy needs. Safe to run again (creates only what's missing)."""
-    with tenant_context(tenant):
+    """Starting data every pharmacy needs. Safe to run again (creates only what's missing).
+    Not written to the audit log: it's the same for every pharmacy and nobody's doing."""
+    from apps.audit.context import paused
+
+    with tenant_context(tenant), paused():
         BusinessSettings.objects.get_or_create()
         Sequence.objects.get_or_create(key="invoice", defaults={"prefix": "INV", "padding": 5})
         for order, (name, kind, provider) in enumerate(DEFAULT_PAYMENT_ACCOUNTS):

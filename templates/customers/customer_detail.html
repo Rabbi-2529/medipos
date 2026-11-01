@@ -4,6 +4,7 @@
 {% block page_title %}{{ customer.name }}{% if not customer.is_active %} <span class="state-badge state-suspended">{% translate "Inactive" %}</span>{% endif %}{% endblock %}
 {% block page_subtitle %}<p class="page-subtitle"><a href="{% url 'customers:list' %}"><i class="bi bi-chevron-left"></i> {% translate "All customers" %}</a>{% if customer.phone %} · {{ customer.phone }}{% endif %}</p>{% endblock %}
 {% block page_actions %}
+{% if can.audit.list %}<a class="btn btn-outline-secondary" href="{% url 'audit:log' %}?model=customers.customer&object={{ customer.pk }}"><i class="bi bi-clock-history"></i> {% translate "History" %}</a>{% endif %}
 {% if balance > 0 and can.customer_receive.create %}<a class="btn btn-primary" href="{% url 'customers:receipt_create' %}?customer={{ customer.pk }}&amount={{ balance }}"><i class="bi bi-cash-coin"></i> {% translate "Collect due" %}</a>{% endif %}
 {% if can.customer.edit %}<a class="btn btn-outline-primary" href="{% url 'customers:edit' customer.pk %}">{% translate "Edit" %}</a>{% endif %}
 {% endblock %}

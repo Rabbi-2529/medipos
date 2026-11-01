@@ -4,6 +4,7 @@
 {% block page_title %}{% translate "Invoice" %} {{ sale.number }}{% if outstanding > 0 %} <span class="state-badge state-expired">{% translate "Due" %}</span>{% endif %}{% endblock %}
 {% block page_subtitle %}<p class="page-subtitle"><a href="{% url 'sales:list' %}"><i class="bi bi-chevron-left"></i> {% translate "All sales" %}</a></p>{% endblock %}
 {% block page_actions %}
+{% if can.audit.list %}<a class="btn btn-outline-secondary" href="{% url 'audit:log' %}?model=sales.sale&object={{ sale.pk }}"><i class="bi bi-clock-history"></i> {% translate "History" %}</a>{% endif %}
 <a class="btn btn-outline-secondary" href="{% url 'sales:receipt' sale.pk %}?print=1" target="_blank"><i class="bi bi-printer"></i> {% translate "Print receipt" %}</a>
 <a class="btn btn-outline-secondary" href="{% url 'sales:receipt' sale.pk %}?size=a4&print=1" target="_blank">{% translate "A4 invoice" %}</a>
 {% if outstanding > 0 and can.customer_receive.create %}<a class="btn btn-primary" href="{% url 'customers:receipt_create' %}?customer={{ sale.customer_id }}&sale={{ sale.pk }}&amount={{ outstanding }}"><i class="bi bi-cash-coin"></i> {% translate "Collect due" %}</a>{% endif %}

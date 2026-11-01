@@ -15,7 +15,7 @@ _LATER_MODULES = (
 
 
 def _manager_codes():
-    now = {c for c in ALL_CODES if not c.startswith(("role.", "subscription.", "backup."))}
+    now = {c for c in ALL_CODES if not c.startswith(("role.", "subscription.", "backup.", "audit."))}
     later = {f"{m}.{a}" for m in _LATER_MODULES for a in CRUD}
     return sorted(now | later)
 
@@ -23,7 +23,7 @@ def _manager_codes():
 DEFAULT_ROLES = {
     "manager": {
         "name": gettext_noop("Manager"),
-        "description": gettext_noop("Runs the shop day to day: everything except roles, the subscription and data export."),
+        "description": gettext_noop("Runs the shop day to day: everything except roles, the subscription, data export and the audit log."),
         "permissions": _manager_codes(),
     },
     "cashier": {

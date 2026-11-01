@@ -956,3 +956,15 @@ span.flatpickr-weekday { background: transparent; color: var(--mp-muted); font-s
 .export-group { margin: 0; padding: 0; border: 0; min-width: 0; }
 .export-group legend { font-size: .75rem; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--mp-muted); margin-bottom: .35rem; }
 .export-group .form-check { margin-bottom: .3rem; }
+
+/* Audit log */
+.audit-cell { max-width: 420px; }
+.audit-summary { display: flex; flex-wrap: wrap; gap: .2rem .75rem; font-size: .8125rem; line-height: 1.35; }
+.audit-change { overflow-wrap: anywhere; }
+.audit-change b { font-weight: 600; color: var(--mp-heading); margin-right: .2rem; }
+.audit-table th[scope=row] { width: 30%; font-weight: 600; color: var(--mp-heading); }
+.audit-table td { overflow-wrap: anywhere; white-space: pre-line; }
+.audit-before { color: #b42318; background: color-mix(in srgb, #e5484d 7%, transparent); }
+.audit-after { color: #0f7a66; background: color-mix(in srgb, #12a389 8%, transparent); }
+[data-bs-theme="dark"] .audit-before { color: #f28b8f; }
+[data-bs-theme="dark"] .audit-after { color: #3fd0b4; }

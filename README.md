@@ -66,6 +66,7 @@ apps/reports/      report engine + 23 reports (sales, profit, stock, ledgers, st
 apps/hr/           attendance (sheet, calendar, shifts, shop networks, self check-in), advances, payroll, payslips
 apps/messaging/    SMS/WhatsApp/email outbox, gateways, SMS credits, bills, due reminders, stock alerts, campaigns, loyalty points
 apps/backup/       Excel export of any list, full .zip backup, export log
+apps/audit/        audit log: who changed what (before/after), sign-ins; History links
 locale/bn/         Bangla translations (django.po source, django.mo compiled)
 templates/         layouts, partials, pages
 static/            css/app.css (theme tokens, dark mode), js/app.js, js/pos.js, js/stock_lines.js
@@ -136,6 +137,11 @@ venv/Scripts/python.exe manage.py rebuild_books --tenant lazz-pharma-demo
 - Every printed bill goes through `sales.views.render_receipt()` (receipt, the customer's bill link, the settings preview); what shows is on `BusinessSettings` (Invoice & printing page) and the language comes from `setup.services.document_language()`.
 - QR codes are inline SVG from `segno` (`{% qr_svg text %}` in the `shop` template tags).
 - `apps.backup.exports`: `DATASETS` lists what the Excel export offers (any model, every stored column, links by name); `full_backup()` serialises every `TenantOwnedModel` of the current pharmacy. Add a dataset there when a new kind of record should be exportable.
+
+## Audit log
+
+- `apps.audit.registry.AUDITED` lists the models that are logged and how (fields to ignore, system-only fields, which rows, links). Add a model there when people manage a new kind of record.
+- `AuditMiddleware` keeps who/IP/browser for the request; `recorder.py` writes from `pre_save`/`post_save`/`post_delete`/`m2m_changed` and the auth signals. `with apps.audit.context.paused():` keeps a block out of the log (demo seeding, pharmacy setup).
 
 ## Messages and loyalty
 

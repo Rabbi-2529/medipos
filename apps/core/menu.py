@@ -162,6 +162,7 @@ MENU = (
         MenuItem("settings", _("Business settings"), "setup:settings", "bi-gear"),
         MenuItem("settings", _("Invoice & printing"), "setup:invoice", "bi-printer"),
         MenuItem("backup", _("Data export & backup"), "backup:data", "bi-cloud-download"),
+        MenuItem("audit", _("Audit log"), "audit:log", "bi-shield-check"),
         MenuItem("outlet", _("Outlets"), icon="bi-shop", perm=None, children=(
             _item("outlet", _("Outlet list"), "outlets:list"),
             _item("counter", _("Counters"), "outlets:counters"),

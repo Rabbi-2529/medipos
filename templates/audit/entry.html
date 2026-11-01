@@ -1,0 +1,50 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+{% block title %}{% translate "Audit log" %}{% endblock %}
+{% block page_title %}{{ entry.get_action_display }}{% if kind %}: {{ kind }}{% endif %}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle"><a href="{% url 'audit:log' %}"><i class="bi bi-chevron-left"></i> {% translate "Audit log" %}</a></p>{% endblock %}
+{% block page_actions %}
+{% if history %}<a class="btn btn-outline-secondary" href="{{ history }}"><i class="bi bi-clock-history"></i> {% translate "Everything about this record" %}</a>{% endif %}
+{% if url %}<a class="btn btn-soft tone-violet" href="{{ url }}"><i class="bi bi-box-arrow-up-right"></i> {% translate "Open it" %}</a>{% endif %}
+{% endblock %}
+{% block content %}
+<div class="row g-4">
+  <div class="col-xl-4">
+    <div class="card">
+      <div class="card-body">
+        <div class="mb-3">{{ look }}</div>
+        <dl class="detail-list mb-0">
+          <dt>{% translate "When" %}</dt><dd>{{ entry.created_at|date:"l, j F Y, h:i:s A" }}</dd>
+          <dt>{% translate "Who" %}</dt><dd>{{ entry.user_name|default:_("System") }}</dd>
+          {% if kind %}<dt>{% translate "Record" %}</dt><dd>{{ kind }} · {{ entry.object_repr|default:"—" }}</dd>{% endif %}
+          <dt>{% translate "IP address" %}</dt><dd>{{ entry.ip|default:"—" }}</dd>
+          <dt>{% translate "Page" %}</dt><dd class="text-break">{{ entry.path|default:"—" }}</dd>
+          <dt>{% translate "Browser" %}</dt><dd class="small text-break">{{ entry.user_agent|default:"—" }}</dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+  <div class="col-xl-8">
+    <div class="card">
+      <div class="card-header"><h2 class="card-title">{% if entry.action == "update" %}{% translate "What changed" %}{% elif entry.action == "delete" %}{% translate "What was deleted" %}{% elif entry.action == "create" %}{% translate "What was added" %}{% else %}{% translate "Details" %}{% endif %}</h2></div>
+      <div class="card-body">
+        {% if rows %}
+        <div class="table-responsive">
+          <table class="table align-middle mb-0 audit-table">
+            <thead><tr><th>{% translate "Field" %}</th>{% if entry.action == "update" %}<th>{% translate "Before" %}</th><th>{% translate "After" %}</th>{% else %}<th>{% translate "Value" %}</th>{% endif %}</tr></thead>
+            <tbody>
+              {% for label, before, after in rows %}
+              <tr><th scope="row">{{ label }}</th>
+                {% if entry.action == "update" %}<td class="audit-before">{{ before }}</td><td class="audit-after">{{ after }}</td>{% else %}<td>{{ before }}</td>{% endif %}</tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <p class="text-body-secondary mb-0">{% translate "Nothing more to show." %}</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

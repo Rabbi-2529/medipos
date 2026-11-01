@@ -14,6 +14,7 @@ from apps.accounting.models import Account, CashEntry, FundMovement, PaymentAcco
 from apps.accounting.posting import rebuild
 from apps.accounting.services import move_funds, record_cash_entry
 from apps.accounts.models import User
+from apps.audit.context import paused as audit_paused
 from apps.billing.models import Plan
 from apps.catalog.models import CatalogMedicine
 from apps.catalog.services import adopt, import_catalog
@@ -82,6 +83,11 @@ class Command(BaseCommand):
     help = "Create a platform admin and three demo pharmacies (paid, trial ending, expired). Dev only; safe to re-run."
 
     def handle(self, *args, **options):
+        # Demo data isn't anyone's doing: keep it out of the audit log.
+        with audit_paused():
+            self.seed()
+
+    def seed(self):
         password = os.environ.get("DEMO_PASSWORD")
         if not password:
             raise CommandError("Set DEMO_PASSWORD in .env first (see .env.example).")
