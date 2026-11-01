@@ -1,0 +1,58 @@
+{% load i18n %}
+{# Points and messages on the customer page. Needs `panel` from apps.messaging.views.customer_panel. #}
+{% if panel.program.enabled or customer.points %}
+<div class="card mb-4 voucher-card tone-violet">
+  <div class="card-header"><h2 class="card-title"><i class="bi bi-gift"></i> {% translate "Loyalty points" %}</h2></div>
+  <div class="card-body">
+    <div class="d-flex align-items-baseline gap-2"><span class="credit-figure">{{ customer.points }}</span><span class="text-body-secondary">{% translate "points" %}</span></div>
+    {% if panel.program.enabled %}<p class="small text-body-secondary">{% blocktranslate with value=panel.program.point_value|floatformat:"-2" %}Each point takes {{ value }} off a bill at the POS.{% endblocktranslate %}</p>{% endif %}
+    {% if panel.points %}
+    <ul class="list-unstyled credit-list">
+      {% for e in panel.points %}<li><span>{{ e.get_kind_display }}{% if e.sale %} · <a href="{% url 'sales:detail' e.sale_id %}">{{ e.sale.number }}</a>{% elif e.note %} · <small>{{ e.note }}</small>{% endif %}<small class="d-block text-body-secondary">{{ e.date|date:"d M Y" }}</small></span>
+        <strong class="points-change tone-{% if e.change > 0 %}teal{% else %}red{% endif %}">{% if e.change > 0 %}+{% endif %}{{ e.change }}</strong></li>{% endfor %}
+    </ul>
+    {% endif %}
+    {% if panel.can_adjust %}
+    <details class="adjust-points">
+      <summary>{% translate "Correct the points" %}</summary>
+      <form method="post" action="{% url 'messaging:adjust_points' customer.pk %}" class="mt-2">
+        {% csrf_token %}
+        {% include "partials/_field.html" with field=panel.adjust_form.change %}
+        {% include "partials/_field.html" with field=panel.adjust_form.note %}
+        <button class="btn btn-sm btn-primary" type="submit">{% translate "Save" %}</button>
+      </form>
+    </details>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+{% if panel.remind_form %}
+<div class="card mb-4 voucher-card tone-amber">
+  <div class="card-header"><h2 class="card-title"><i class="bi bi-bell"></i> {% translate "Remind them of the due" %}</h2></div>
+  <div class="card-body">
+    <form method="post" action="{% url 'messaging:remind_customer' customer.pk %}">
+      {% csrf_token %}
+      <div class="row g-2">
+        <div class="col-5">{% include "partials/_field.html" with field=panel.remind_form.channel %}</div>
+        <div class="col-7">{% include "partials/_field.html" with field=panel.remind_form.to %}</div>
+      </div>
+      <div class="d-flex flex-wrap gap-2">
+        <button class="btn btn-sm btn-primary" type="submit"><i class="bi bi-send"></i> {% translate "Send reminder" %}</button>
+        {% if panel.whatsapp %}<a class="btn btn-sm btn-soft tone-teal" href="{{ panel.whatsapp }}" target="_blank" rel="noopener"><i class="bi bi-whatsapp"></i> WhatsApp</a>{% endif %}
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+{% if panel.messages %}
+<div class="card mb-4">
+  <div class="card-header"><h2 class="card-title"><i class="bi bi-chat-dots"></i> {% translate "Messages sent" %}</h2></div>
+  <div class="card-body">
+    <ul class="list-unstyled sent-list mb-0">
+      {% for m in panel.messages %}<li><i class="bi {% if m.status == 'sent' %}bi-check-circle text-success{% elif m.status == 'failed' %}bi-x-circle text-danger{% else %}bi-hourglass-split{% endif %}"></i> {{ m.get_kind_display }} · {{ m.get_channel_display }} <small class="d-block text-body-secondary">{{ m.created_at|date:"d M Y, h:i A" }}</small></li>{% endfor %}
+    </ul>
+  </div>
+</div>
+{% endif %}

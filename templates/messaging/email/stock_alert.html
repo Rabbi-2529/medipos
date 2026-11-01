@@ -1,0 +1,31 @@
+{% load i18n %}<!doctype html>
+<html><body style="margin:0;padding:24px;background:#f4f3f8;font-family:Arial,Helvetica,sans-serif;color:#1f2133">
+  <table role="presentation" width="100%" style="max-width:640px;margin:0 auto;background:#fff;border-radius:12px;padding:24px">
+    <tr><td>
+      <h1 style="font-size:20px;margin:0 0 4px">{% blocktranslate %}{{ shop }}: stock alert{% endblocktranslate %}</h1>
+      <p style="margin:0 0 16px;color:#6b6f80">{{ today|date:"l, j F Y" }}</p>
+      <p style="margin:0 0 16px">
+        <strong>{{ low }}</strong> {% translate "low" %} ·
+        <strong>{{ out }}</strong> {% translate "out of stock" %} ·
+        <strong>{{ expiring }}</strong> {% blocktranslate %}batches expire within {{ days }} days{% endblocktranslate %} ·
+        <strong style="color:#b42318">{{ expired }}</strong> {% translate "expired" %}
+      </p>
+      {% if low_rows %}
+      <h2 style="font-size:16px;margin:16px 0 8px">{% translate "Low or out of stock" %}</h2>
+      <table role="presentation" width="100%" style="border-collapse:collapse;font-size:13px">
+        <tr style="color:#6b6f80"><td style="padding:4px 0">{% translate "Medicine" %}</td><td style="padding:4px 0;text-align:right">{% translate "In stock" %}</td><td style="padding:4px 0;text-align:right">{% translate "Alert at" %}</td></tr>
+        {% for m in low_rows %}<tr style="border-top:1px solid #eee"><td style="padding:4px 0">{{ m.display_name }}</td><td style="padding:4px 0;text-align:right{% if not m.on_hand %};color:#b42318{% endif %}">{{ m.on_hand }}</td><td style="padding:4px 0;text-align:right">{{ m.alert_quantity }}</td></tr>{% endfor %}
+      </table>
+      <p style="margin:8px 0 0"><a href="{{ link }}">{% translate "Open the low-stock list" %}</a></p>
+      {% endif %}
+      {% if expiry_rows %}
+      <h2 style="font-size:16px;margin:20px 0 8px">{% translate "Expiring and expired batches" %}</h2>
+      <table role="presentation" width="100%" style="border-collapse:collapse;font-size:13px">
+        <tr style="color:#6b6f80"><td style="padding:4px 0">{% translate "Medicine" %}</td><td style="padding:4px 0">{% translate "Batch" %}</td><td style="padding:4px 0">{% translate "Outlet" %}</td><td style="padding:4px 0;text-align:right">{% translate "Expires" %}</td><td style="padding:4px 0;text-align:right">{% translate "Qty" %}</td></tr>
+        {% for s in expiry_rows %}<tr style="border-top:1px solid #eee"><td style="padding:4px 0">{{ s.medicine.display_name }}</td><td style="padding:4px 0">{{ s.batch.batch_no|default:"—" }}</td><td style="padding:4px 0">{{ s.outlet.name }}</td><td style="padding:4px 0;text-align:right{% if s.batch.expiry_date <= today %};color:#b42318{% endif %}">{{ s.batch.expiry_date|date:"d M Y" }}</td><td style="padding:4px 0;text-align:right">{{ s.quantity }}</td></tr>{% endfor %}
+      </table>
+      <p style="margin:8px 0 0"><a href="{{ expiry_link }}">{% translate "Open the expiry list" %}</a></p>
+      {% endif %}
+    </td></tr>
+  </table>
+</body></html>

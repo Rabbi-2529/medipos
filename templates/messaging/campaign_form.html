@@ -1,0 +1,54 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+{% block title %}{% if campaign %}{{ campaign.name }}{% else %}{% translate "New campaign" %}{% endif %}{% endblock %}
+{% block page_title %}{% if campaign %}{% blocktranslate with name=campaign.name %}Edit “{{ name }}”{% endblocktranslate %}{% else %}{% translate "New campaign" %}{% endif %}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle"><a href="{% url 'messaging:campaigns' %}"><i class="bi bi-chevron-left"></i> {% translate "All campaigns" %}</a></p>{% endblock %}
+{% block content %}
+<form method="post" novalidate class="row g-4">
+  {% csrf_token %}
+  <div class="col-xl-8">
+    <div class="card voucher-card tone-violet">
+      <div class="card-body">
+        {% if form.non_field_errors %}<div class="alert alert-danger">{% for e in form.non_field_errors %}{{ e }}{% endfor %}</div>{% endif %}
+        <div class="row g-2">
+          <div class="col-md-8">{% include "partials/_field.html" with field=form.name %}</div>
+          <div class="col-md-4">{% include "partials/_field.html" with field=form.channel %}</div>
+          <div class="col-md-8">{% include "partials/_field.html" with field=form.audience %}</div>
+          <div class="col-md-4" data-for-audience="recent lapsed">{% include "partials/_field.html" with field=form.days %}</div>
+          <div class="col-md-4" data-for-audience="points">{% include "partials/_field.html" with field=form.min_points %}</div>
+          <div class="col-12" data-for-channel="email">{% include "partials/_field.html" with field=form.subject %}</div>
+          <div class="col-12">{% include "partials/_field.html" with field=form.text %}</div>
+        </div>
+        <button class="btn btn-primary" type="submit"><i class="bi bi-eye"></i> {% translate "Save and check who it reaches" %}</button>
+      </div>
+    </div>
+  </div>
+  <div class="col-xl-4">
+    <div class="card">
+      <div class="card-body small">
+        <h2 class="card-title fs-6">{% translate "Good to know" %}</h2>
+        <ul class="ps-3 mb-0">
+          <li>{% translate "Nothing goes out until you press Send on the next page, where you see how many customers it reaches and what it costs." %}</li>
+          <li>{% translate "Customers marked “No offers” are left out." %}</li>
+          <li>{% translate "English fits 160 characters an SMS, Bangla 70. Longer texts cost more parts." %}</li>
+          <li>{% translate "Promotional SMS may have their own rules (allowed hours, a registered sender name). Your SMS provider can tell you." %}</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}
+{% block extra_js %}
+{% include "messaging/_sms_counter.html" %}
+<script>
+  (function () {
+    var audience = document.querySelector("[name=audience]"), channel = document.querySelector("[name=channel]");
+    function sync() {
+      document.querySelectorAll("[data-for-audience]").forEach(function (box) { box.hidden = box.dataset.forAudience.split(" ").indexOf(audience.value) < 0; });
+      document.querySelectorAll("[data-for-channel]").forEach(function (box) { box.hidden = box.dataset.forChannel !== channel.value; });
+    }
+    $(audience).on("change", sync); $(channel).on("change", sync);
+    sync();
+  })();
+</script>
+{% endblock %}

@@ -1,0 +1,69 @@
+{% extends "layouts/app.html" %}
+{% load i18n shop %}
+{% block title %}{% translate "Loyalty points" %}{% endblock %}
+{% block page_title %}{% translate "Loyalty points" %}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% if program.enabled %}{% blocktranslate with spend=program.earn_amount|floatformat:"-2" value=program.point_value|floatformat:"-2" %}1 point for every {{ spend }} spent · 1 point = {{ value }} off a later bill{% endblocktranslate %}{% else %}{% translate "Loyalty points are switched off." %}{% endif %}</p>{% endblock %}
+{% block page_actions %}{% if can.loyalty.edit %}<a class="btn btn-outline-secondary" href="{% url 'messaging:loyalty_settings' %}"><i class="bi bi-gear"></i> {% translate "Loyalty settings" %}</a>{% endif %}{% endblock %}
+{% block content %}
+{% if not program.enabled and can.loyalty.edit %}
+<div class="alert alert-info"><i class="bi bi-gift"></i> {% translate "Turn points on in Loyalty settings: customers then earn points at the POS and spend them on a later bill." %}</div>
+{% endif %}
+<div class="row g-3 mb-4">
+  <div class="col-6 col-xl-3"><div class="card stat-tile tone-violet h-100"><div class="card-body">
+    <div class="stat-label">{% translate "Points customers hold" %}</div><div class="stat-figure">{{ outstanding }}</div>
+    <small class="text-body-secondary">{% blocktranslate count counter=people %}{{ counter }} customer{% plural %}{{ counter }} customers{% endblocktranslate %}</small>
+  </div></div></div>
+  <div class="col-6 col-xl-3"><div class="card stat-tile tone-amber h-100"><div class="card-body">
+    <div class="stat-label">{% translate "Worth" %}</div><div class="stat-figure">{% money value %}</div>
+    <small class="text-body-secondary">{% translate "if all were spent" %}</small>
+  </div></div></div>
+  <div class="col-6 col-xl-3"><div class="card stat-tile tone-teal h-100"><div class="card-body">
+    <div class="stat-label">{% translate "Earned this month" %}</div><div class="stat-figure">{{ earned }}</div>
+  </div></div></div>
+  <div class="col-6 col-xl-3"><div class="card stat-tile tone-rose h-100"><div class="card-body">
+    <div class="stat-label">{% translate "Spent this month" %}</div><div class="stat-figure">{{ spent }}</div>
+  </div></div></div>
+</div>
+<div class="row g-4">
+  <div class="col-xl-8">
+    <div class="card">
+      <div class="card-body">
+        <div class="table-filters">
+          <div class="table-filter">
+            <label class="form-label" for="f-kind">{% translate "Type" %}</label>
+            <select id="f-kind" class="form-select" data-mp-select data-no-search data-allow-clear data-placeholder="{% translate 'Any' %}">
+              <option></option>{% for value, label in kinds %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+            </select>
+          </div>
+        </div>
+        <table id="points-table" class="table table-hover align-middle w-100">
+          <thead><tr><th>{% translate "Date" %}</th><th>{% translate "Customer" %}</th><th>{% translate "Type" %}</th><th>{% translate "Bill / note" %}</th><th class="text-end">{% translate "Points" %}</th><th class="text-end">{% translate "Balance" %}</th></tr></thead>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="col-xl-4">
+    <div class="card">
+      <div class="card-header"><h2 class="card-title"><i class="bi bi-trophy"></i> {% translate "Most points" %}</h2></div>
+      <div class="card-body">
+        {% if top %}
+        <ol class="top-list mb-0">{% for c in top %}<li><a href="{% url 'customers:detail' c.pk %}">{{ c.name }}</a><strong>{{ c.points }}</strong></li>{% endfor %}</ol>
+        {% else %}<p class="text-body-secondary mb-0">{% translate "Nobody has points yet." %}</p>{% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+  (function () {
+    var kind = document.getElementById("f-kind");
+    var table = MP.dataTable("#points-table", {
+      ajax: { url: "{% url 'messaging:points_data' %}", data: function (d) { d.kind = $(kind).val() || ""; } },
+      order: [[0, "desc"]],
+      columnDefs: [{ targets: 3, orderable: false }, { targets: [4, 5], className: "text-end" }]
+    });
+    $(kind).on("change", function () { table.ajax.reload(); });
+  })();
+</script>
+{% endblock %}

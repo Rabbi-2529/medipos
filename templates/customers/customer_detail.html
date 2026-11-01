@@ -20,9 +20,11 @@
           <dt>{% translate "Email" %}</dt><dd>{{ customer.email|default:"—" }}</dd>
           <dt>{% translate "Address" %}</dt><dd>{{ customer.address|default:"—"|linebreaksbr }}</dd>
           {% if customer.notes %}<dt>{% translate "Notes" %}</dt><dd>{{ customer.notes }}</dd>{% endif %}
+          {% if customer.no_marketing %}<dt>{% translate "Offers" %}</dt><dd><i class="bi bi-bell-slash"></i> {% translate "No offers" %}</dd>{% endif %}
         </dl>
       </div>
     </div>
+    {% include "messaging/_customer_panel.html" with panel=extra %}
     {% if can.customer.delete %}
     <form method="post" action="{% url 'customers:toggle' customer.pk %}" {% if customer.is_active %}data-confirm="{% translate 'Hide this customer from the POS?' %}"{% endif %}>
       {% csrf_token %}<button class="btn btn-outline-{% if customer.is_active %}danger{% else %}success{% endif %} w-100" type="submit">{% if customer.is_active %}{% translate "Deactivate customer" %}{% else %}{% translate "Activate customer" %}{% endif %}</button>

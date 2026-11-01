@@ -12,7 +12,7 @@ from .models import Customer
 class CustomerForm(TenantModelForm):
     class Meta:
         model = Customer
-        fields = ["name", "phone", "email", "address", "credit_limit", "default_discount", "opening_balance", "notes"]
+        fields = ["name", "phone", "email", "address", "credit_limit", "default_discount", "opening_balance", "notes", "no_marketing"]
         widgets = {"address": forms.Textarea(attrs={"rows": 2})}
 
 

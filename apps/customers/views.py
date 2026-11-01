@@ -86,12 +86,16 @@ class CustomerUpdateView(ShopUpdateView):
 
 @shop_permission_required("customer.list")
 def customer_detail(request, pk):
+    from apps.messaging.views import customer_panel
+
     customer = get_object_or_404(Customer.objects.all(), pk=pk)
+    owed = balance(customer)
     return render(request, "customers/customer_detail.html", {
         "customer": customer,
-        "balance": balance(customer),
+        "balance": owed,
         "ledger": list(reversed(ledger_with_running_balance(customer)))[:200],
         "sales": customer.sales.select_related("outlet").order_by("-sold_at")[:20],
+        "extra": customer_panel(request, customer, owed),
     })
 
 
@@ -110,7 +114,7 @@ def _amount(value):
 
 
 def _lookup_row(customer, owed=None):
-    return {"id": customer.pk, "text": str(customer), "name": customer.name, "phone": customer.phone,
+    return {"id": customer.pk, "text": str(customer), "name": customer.name, "phone": customer.phone, "points": customer.points,
             "balance": _amount(owed if owed is not None else balance(customer)),
             "credit_limit": None if customer.credit_limit is None else _amount(customer.credit_limit),
             "default_discount": _amount(customer.default_discount)}

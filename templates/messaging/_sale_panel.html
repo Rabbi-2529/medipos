@@ -1,0 +1,39 @@
+{% load i18n %}
+{# "Send the bill" on the sale page. Needs `send` from apps.messaging.views.sale_panel. #}
+<div class="card mt-4 voucher-card tone-violet">
+  <div class="card-header"><h2 class="card-title"><i class="bi bi-send"></i> {% translate "Send the bill" %}</h2></div>
+  <div class="card-body">
+    <div class="row g-3 align-items-end">
+      <div class="col-lg-7">
+        <form method="post" action="{% url 'messaging:sale_send' sale.pk %}" class="send-form" data-email="{{ send.email }}" data-phone="{{ sale.customer.phone|default:'' }}">
+          {% csrf_token %}
+          <div class="row g-2 align-items-end">
+            <div class="col-sm-4">{% include "partials/_field.html" with field=send.form.channel %}</div>
+            <div class="col-sm-5">{% include "partials/_field.html" with field=send.form.to %}</div>
+            <div class="col-sm-3 mb-3"><button class="btn btn-primary w-100" type="submit">{% translate "Send" %}</button></div>
+          </div>
+        </form>
+      </div>
+      <div class="col-lg-5 mb-3">
+        {% if send.whatsapp %}
+        <a class="btn btn-soft tone-teal" href="{{ send.whatsapp }}" target="_blank" rel="noopener"><i class="bi bi-whatsapp"></i> {% translate "Open in WhatsApp" %}</a>
+        <small class="d-block text-body-secondary mt-1">{% translate "Opens the chat with the bill typed in; press send there." %}</small>
+        {% endif %}
+      </div>
+    </div>
+    {% if send.sent %}
+    <ul class="list-unstyled sent-list mb-0">
+      {% for m in send.sent %}<li><i class="bi {% if m.status == 'sent' %}bi-check-circle text-success{% elif m.status == 'failed' %}bi-x-circle text-danger{% else %}bi-hourglass-split{% endif %}"></i> {{ m.get_channel_display }} → {{ m.to }} · {{ m.created_at|date:"d M, h:i A" }}{% if m.status == "failed" %} <small class="text-danger">{{ m.detail }}</small>{% endif %}</li>{% endfor %}
+    </ul>
+    {% endif %}
+  </div>
+</div>
+<script>
+  (function () {
+    // Switching to email fills in the customer's email, and back to their mobile.
+    var form = document.querySelector(".send-form");
+    if (!form) return;
+    var channel = form.querySelector("[name=channel]"), to = form.querySelector("[name=to]");
+    channel.addEventListener("change", function () { to.value = channel.value === "email" ? form.dataset.email : form.dataset.phone; });
+  })();
+</script>

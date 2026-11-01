@@ -130,6 +130,7 @@ class Command(BaseCommand):
                 self._lazz_accounts(tenant)
                 self._lazz_shifts(tenant)
                 self._lazz_hr(tenant)
+                self._lazz_messaging(tenant)
 
         self.stdout.write(self.style.SUCCESS(
             "Demo ready: admin@medipos.local (platform), owner@lazzpharma.local (paid), "
@@ -393,6 +394,41 @@ class Command(BaseCommand):
             Employee.objects.get(user__email="cashier@lazzpharma.local").shifts.set([day, evening])
             OfficeNetwork.objects.create(address="127.0.0.1", label="This computer (demo)")
             OfficeNetwork.objects.create(address="103.112.54.0/24", label="Main branch broadband")
+
+    def _lazz_messaging(self, tenant):
+        """SMS credit; bills by SMS, due reminders and the daily alert switched on; loyalty points from past bills;
+        a few messages in the outbox and two campaigns (one sent). Once: skipped when the pharmacy ever had SMS credit."""
+        from apps.messaging import loyalty
+        from apps.messaging.models import Campaign, Channel, SmsCredit
+        from apps.messaging.services import add_credits, due_customers, message_settings, send_bill, send_campaign, send_due_reminders
+
+        with tenant_context(tenant), transaction.atomic():
+            if SmsCredit.objects.exists():
+                return
+            owner = tenant.owner
+            ms = message_settings()
+            ms.invoice_sms = ms.due_reminders = ms.daily_alerts = True
+            ms.alert_phones, ms.alert_emails, ms.email_reply_to = tenant.phone or owner.phone or "", owner.email, tenant.email or ""
+            ms.save()
+            add_credits(tenant, credits=500, amount=Decimal("175"), note="Starter pack (demo)", user=owner)
+            program = loyalty.program()
+            if not program.enabled:
+                program.enabled = True
+                program.save()
+            for name, phone in (("Nasima Akter", "01933445566"), ("Shahidul Islam", "01544556677"), ("Tania Rahman", "01655667788")):
+                Customer.objects.get_or_create(phone=phone, defaults={"name": name})
+            for sale in Sale.objects.filter(customer__isnull=False, points_earned=0, points_redeemed=0).select_related("customer").order_by("sold_at"):
+                loyalty.record_sale(sale, user=owner)
+            for customer in Customer.objects.filter(points=0, is_active=True).exclude(phone="").order_by("name")[:3]:
+                loyalty.adjust(customer, 60, note="Welcome points (demo)", user=owner)
+            for sale in Sale.objects.filter(customer__isnull=False).select_related("customer", "outlet").order_by("-sold_at")[:3]:
+                send_bill(sale, channel=Channel.SMS, user=owner)
+            send_due_reminders(list(due_customers(ms)), user=owner)
+            Campaign.objects.create(name="Winter flu care", channel=Channel.SMS, created_by=owner,
+                                    text="Dear {name}, flu season is here. Napa, Fexo and masks are in stock at {shop}. Call {shop_phone}.")
+            eid = Campaign.objects.create(name="Eid greetings", channel=Channel.SMS, created_by=owner,
+                                          text="Eid Mubarak, {name}! You have {points_balance} points to spend at {shop}.")
+            send_campaign(eid, user=owner)
 
     def _lazz_staff(self, tenant, password):
         """Second outlet, a counter, a manager (all outlets) and a cashier (Main branch only)."""

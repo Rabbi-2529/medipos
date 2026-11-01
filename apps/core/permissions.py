@@ -51,6 +51,10 @@ MODULES = (
     Module("promotion", _("Promotions"), SELLING, (LIST, CREATE, EDIT, DELETE)),
     # "quotation.create" also loads a quotation into the POS (selling it still needs "pos.create").
     Module("quotation", _("Quotations"), SELLING, (LIST, CREATE, DELETE)),
+    # "message.create" = send bills, due reminders, tests and campaigns; "message.edit" = gateways and automatic messages.
+    Module("message", _("SMS, email & campaigns"), SELLING, (LIST, CREATE, EDIT)),
+    # "loyalty.edit" = the programme's rules and correcting a customer's points.
+    Module("loyalty", _("Loyalty points"), SELLING, (LIST, EDIT)),
     # "transfer.create" = send stock to another outlet and receive what was sent to yours (or cancel it).
     Module("transfer", _("Stock transfers"), INVENTORY, (LIST, CREATE)),
     Module("damage", _("Damage & expired write-offs"), INVENTORY, (LIST, CREATE)),

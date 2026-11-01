@@ -2,7 +2,7 @@
 from collections import defaultdict
 from decimal import Decimal
 
-from django.db.models import Count, DecimalField, F, Max, OuterRef, Subquery, Sum, Value
+from django.db.models import Count, DecimalField, F, Max, OuterRef, Q, Subquery, Sum, Value
 from django.db.models.functions import Coalesce
 from django.urls import reverse
 from django.utils import timezone
@@ -371,3 +371,62 @@ class SalariesPaid(Report):
         ]
         totals = totals_for(columns, rows)
         return Result(columns, rows, totals, tiles=[(_("Salary cost"), totals["gross"], "money"), (_("Paid out"), totals["net"], "money")])
+
+
+class MessagesSent(Report):
+    key, group, icon = "messages-sent", "marketing", "bi-chat-dots"
+    title = gettext_lazy("Messages sent")
+    description = gettext_lazy("SMS, WhatsApp and email by what they were about: how many went, how many failed, and the SMS credit used.")
+    permission = "message.list"
+    filters = ("period",)
+
+    def run(self, f):
+        from apps.messaging.models import Message
+
+        S = Message.Status
+        rows = []
+        grouped = (Message.objects.filter(created_at__date__gte=f.start, created_at__date__lte=f.end).values("kind", "channel")
+                   .annotate(sent=Count("id", filter=Q(status=S.SENT)), failed=Count("id", filter=Q(status=S.FAILED)),
+                             waiting=Count("id", filter=Q(status=S.QUEUED)), parts=Sum("parts", filter=Q(status=S.SENT)),
+                             credits=Sum("credits", filter=Q(status=S.SENT)))
+                   .order_by("kind", "channel"))
+        kinds, channels = dict(Message.Kind.choices), dict(Message._meta.get_field("channel").choices)
+        for row in grouped:
+            rows.append({"kind": kinds[row["kind"]], "channel": channels[row["channel"]], "sent": row["sent"], "failed": row["failed"],
+                         "waiting": row["waiting"], "parts": row["parts"] or 0, "credits": row["credits"] or 0})
+        columns = [Col("kind", _("About")), Col("channel", _("By")), Col("sent", _("Sent"), "int", True), Col("failed", _("Failed"), "int", True),
+                   Col("waiting", _("Waiting"), "int", True), Col("parts", _("SMS parts"), "int", True),
+                   Col("credits", _("MediPOS credits used"), "int", True)]
+        totals = totals_for(columns, rows)
+        return Result(columns, rows, totals, tiles=[(_("Sent"), totals["sent"], "int"), (_("Failed"), totals["failed"], "int"),
+                                                     (_("SMS credits used"), totals["credits"], "int")])
+
+
+class LoyaltyPoints(Report):
+    key, group, icon = "loyalty-points", "marketing", "bi-gift"
+    title = gettext_lazy("Loyalty points")
+    description = gettext_lazy("Points each customer earned, spent and had taken back in the period, and what they hold now.")
+    permission = "loyalty.list"
+    filters = ("period",)
+
+    def run(self, f):
+        from apps.messaging.loyalty import program
+        from apps.messaging.models import PointEntry
+
+        K = PointEntry.Kind
+        moves = defaultdict(lambda: defaultdict(int))
+        for row in (PointEntry.objects.filter(date__gte=f.start, date__lte=f.end).values("customer", "kind").annotate(t=Sum("change"))):
+            moves[row["customer"]][row["kind"]] += row["t"]
+        people = Customer.objects.filter(Q(pk__in=list(moves)) | Q(points__gt=0)).order_by("name")
+        value = program().point_value
+        rows = [{
+            "name": Link(c.name, reverse("customers:detail", args=[c.pk])), "phone": c.phone,
+            "earned": moves[c.pk][K.EARNED], "spent": -moves[c.pk][K.REDEEMED], "returned": -moves[c.pk][K.RETURNED],
+            "adjusted": moves[c.pk][K.ADJUSTED], "balance": c.points, "worth": c.points * value,
+        } for c in people]
+        columns = [Col("name", _("Customer")), Col("phone", _("Phone")), Col("earned", _("Earned"), "int", True),
+                   Col("spent", _("Spent"), "int", True), Col("returned", _("Taken back"), "int", True), Col("adjusted", _("Adjusted"), "int", True),
+                   Col("balance", _("Holds now"), "int", True), Col("worth", _("Worth"), "money", True)]
+        totals = totals_for(columns, rows)
+        return Result(columns, rows, totals, tiles=[(_("Points earned"), totals["earned"], "int"), (_("Points spent"), totals["spent"], "int"),
+                                                     (_("Customers hold"), totals["worth"], "money")])

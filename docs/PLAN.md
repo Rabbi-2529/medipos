@@ -234,10 +234,21 @@ Simplifications: VAT on returned sales stays in sales returns; transfers between
 - Demo: salaries for the manager and cashier (1% commission), a delivery rider without a login, attendance since last month with Fridays off, Day and Evening shifts (the manager on Day, the cashier on both, out times following their shifts with the odd early check-out), the shop's networks (127.0.0.1 so the local demo checks in without a reason), advances, last month's payroll paid and this month's as a draft. Seed steps keep anything already entered by hand.
 - 250 tests; Bangla 1814/1814.
 
-### Phase 10 — Notifications, marketing and loyalty
-- SMS, email and WhatsApp messages: invoice after sale, daily low-stock and expiry alerts, due reminders.
-- Loyalty points and bulk campaigns.
-- Per-tenant sender settings, or platform SMS credits.
+### Phase 10 — Notifications, marketing and loyalty ✅
+- **`apps.messaging`** (URL prefix `/messages/`, permission `message` list/create/edit):
+  - **Outbox**: every SMS, WhatsApp and email with its status (waiting / sent / failed and why), filters, retry, "send waiting now", a test message, and this month's sent/failed/credits.
+  - **Gateways**: SMS through **MediPOS SMS credits** (the platform's gateway from `.env`: `SMS_GATEWAY_URL` with `{to}` `{message}` `{sender}` `{api_key}`), the **pharmacy's own** provider (same URL style, GET or POST, success text), or off. WhatsApp: buttons everywhere open the chat with the text typed in (wa.me); sending by itself needs a WhatsApp gateway URL. Email goes through the platform's mail server under the shop's name, with replies to the shop. With no gateway URL, SMS are only logged (development).
+  - **Delivery**: messages are saved to the outbox and sent right after the page saves them (`MESSAGES_SEND_NOW`, up to 25 a request); the rest, and the daily jobs, go with `manage.py send_messages` (run every minute from cron; Phase 12 moves it to Celery).
+  - **MediPOS SMS credits**: one credit per SMS part (GSM 160/153, Unicode/Bangla 70/67, counted live in every message box); taken when an SMS goes, given back if it fails; refused when short. The platform console sells them per pharmacy ("Add SMS credits", logged as an event).
+  - **Bill after a sale** (SMS / WhatsApp gateway / email, each on or off) with an editable text: `{name} {shop} {shop_phone} {invoice} {date} {total} {paid} {due} {points} {points_balance} {link}`. `{link}` is a signed, no-login copy of the bill (`/b/<token>/`). Amounts in SMS are "Tk 1,250" (the ৳ sign would make it Unicode). The POS "sale complete" box shows what was sent and a WhatsApp button; the sale page can send the bill by SMS/email to any number.
+  - **Due reminders**: a page of customers owing at least the minimum and not reminded in N days (tick and send by SMS/email, or WhatsApp per row), a reminder on the customer page, and automatic SMS once a day when switched on.
+  - **Daily stock alert**: low/out-of-stock medicines and batches expiring within N days (or expired) to the shop's alert mobiles (counts) and emails (lists), once a day from the set hour, only when there is something to report. "Run it now" on the settings page.
+  - **Campaigns**: draft, audience (everyone / owes money / bought in the last N days / hasn't bought for N days / at least N points), SMS/WhatsApp/email, preview (who, the first message, SMS credits needed), send once. Customers marked **No offers** are left out.
+- **Loyalty points** (permission `loyalty` list/edit): earn 1 point per X spent (on the bill total, customers only), spend at the POS as money off (minimum points, at most N% of the bill; a bill too small for the minimum shows nothing). Points spent count in the sale's discount (`Sale.points_redeemed` / `points_discount`), so the books need nothing new; points earned on returned goods are taken back. `PointEntry` ledger with the running balance, `Customer.points`; manual corrections on the customer page; points on the receipt and the bill link.
+- **Reports**: Messages sent, Loyalty points (new "Messages & loyalty" group).
+- Template managers get `message.*` and `loyalty.*` by data migration.
+- Demo: 500 SMS credits, bill SMS / due reminders / daily alert on, loyalty on with points from past bills and welcome points, three more customers, bills and an Eid campaign in the outbox, a draft campaign.
+- 271 tests; Bangla 2091/2091.
 
 ### Phase 11 — Settings polish, printing, Bangla
 - Invoice designer settings (fields, labels, logo/letterhead, terms, QR code), printer and POS settings.

@@ -1,0 +1,32 @@
+{% load i18n %}
+{# Live "N characters · M SMS" under every textarea with data-sms-count. Same rules as apps.messaging.text.sms_parts. #}
+<script>
+  (function () {
+    var basic = "@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !\"#¤%&'()*+,-./0123456789:;<=>?¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà";
+    var extended = "^{}\\[~]|€";
+    var words = { one: "{% translate 'SMS' %}", unicode: "{% translate 'Unicode (Bangla): 70 characters an SMS' %}", chars: "{% translate 'characters' %}" };
+    function parts(text) {
+      var gsm = true, length = 0;
+      for (var i = 0; i < text.length; i++) {
+        var c = text[i];
+        if (extended.indexOf(c) >= 0) length += 2; else if (basic.indexOf(c) >= 0) length += 1; else { gsm = false; break; }
+      }
+      if (!gsm) length = text.length;
+      var single = gsm ? 160 : 70, multi = gsm ? 153 : 67;
+      return { length: length, gsm: gsm, parts: length === 0 ? 0 : (length <= single ? 1 : Math.ceil(length / multi)) };
+    }
+    document.querySelectorAll("[data-sms-count]").forEach(function (area) {
+      var out = document.createElement("div");
+      out.className = "form-text sms-count";
+      area.insertAdjacentElement("afterend", out);
+      function update() {
+        // Placeholders grow when filled in; this counts the text as typed.
+        var p = parts(area.value);
+        out.textContent = p.length + " " + words.chars + " · " + p.parts + " " + words.one + (p.gsm ? "" : " · " + words.unicode);
+        out.classList.toggle("is-unicode", !p.gsm);
+      }
+      area.addEventListener("input", update);
+      update();
+    });
+  })();
+</script>

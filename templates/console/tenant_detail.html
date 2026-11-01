@@ -10,6 +10,7 @@
   <ul class="dropdown-menu dropdown-menu-end">
     <li><button class="dropdown-item" type="button" data-bs-toggle="modal" data-bs-target="#planModal"><i class="bi bi-arrow-repeat"></i> {% translate "Change plan" %}</button></li>
     {% if tenant.status == "trial" %}
+    <li><button class="dropdown-item" type="button" data-bs-toggle="modal" data-bs-target="#smsModal"><i class="bi bi-chat-left-text"></i> {% translate "Add SMS credits" %}</button></li>
     <li><button class="dropdown-item" type="button" data-bs-toggle="modal" data-bs-target="#trialModal"><i class="bi bi-hourglass-split"></i> {% translate "Extend trial" %}</button></li>
     {% endif %}
     <li><hr class="dropdown-divider"></li>
@@ -43,6 +44,21 @@
           {% endif %}
           {% if tenant.suspended_reason %}<dt>{% translate "Suspended for" %}</dt><dd>{{ tenant.suspended_reason }}</dd>{% endif %}
         </dl>
+      </div>
+    </div>
+    <div class="card mb-4">
+      <div class="card-header d-flex justify-content-between align-items-center"><h2 class="card-title mb-0">{% translate "SMS credits" %}</h2>
+        <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#smsModal"><i class="bi bi-plus"></i> {% translate "Add" %}</button></div>
+      <div class="card-body">
+        <dl class="detail-list mb-0">
+          <dt>{% translate "Left" %}</dt><dd class="fw-semibold">{{ sms.balance }}</dd>
+          <dt>{% translate "Used this month" %}</dt><dd>{{ sms.used }}</dd>
+          <dt>{% translate "Messages sent this month" %}</dt><dd>{{ sms.sent }}</dd>
+          <dt>{% translate "Sends SMS through" %}</dt><dd>{{ sms.source }}</dd>
+        </dl>
+        {% if sms.purchases %}
+        <ul class="list-unstyled small mt-3 mb-0">{% for c in sms.purchases %}<li>{{ c.created_at|date:"d M Y" }} · <strong>{% if c.change > 0 %}+{% endif %}{{ c.change }}</strong>{% if c.amount %} · ৳{{ c.amount|floatformat:"-2" }}{% endif %}{% if c.note %} · {{ c.note }}{% endif %}</li>{% endfor %}</ul>
+        {% endif %}
       </div>
     </div>
     <div class="card mb-4">
@@ -155,6 +171,21 @@
         <p class="form-text mb-0">{% translate "The paid period starts after the current paid period or trial, whichever ends later." %}</p>
       </div>
       <div class="modal-footer"><button type="button" class="btn btn-link" data-bs-dismiss="modal">{% translate "Cancel" %}</button><button class="btn btn-primary" type="submit">{% translate "Save payment" %}</button></div>
+    </form>
+  </div>
+</div>
+
+<div class="modal fade" id="smsModal" tabindex="-1" aria-labelledby="smsModalTitle" aria-hidden="true">
+  <div class="modal-dialog">
+    <form class="modal-content" method="post" action="{% url 'platform:tenant_action' tenant.pk 'sms' %}">
+      {% csrf_token %}
+      <div class="modal-header"><h2 class="modal-title fs-5" id="smsModalTitle">{% translate "Add SMS credits" %}</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% translate 'Close' %}"></button></div>
+      <div class="modal-body">
+        {% include "partials/_field.html" with field=credits_form.credits %}
+        {% include "partials/_field.html" with field=credits_form.amount %}
+        {% include "partials/_field.html" with field=credits_form.note %}
+      </div>
+      <div class="modal-footer"><button type="button" class="btn btn-link" data-bs-dismiss="modal">{% translate "Cancel" %}</button><button class="btn btn-primary" type="submit">{% translate "Add credits" %}</button></div>
     </form>
   </div>
 </div>

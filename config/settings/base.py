@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     "apps.inventory",
     "apps.reports",
     "apps.hr",
+    "apps.messaging",
 ]
 
 MIDDLEWARE = [
@@ -122,6 +123,21 @@ APP_NAME = f"{APP_COMPANY} {APP_PRODUCT}"
 # Behind nginx or another reverse proxy the visitor's address arrives in X-Forwarded-For
 # (attendance checks it against the shop's networks). Only turn on when a proxy sets that header.
 BEHIND_PROXY = env.bool("BEHIND_PROXY", default=False)
+
+# Messages. Links in SMS and email (a customer's bill) start with SITE_URL when there is no request to take it from.
+SITE_URL = env("SITE_URL", default="http://localhost:8000").rstrip("/")
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="MediPOS <no-reply@medipos.local>")
+# The platform's SMS account, used by pharmacies on MediPOS SMS credits. With no URL, SMS are only logged (development).
+# The URL holds {to}, {message}, {sender} and {api_key}; SUCCESS_TEXT is something the provider's answer contains on success.
+SMS_GATEWAY_URL = env("SMS_GATEWAY_URL", default="")
+SMS_GATEWAY_METHOD = env("SMS_GATEWAY_METHOD", default="GET")
+SMS_GATEWAY_API_KEY = env("SMS_GATEWAY_API_KEY", default="")
+SMS_GATEWAY_SENDER = env("SMS_GATEWAY_SENDER", default="")
+SMS_GATEWAY_SUCCESS_TEXT = env("SMS_GATEWAY_SUCCESS_TEXT", default="")
+# True: messages go out right after the page saves them (up to MESSAGES_SEND_NOW_LIMIT a request).
+# False: they wait for `manage.py send_messages`, run every minute (which also sends the daily alerts and due reminders).
+MESSAGES_SEND_NOW = env.bool("MESSAGES_SEND_NOW", default=True)
+MESSAGES_SEND_NOW_LIMIT = env.int("MESSAGES_SEND_NOW_LIMIT", default=25)
 
 # SaaS subscription rules
 TRIAL_DAYS = env.int("TRIAL_DAYS", default=14)

@@ -1,0 +1,64 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+{% block title %}{{ campaign.name }}{% endblock %}
+{% block page_title %}{{ campaign.name }}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle"><a href="{% url 'messaging:campaigns' %}"><i class="bi bi-chevron-left"></i> {% translate "All campaigns" %}</a> · {{ campaign.get_channel_display }} · {{ campaign.get_audience_display }}{% if campaign.audience == "recent" or campaign.audience == "lapsed" %} ({{ campaign.days }}){% elif campaign.audience == "points" %} ({{ campaign.min_points }}){% endif %}</p>{% endblock %}
+{% block page_actions %}
+{% if campaign.is_draft and can_send %}
+<a class="btn btn-outline-secondary" href="{% url 'messaging:campaign_edit' campaign.pk %}"><i class="bi bi-pencil"></i> {% translate "Edit" %}</a>
+<form method="post" class="d-inline" data-confirm="{% translate 'Delete this draft?' %}">{% csrf_token %}<input type="hidden" name="action" value="delete"><button class="btn btn-outline-danger" type="submit"><i class="bi bi-trash3"></i> {% translate "Delete" %}</button></form>
+{% endif %}
+{% endblock %}
+{% block content %}
+<div class="row g-4">
+  <div class="col-xl-7">
+    <div class="card mb-4">
+      <div class="card-header"><h2 class="card-title">{% translate "Message" %}</h2></div>
+      <div class="card-body">
+        {% if campaign.subject and campaign.channel == "email" %}<p class="mb-2"><strong>{{ campaign.subject }}</strong></p>{% endif %}
+        <div class="sms-bubble">{% if preview %}{{ preview.sample }}{% else %}{{ campaign.text }}{% endif %}</div>
+        {% if preview and campaign.channel == "sms" %}<p class="small text-body-secondary mt-2 mb-0">{% blocktranslate count counter=preview.parts %}{{ counter }} SMS part for this customer{% plural %}{{ counter }} SMS parts for this customer{% endblocktranslate %}</p>{% endif %}
+      </div>
+    </div>
+    {% if stats %}
+    <div class="row g-3">
+      <div class="col-6 col-md-3"><div class="card stat-tile tone-violet h-100"><div class="card-body"><div class="stat-label">{% translate "Customers" %}</div><div class="stat-figure">{{ stats.total }}</div></div></div></div>
+      <div class="col-6 col-md-3"><div class="card stat-tile tone-teal h-100"><div class="card-body"><div class="stat-label">{% translate "Sent" %}</div><div class="stat-figure">{{ stats.sent }}</div></div></div></div>
+      <div class="col-6 col-md-3"><div class="card stat-tile tone-red h-100"><div class="card-body"><div class="stat-label">{% translate "Failed" %}</div><div class="stat-figure">{{ stats.failed }}</div></div></div></div>
+      <div class="col-6 col-md-3"><div class="card stat-tile tone-amber h-100"><div class="card-body"><div class="stat-label">{% translate "Waiting" %}</div><div class="stat-figure">{{ stats.waiting }}</div></div></div></div>
+    </div>
+    <p class="small text-body-secondary mt-3">{% blocktranslate with when=campaign.sent_at|date:"j F Y, h:i A" %}Sent {{ when }}.{% endblocktranslate %} <a href="{% url 'messaging:outbox' %}">{% translate "See each message in the outbox" %}</a></p>
+    {% endif %}
+  </div>
+
+  {% if preview %}
+  <div class="col-xl-5">
+    <div class="card voucher-card tone-violet">
+      <div class="card-header"><h2 class="card-title"><i class="bi bi-people"></i> {% translate "Who it reaches" %}</h2></div>
+      <div class="card-body">
+        <div class="campaign-reach"><strong>{{ preview.count }}</strong> {% translate "customers" %}</div>
+        {% if uses_credits and campaign.channel == "sms" %}
+        <p class="mb-2">{% blocktranslate with need=preview.credits left=credits %}About <strong>{{ need }}</strong> SMS credits ({{ left }} left).{% endblocktranslate %}</p>
+        {% endif %}
+        {% if preview.people %}
+        <ul class="list-unstyled small mb-3">
+          {% for c in preview.people %}<li><i class="bi bi-person text-body-secondary"></i> {{ c.name }} <span class="text-body-secondary">{% if campaign.channel == "email" %}{{ c.email }}{% else %}{{ c.phone }}{% endif %}</span></li>{% endfor %}
+          {% if preview.count > preview.people|length %}<li class="text-body-secondary">{% blocktranslate with n=preview.count|add:"-8" %}and {{ n }} more{% endblocktranslate %}</li>{% endif %}
+        </ul>
+        {% endif %}
+        {% if not ready.0 %}
+        <div class="alert alert-warning small py-2"><i class="bi bi-exclamation-triangle"></i> {{ ready.1 }}</div>
+        {% elif can_send and preview.count %}
+        <form method="post" data-confirm="{% blocktranslate with n=preview.count %}Send this to {{ n }} customers now? It can't be taken back.{% endblocktranslate %}">
+          {% csrf_token %}<input type="hidden" name="action" value="send">
+          <button class="btn btn-primary w-100" type="submit"><i class="bi bi-send"></i> {% blocktranslate with n=preview.count %}Send to {{ n }} customers{% endblocktranslate %}</button>
+        </form>
+        {% elif not preview.count %}
+        <p class="text-body-secondary small mb-0">{% translate "Nobody in this audience has a mobile number (or email) to send to." %}</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

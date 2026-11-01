@@ -7,7 +7,7 @@
   var $ = window.jQuery;
   var csrf = (document.querySelector("meta[name=csrf-token]") || {}).content;
 
-  var state = { lines: [], customer: null, priceType: "retail", discount: "", discountMode: "amount", quotationId: null };
+  var state = { lines: [], customer: null, priceType: "retail", discount: "", discountMode: "amount", quotationId: null, points: "" };
   var results = [], activeResult = 0, searchTimer = null, searchSeq = 0;
   // Before anything is typed the grid shows a category ("top" = best sellers); arrow keys there only pick once used.
   var browse = { category: "top", hasSales: true, more: false, navigated: false };
@@ -57,17 +57,32 @@
     return state.lines.reduce(function (sum, l) { return l.medicine === medicineId ? sum + unitOf(l).factor * l.qty : sum; }, 0);
   }
 
+  function finish(after, discount) {
+    var taxable = round2(after - discount);
+    var vat = round2(taxable * num(cfg.vatPercent) / 100);
+    var exact = round2(taxable + vat);
+    return { vat: vat, exact: exact, total: cfg.roundTotal ? Math.round(exact) : exact };
+  }
+  // Loyalty: the most points the picked customer may spend on a bill (same rule as apps.messaging.loyalty.most_points).
+  function mostPoints(bill) {
+    var L = cfg.loyalty, c = state.customer;
+    if (!L || !L.enabled || !c || !num(L.pointValue) || num(c.points) < Math.max(L.minRedeem, 1)) return 0;
+    var most = Math.max(0, Math.min(num(c.points), Math.floor(bill * L.maxPercent / 100 / num(L.pointValue) + 1e-9)));
+    return most >= L.minRedeem ? most : 0;  // a bill too small to spend the minimum on
+  }
   function totals() {
     var subtotal = 0, lineDiscount = 0;
     state.lines.forEach(function (l) { subtotal += gross(l); lineDiscount += Math.min(num(l.discount), gross(l)); });
     var after = round2(subtotal - lineDiscount);
     var discount = state.discountMode === "percent" ? round2(after * num(state.discount) / 100) : num(state.discount);
     discount = Math.min(discount, after);
-    var taxable = round2(after - discount);
-    var vat = round2(taxable * num(cfg.vatPercent) / 100);
-    var exact = round2(taxable + vat);
-    var total = cfg.roundTotal ? Math.round(exact) : exact;
-    return { subtotal: subtotal, lineDiscount: lineDiscount, discount: discount, vat: vat, rounding: round2(total - exact), total: total };
+    var before = finish(after, discount), most = mostPoints(before.total);
+    var points = Math.min(Math.floor(num(state.points)), most);
+    if (points < (cfg.loyalty ? cfg.loyalty.minRedeem : 0)) points = 0;
+    var pointsValue = points ? round2(points * num(cfg.loyalty.pointValue)) : 0;
+    var done = points ? finish(after, Math.min(round2(discount + pointsValue), after)) : before;
+    return { subtotal: subtotal, lineDiscount: lineDiscount, discount: discount, points: points, pointsValue: pointsValue, mostPoints: most,
+             vat: done.vat, rounding: round2(done.total - done.exact), total: done.total };
   }
 
   function cartLines() {
@@ -277,7 +292,22 @@
     document.querySelectorAll("[data-vat-row]").forEach(function (e) { e.classList.toggle("d-none", !num(cfg.vatPercent)); });
     document.querySelectorAll("[data-rounding-row]").forEach(function (e) { e.classList.toggle("d-none", !t.rounding); });
     q("[data-pay]").disabled = state.lines.length === 0;
+    var showPoints = t.mostPoints > 0 || num(state.points) > 0;
+    document.querySelectorAll("[data-points-row]").forEach(function (e) { e.hidden = !showPoints; });
+    if (showPoints && state.customer) {
+      q("[data-points-note]").textContent = " " + fmt(T.pointsNote, { n: state.customer.points, most: t.mostPoints });
+      var asked = Math.floor(num(state.points));
+      q("[data-points-value]").textContent = t.points ? "− " + money(t.pointsValue)
+        : (asked > 0 && asked < cfg.loyalty.minRedeem ? fmt(T.pointsMin, { n: cfg.loyalty.minRedeem }) : "");
+    }
   }
+
+  var pointsInput = q("[data-points]");
+  pointsInput.addEventListener("input", function () { state.points = pointsInput.value; updateTotals(); });
+  q("[data-points-max]").addEventListener("click", function () {
+    var most = totals().mostPoints;
+    state.points = most ? String(most) : ""; pointsInput.value = state.points; updateTotals();
+  });
 
   var discountInput = q("[data-discount]"), discountMode = q("[data-discount-mode]");
   discountInput.addEventListener("input", function () { state.discount = discountInput.value; updateTotals(); });
@@ -319,10 +349,12 @@
 
   function setCustomer(c) {
     state.customer = c;
+    state.points = ""; pointsInput.value = "";  // points belong to the customer
     var info = q("[data-customer-info]");
-    if (!c) { info.textContent = ""; return; }
+    if (!c) { info.textContent = ""; updateTotals(); return; }
     var limit = c.credit_limit == null ? T.noLimit : (num(c.credit_limit) === 0 ? T.noCredit : T.limit + " " + money(c.credit_limit));
     var parts = [T.owes + " " + money(c.balance), limit];
+    if (cfg.loyalty && cfg.loyalty.enabled && num(c.points)) parts.push(T.points + " " + c.points);
     if (num(c.default_discount)) {
       parts.push(T.discountPct + " " + num(c.default_discount) + "%");
       if (!num(state.discount)) { state.discountMode = "percent"; state.discount = c.default_discount; discountMode.value = "percent"; discountInput.value = num(c.default_discount); }
@@ -418,6 +450,7 @@
       customer: state.customer ? state.customer.id : null,
       priceType: state.priceType,
       discount: t.discount,
+      points: t.points,
       cashTendered: q("[data-tendered]").value || null,
       rxChecked: q("[data-rx]").checked
     }).then(function (sale) {
@@ -427,6 +460,10 @@
       var change = q("[data-done-change]"), due = q("[data-done-due]");
       change.textContent = sale.change ? T.change + ": " + sale.change : ""; change.classList.toggle("d-none", !sale.change);
       due.textContent = sale.due ? T.due + ": " + sale.due : ""; due.classList.toggle("d-none", !sale.due);
+      var points = q("[data-done-points]"), sent = q("[data-done-sent]"), whatsapp = q("[data-done-whatsapp]");
+      points.textContent = sale.points ? fmt(T.pointsDone, sale.points) : ""; points.classList.toggle("d-none", !sale.points);
+      sent.textContent = sale.sent && sale.sent.length ? T.sent + " " + sale.sent.join(", ") : ""; sent.classList.toggle("d-none", !sent.textContent);
+      whatsapp.href = sale.whatsappUrl || "#"; whatsapp.classList.toggle("d-none", !sale.whatsappUrl);
       modal("doneModal").show();
       reset();
     }).catch(function (err) {
@@ -441,8 +478,8 @@
   document.getElementById("doneModal").addEventListener("hidden.bs.modal", function () { search.focus(); });
 
   function reset() {
-    state.lines = []; state.discount = ""; state.discountMode = "amount"; state.quotationId = null;
-    discountInput.value = ""; discountMode.value = "amount";
+    state.lines = []; state.discount = ""; state.discountMode = "amount"; state.quotationId = null; state.points = "";
+    discountInput.value = ""; discountMode.value = "amount"; pointsInput.value = "";
     $customer.val(null).trigger("change"); setCustomer(null);
     search.value = "";
     showBrowse();  // also refreshes the stock numbers on the cards

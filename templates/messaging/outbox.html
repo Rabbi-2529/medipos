@@ -1,0 +1,92 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+{% block title %}{% translate "Outbox" %}{% endblock %}
+{% block page_title %}{% translate "Outbox" %}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% translate "Every SMS, WhatsApp and email the shop sent, and whether it went." %}</p>{% endblock %}
+{% block page_actions %}
+{% if can.message.create %}<a class="btn btn-soft tone-violet" href="{% url 'messaging:campaign_create' %}"><i class="bi bi-megaphone"></i> {% translate "New campaign" %}</a>{% endif %}
+{% if can.message.edit %}<a class="btn btn-outline-secondary" href="{% url 'messaging:settings' %}"><i class="bi bi-gear"></i> {% translate "Message settings" %}</a>{% endif %}
+{% endblock %}
+{% block content %}
+{% if not sms_ready.0 %}<div class="alert alert-warning"><i class="bi bi-exclamation-triangle"></i> {{ sms_ready.1 }}</div>{% endif %}
+<div class="row g-3 mb-4">
+  {% if uses_credits %}
+  <div class="col-6 col-xl-3"><div class="card stat-tile tone-violet h-100"><div class="card-body">
+    <div class="stat-label">{% translate "SMS credit left" %}</div><div class="stat-figure">{{ credits }}</div>
+    <small class="text-body-secondary">{% translate "One credit per SMS part" %}</small>
+  </div></div></div>
+  {% endif %}
+  <div class="col-6 col-xl-3"><div class="card stat-tile tone-teal h-100"><div class="card-body">
+    <div class="stat-label">{% translate "Sent this month" %}</div><div class="stat-figure">{{ counts.sent }}</div>
+    {% if uses_credits %}<small class="text-body-secondary">{% blocktranslate with n=counts.credits|default:0 %}{{ n }} credits used{% endblocktranslate %}</small>{% endif %}
+  </div></div></div>
+  <div class="col-6 col-xl-3"><div class="card stat-tile tone-red h-100"><div class="card-body">
+    <div class="stat-label">{% translate "Failed this month" %}</div><div class="stat-figure">{{ counts.failed }}</div>
+  </div></div></div>
+  <div class="col-6 col-xl-3"><div class="card stat-tile tone-amber h-100"><div class="card-body">
+    <div class="stat-label">{% translate "Waiting" %}</div><div class="stat-figure">{{ waiting }}</div>
+    {% if waiting and can_send %}
+    <form method="post" class="mt-1">{% csrf_token %}<input type="hidden" name="action" value="send_waiting">
+      <button class="btn btn-sm btn-soft tone-amber" type="submit"><i class="bi bi-send"></i> {% translate "Send now" %}</button></form>
+    {% endif %}
+  </div></div></div>
+</div>
+
+<div class="row g-4">
+  <div class="{% if form %}col-xl-9{% else %}col-12{% endif %}">
+    <div class="card">
+      <div class="card-body">
+        <div class="table-filters">
+          <div class="table-filter">
+            <label class="form-label" for="f-channel">{% translate "Sent by" %}</label>
+            <select id="f-channel" class="form-select" data-mp-select data-no-search data-allow-clear data-placeholder="{% translate 'Any' %}" data-filter="channel">
+              <option></option>{% for value, label in channels %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="table-filter">
+            <label class="form-label" for="f-kind">{% translate "About" %}</label>
+            <select id="f-kind" class="form-select" data-mp-select data-no-search data-allow-clear data-placeholder="{% translate 'Any' %}" data-filter="kind">
+              <option></option>{% for value, label in kinds %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="table-filter">
+            <label class="form-label" for="f-status">{% translate "Status" %}</label>
+            <select id="f-status" class="form-select" data-mp-select data-no-search data-allow-clear data-placeholder="{% translate 'Any' %}" data-filter="status">
+              <option></option>{% for value, label in statuses %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+            </select>
+          </div>
+        </div>
+        <table id="message-table" class="table table-hover align-middle w-100">
+          <thead><tr><th>{% translate "When" %}</th><th>{% translate "By" %}</th><th>{% translate "To" %}</th><th>{% translate "About" %}</th><th>{% translate "Message" %}</th><th class="text-end">{% translate "SMS parts" %}</th><th>{% translate "Status" %}</th><th><span class="visually-hidden">{% translate "Actions" %}</span></th></tr></thead>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% if form %}
+  <div class="col-xl-3">
+    <form class="card" method="post" novalidate>
+      {% csrf_token %}<input type="hidden" name="action" value="test">
+      <div class="card-header"><h2 class="card-title"><i class="bi bi-send-check"></i> {% translate "Send a test" %}</h2></div>
+      <div class="card-body">
+        {% include "partials/_field.html" with field=form.channel %}
+        {% include "partials/_field.html" with field=form.to %}
+        <button class="btn btn-primary w-100" type="submit">{% translate "Send test" %}</button>
+      </div>
+    </form>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+  (function () {
+    var filters = document.querySelectorAll("[data-filter]");
+    var table = MP.dataTable("#message-table", {
+      ajax: { url: "{% url 'messaging:outbox_data' %}", data: function (d) { filters.forEach(function (f) { d[f.dataset.filter] = $(f).val() || ""; }); } },
+      order: [[0, "desc"]],
+      columnDefs: [{ targets: [4, 7], orderable: false }, { targets: 5, className: "text-end" }, { targets: 4, className: "msg-cell" }]
+    });
+    filters.forEach(function (f) { $(f).on("change", function () { table.ajax.reload(); }); });
+  })();
+</script>
+{% endblock %}

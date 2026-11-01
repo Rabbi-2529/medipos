@@ -49,7 +49,10 @@ class Sale(TenantOwnedModel):
     price_type = models.CharField(max_length=10, choices=PriceType.choices, default=PriceType.RETAIL)
     subtotal = models.DecimalField(**MONEY)          # Σ quantity × unit price
     line_discount = models.DecimalField(**MONEY)     # Σ line discounts
-    discount = models.DecimalField(**MONEY)          # cart discount
+    discount = models.DecimalField(**MONEY)          # cart discount, including points_discount
+    points_redeemed = models.PositiveIntegerField(default=0)   # loyalty points spent on this bill…
+    points_discount = models.DecimalField(**MONEY)             # …and the money off they gave
+    points_earned = models.PositiveIntegerField(default=0)
     vat_percent = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("0"))
     vat_amount = models.DecimalField(**MONEY)
     rounding = models.DecimalField(**MONEY)

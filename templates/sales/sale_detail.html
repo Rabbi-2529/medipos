@@ -31,12 +31,14 @@
         <dl class="totals mb-0">
           <dt>{% translate "Subtotal" %}</dt><dd>{% money sale.subtotal %}</dd>
           {% if sale.line_discount %}<dt>{% translate "Item discounts" %}</dt><dd>− {% money sale.line_discount %}</dd>{% endif %}
-          {% if sale.discount %}<dt>{% translate "Discount" %}</dt><dd>− {% money sale.discount %}</dd>{% endif %}
+          {% if cart_discount %}<dt>{% translate "Discount" %}</dt><dd>− {% money cart_discount %}</dd>{% endif %}
+          {% if sale.points_discount %}<dt>{% blocktranslate with n=sale.points_redeemed %}Points spent ({{ n }}){% endblocktranslate %}</dt><dd>− {% money sale.points_discount %}</dd>{% endif %}
           {% if sale.vat_amount %}<dt>{% translate "VAT" %} ({{ sale.vat_percent|floatformat:"-2" }}%)</dt><dd>{% money sale.vat_amount %}</dd>{% endif %}
           {% if sale.rounding %}<dt>{% translate "Rounding" %}</dt><dd>{% money sale.rounding %}</dd>{% endif %}
           <dt class="totals-grand">{% translate "Total" %}</dt><dd class="totals-grand">{% money sale.total %}</dd>
           <dt>{% translate "Paid at counter" %}</dt><dd>{% money sale.paid %}</dd>
           {% if sale.customer %}<dt>{% translate "Still due" %}</dt><dd class="{% if outstanding > 0 %}text-danger fw-semibold{% endif %}">{% money outstanding %}</dd>{% endif %}
+          {% if sale.points_earned %}<dt>{% translate "Points earned" %}</dt><dd><span class="points-change tone-teal">+{{ sale.points_earned }}</span></dd>{% endif %}
         </dl>
       </div>
     </div>
@@ -80,4 +82,5 @@
     </div></div>
   </div>
 </div>
+{% if send %}{% include "messaging/_sale_panel.html" %}{% endif %}
 {% endblock %}

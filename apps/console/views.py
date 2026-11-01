@@ -19,8 +19,11 @@ from apps.billing.limits import usage_summary
 from apps.billing.models import Plan
 from apps.billing.templatetags.billing_tags import state_badge_html
 from apps.core.datatables import datatable_json
+from apps.core.tenancy import tenant_context
+from apps.messaging import services as messaging
+from apps.messaging.forms import CreditsForm
 from apps.outlets.models import Outlet
-from apps.tenants.models import AccessState, Tenant
+from apps.tenants.models import AccessState, Tenant, TenantEvent
 from apps.tenants.services import register_pharmacy
 
 from .forms import AddPharmacyForm, ChangePlanForm, ExtendTrialForm, PaymentForm, PlanForm, SuspendForm
@@ -140,6 +143,8 @@ def tenant_detail(request, pk):
         "plan_form": ChangePlanForm(initial={"plan": tenant.plan_id}, auto_id="chg_%s"),
         "trial_form": ExtendTrialForm(auto_id="trial_%s"),
         "suspend_form": SuspendForm(auto_id="susp_%s"),
+        "credits_form": CreditsForm(auto_id="sms_%s"),
+        "sms": _sms_summary(tenant),
         "plan_prices": {
             p.pk: {"monthly": str(p.price_monthly), "yearly": str(p.price_yearly) if p.price_yearly is not None else None}
             for p in plans
@@ -154,12 +159,29 @@ def _first_error(form):
     return _("Please check the form.")
 
 
+def _sms_summary(tenant):
+    """SMS credit left, used this month and recent purchases, for the pharmacy page."""
+    from django.db.models import Sum
+
+    from apps.messaging.models import Message, SmsCredit
+
+    month = timezone.localtime().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    with tenant_context(tenant):
+        return {
+            "balance": messaging.credit_balance(),
+            "used": -(SmsCredit.objects.filter(kind=SmsCredit.Kind.USED, created_at__gte=month).aggregate(t=Sum("change"))["t"] or 0),
+            "sent": Message.objects.filter(status=Message.Status.SENT, created_at__gte=month).count(),
+            "source": messaging.message_settings().get_sms_source_display(),
+            "purchases": list(SmsCredit.objects.filter(kind__in=[SmsCredit.Kind.PURCHASE, SmsCredit.Kind.ADJUST]).select_related("created_by")[:5]),
+        }
+
+
 @platform_admin_required
 @require_POST
 def tenant_action(request, pk, action):
     tenant = get_object_or_404(Tenant, pk=pk)
     actor = request.user
-    forms = {"payment": PaymentForm, "plan": ChangePlanForm, "trial": ExtendTrialForm, "suspend": SuspendForm}
+    forms = {"payment": PaymentForm, "plan": ChangePlanForm, "trial": ExtendTrialForm, "suspend": SuspendForm, "sms": CreditsForm}
     if action not in forms and action != "reactivate":
         raise Http404
     form = forms[action](request.POST) if action in forms else None
@@ -184,6 +206,16 @@ def tenant_action(request, pk, action):
         elif action == "suspend":
             billing.suspend(tenant, form.cleaned_data["reason"], actor=actor)
             messages.success(request, _("Pharmacy suspended."))
+        elif action == "sms":
+            data = form.cleaned_data
+            try:
+                messaging.add_credits(tenant, credits=data["credits"], amount=data["amount"], note=data["note"], user=actor)
+            except messaging.MessageError as error:
+                messages.error(request, str(error))
+            else:
+                TenantEvent.objects.create(tenant=tenant, kind=TenantEvent.Kind.SMS_CREDITS, actor=actor,
+                                           message=_("%(n)s SMS credits added (paid %(amount)s).") % {"n": data["credits"], "amount": data["amount"] or 0})
+                messages.success(request, _("%(n)s SMS credits added.") % {"n": data["credits"]})
         else:
             billing.reactivate(tenant, actor=actor)
             messages.success(request, _("Pharmacy reactivated."))

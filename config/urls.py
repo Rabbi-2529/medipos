@@ -3,6 +3,8 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 
+from apps.messaging import views as messaging_views
+
 admin.site.site_header = f"{settings.APP_NAME} platform admin"
 admin.site.site_title = settings.APP_NAME
 
@@ -24,6 +26,8 @@ urlpatterns = [
     path("sales/", include("apps.sales.urls")),
     path("inventory/", include("apps.inventory.urls")),
     path("reports/", include("apps.reports.urls")),
+    path("messages/", include("apps.messaging.urls")),
+    path("b/<str:token>/", messaging_views.public_bill, name="public_bill"),  # a customer's bill, linked from SMS
     path("", include("apps.tenants.urls")),
     path("", include("apps.billing.urls")),
     path("", include("apps.core.urls")),

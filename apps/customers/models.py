@@ -28,6 +28,10 @@ class Customer(TenantOwnedModel):
     )
     notes = models.CharField(_("notes"), max_length=255, blank=True)
     is_active = models.BooleanField(_("active"), default=True)
+    # Loyalty points to spend; kept in step with messaging.PointEntry by apps.messaging.loyalty.
+    points = models.IntegerField(_("loyalty points"), default=0, editable=False)
+    no_marketing = models.BooleanField(_("no offers"), default=False,
+                                       help_text=_("Leave them out of SMS and email campaigns. Bills and due reminders still go."))
 
     class Meta:
         ordering = ["name"]

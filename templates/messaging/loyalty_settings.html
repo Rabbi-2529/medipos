@@ -1,0 +1,40 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+{% block title %}{% translate "Loyalty settings" %}{% endblock %}
+{% block page_title %}{% translate "Loyalty settings" %}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle"><a href="{% url 'messaging:points' %}"><i class="bi bi-chevron-left"></i> {% translate "Loyalty points" %}</a></p>{% endblock %}
+{% block content %}
+<div class="row g-4">
+  <div class="col-xl-7">
+    <form class="card voucher-card tone-violet" method="post" novalidate>
+      {% csrf_token %}
+      <div class="card-body">
+        {% include "partials/_field.html" with field=form.enabled %}
+        <div class="row g-2">
+          <div class="col-md-6">{% include "partials/_field.html" with field=form.earn_amount %}</div>
+          <div class="col-md-6">{% include "partials/_field.html" with field=form.point_value %}</div>
+          <div class="col-md-6">{% include "partials/_field.html" with field=form.min_redeem %}</div>
+          <div class="col-md-6">{% include "partials/_field.html" with field=form.max_redeem_percent %}</div>
+        </div>
+        <button class="btn btn-primary" type="submit"><i class="bi bi-check2-circle"></i> {% translate "Save" %}</button>
+      </div>
+    </form>
+  </div>
+  <div class="col-xl-5">
+    <div class="card">
+      <div class="card-header"><h2 class="card-title"><i class="bi bi-lightbulb"></i> {% translate "How it works" %}</h2></div>
+      <div class="card-body small">
+        <ul class="ps-3 mb-3">
+          <li>{% translate "Points are earned on the bill total when a customer is picked at the POS (not on walk-in sales)." %}</li>
+          <li>{% translate "At the POS, a customer with enough points can spend them: their value comes off the bill like a discount." %}</li>
+          <li>{% translate "When goods come back, the points that part of the bill earned are taken back. Points spent are not returned." %}</li>
+          <li>{% translate "Correct a customer's points (a gift, a mistake) from their page." %}</li>
+        </ul>
+        {% with spend=form.earn_amount.value value=form.point_value.value %}
+        <p class="example-box mb-0">{% blocktranslate with spend=spend value=value currency=shop.currency_symbol %}Example: a {{ currency }}1,000 bill earns 1,000 ÷ {{ spend }} points. Each point takes {{ currency }}{{ value }} off a later bill.{% endblocktranslate %}</p>
+        {% endwith %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

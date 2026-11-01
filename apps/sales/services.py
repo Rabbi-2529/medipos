@@ -14,6 +14,7 @@ from apps.customers.models import CustomerLedgerEntry
 from apps.customers.services import can_take_due
 from apps.customers.services import post_entry as customer_entry
 from apps.items.models import Medicine
+from apps.messaging import loyalty
 from apps.setup.services import get_business_settings, next_code
 from apps.stock.models import BatchStock, StockMovement
 from apps.stock.services import StockError, post_movement
@@ -270,8 +271,9 @@ def totals(lines, *, cart_discount, settings):
 
 @transaction.atomic
 def complete_sale(*, tenant, outlet, user, lines, payments, register=None, customer=None, price_type=Sale.PriceType.RETAIL,
-                  cart_discount=0, cash_tendered=None, rx_checked=False, note="", now=None, quotation_id=None):
-    """Validate the cart, take stock (FEFO), record payments and the customer's due. All or nothing."""
+                  cart_discount=0, cash_tendered=None, rx_checked=False, note="", now=None, quotation_id=None, points=0):
+    """Validate the cart, take stock (FEFO), record payments and the customer's due. All or nothing.
+    `points`: loyalty points the customer spends; their value comes off the bill like a discount."""
     now = now or timezone.now()
     today = timezone.localdate(now)
     if price_type not in Sale.PriceType.values:
@@ -282,6 +284,14 @@ def complete_sale(*, tenant, outlet, user, lines, payments, register=None, custo
     if any(l["medicine"].prescription_required for l in cart) and not rx_checked:
         raise SaleError(_("This sale has prescription medicines. Check the prescription and tick the box."))
     amounts = totals(cart, cart_discount=cart_discount, settings=settings)
+    points = int(points) if str(points or "").isdigit() else 0
+    points_discount = ZERO
+    if points:
+        try:
+            points_discount = loyalty.redeem_value(customer, points, amounts["total"], loyalty.program())
+        except loyalty.LoyaltyError as error:
+            raise SaleError(str(error))
+        amounts = totals(cart, cart_discount=_money(cart_discount, _("Discount")) + points_discount, settings=settings)
 
     accounts = {a.pk: a for a in PaymentAccount.objects.filter(is_active=True)}
     clean_payments = []
@@ -308,7 +318,7 @@ def complete_sale(*, tenant, outlet, user, lines, payments, register=None, custo
     sale = Sale.objects.create(
         number=number, outlet=outlet, register=register, customer=customer, sold_at=now, price_type=price_type,
         paid=paid, cash_tendered=_money(cash_tendered, _("Cash tendered")) if cash_tendered not in (None, "") else None,
-        rx_checked=rx_checked, note=note[:255], created_by=user, **amounts,
+        rx_checked=rx_checked, note=note[:255], created_by=user, points_redeemed=points, points_discount=points_discount, **amounts,
     )
     ref = ("sale", sale.pk, number)
     cost_total = ZERO
@@ -338,6 +348,7 @@ def complete_sale(*, tenant, outlet, user, lines, payments, register=None, custo
         customer_entry(customer, date=today, kind=CustomerLedgerEntry.Kind.SALE, debit=sale.total, ref=ref)
         if paid > 0:
             customer_entry(customer, date=today, kind=CustomerLedgerEntry.Kind.PAYMENT, credit=paid, ref=ref)
+        loyalty.record_sale(sale, user=user)
     if quotation_id:
         Quotation.objects.filter(pk=quotation_id, status=Quotation.Status.OPEN).update(status=Quotation.Status.SOLD, sale=sale)
     posting.post_sale(sale)
@@ -450,6 +461,7 @@ def create_return(sale, quantities, *, date, refund_amount=0, refund_account=Non
         customer_entry(sale.customer, date=date, kind=CustomerLedgerEntry.Kind.RETURN, credit=total, ref=ref)
         if refund > 0:
             customer_entry(sale.customer, date=date, kind=CustomerLedgerEntry.Kind.REFUND, debit=refund, ref=ref)
+        loyalty.on_return(sale_return, user=user)
     posting.post_sale_return(sale_return)
     return sale_return
 

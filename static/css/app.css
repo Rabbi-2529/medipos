@@ -913,3 +913,33 @@ span.flatpickr-weekday { background: transparent; color: var(--mp-muted); font-s
 .att-early { display: inline-flex; gap: .25rem; align-items: center; margin-top: .2rem; font-size: .75rem; font-weight: 600; color: #b5462f; white-space: nowrap; }
 [data-bs-theme="dark"] .att-early { color: #f08a72; }
 .att-event-early { color: #b5462f !important; }
+
+/* Messages, campaigns and loyalty */
+.msg-cell { max-width: 360px; }
+.msg-body { white-space: pre-line; overflow-wrap: anywhere; font-size: .8125rem; line-height: 1.35; }
+.msg-detail { max-width: 220px; overflow-wrap: anywhere; color: #b42318 !important; }
+.sms-count { font-variant-numeric: tabular-nums; }
+.sms-count.is-unicode { color: #b07800; }
+.placeholder-help { margin: -.5rem 0 0; font-size: .75rem; line-height: 1.9; }
+.placeholder-help code { padding: .1rem .35rem; border-radius: 6px; background: var(--mp-primary-subtle); color: var(--mp-heading); }
+.credit-figure { font-size: 2rem; font-weight: 700; color: var(--mp-heading); font-variant-numeric: tabular-nums; line-height: 1.1; }
+.credit-list li, .sent-list li { display: flex; justify-content: space-between; gap: .5rem; padding: .45rem 0; border-bottom: 1px solid var(--mp-border); font-size: .8125rem; }
+.sent-list li { justify-content: flex-start; align-items: baseline; flex-wrap: wrap; }
+.credit-list li:last-child, .sent-list li:last-child { border-bottom: 0; }
+.sms-bubble { max-width: 420px; padding: .85rem 1rem; border-radius: 16px 16px 16px 4px; background: var(--mp-primary-subtle); color: var(--mp-heading); white-space: pre-line; overflow-wrap: anywhere; }
+.campaign-reach { font-size: 1rem; margin-bottom: .5rem; }
+.campaign-reach strong { font-size: 2rem; color: var(--mp-heading); font-variant-numeric: tabular-nums; }
+.points-change { font-weight: 600; font-variant-numeric: tabular-nums; color: var(--tone); }
+.points-change.tone-teal { color: #0f8a74; }
+.points-change.tone-red { color: #c43b40; }
+[data-bs-theme="dark"] .points-change.tone-teal { color: #3fd0b4; }
+[data-bs-theme="dark"] .points-change.tone-red { color: #f28b8f; }
+.top-list { padding-left: 1.25rem; }
+.top-list li { padding: .35rem 0; border-bottom: 1px solid var(--mp-border); }
+.top-list li:last-child { border-bottom: 0; }
+.top-list li strong { float: right; font-variant-numeric: tabular-nums; }
+.example-box { padding: .65rem .8rem; border-radius: 10px; background: var(--mp-body-bg); }
+.adjust-points summary { cursor: pointer; color: var(--mp-primary); font-size: .875rem; }
+.settings-save { position: sticky; top: 88px; z-index: 2; }
+.pos-points-note { display: block; font-size: .7rem; color: var(--mp-muted); font-weight: 400; }
+.pos-points-value { display: block; margin-top: .15rem; font-size: .75rem; color: #0f8a74; text-align: right; }

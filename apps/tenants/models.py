@@ -133,6 +133,7 @@ class TenantEvent(models.Model):
         TRIAL_EXTENDED = "trial_extended", _("Trial extended")
         SUSPENDED = "suspended", _("Suspended")
         REACTIVATED = "reactivated", _("Reactivated")
+        SMS_CREDITS = "sms_credits", _("SMS credits")
 
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name="events")
     kind = models.CharField(max_length=20, choices=Kind.choices)

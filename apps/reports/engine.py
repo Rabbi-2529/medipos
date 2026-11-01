@@ -103,4 +103,5 @@ GROUPS = [
     ("stock", _("Stock & purchases"), "bi-box-seam", "orange"),
     ("ledgers", _("Customers & suppliers"), "bi-people", "violet"),
     ("staff", _("Staff & registers"), "bi-person-badge", "rose"),
+    ("marketing", _("Messages & loyalty"), "bi-chat-dots", "pink"),
 ]

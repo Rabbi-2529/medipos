@@ -42,7 +42,7 @@
 {% with bn=shop.receipt_bangla_digits %}
 <div class="tools">
   <button type="button" onclick="window.print()">{% translate "Print" %}</button>
-  <a href="?size=58">58 mm</a><a href="?size=80">80 mm</a><a href="?size=a4">A4</a>
+  {% if not public %}<a href="?size=58">58 mm</a><a href="?size=80">80 mm</a><a href="?size=a4">A4</a>{% endif %}
 </div>
 <div class="paper">
   <div class="head">
@@ -80,6 +80,7 @@
   <table>
     <tr><td>{% translate "Subtotal" %}</td><td class="r">{% money sale.subtotal as v %}{{ v|bn_digits:bn }}</td></tr>
     {% if total_discount %}<tr><td>{% translate "Discount" %}</td><td class="r">− {% money total_discount as v %}{{ v|bn_digits:bn }}</td></tr>{% endif %}
+    {% if sale.points_discount %}<tr><td>{% blocktranslate with n=sale.points_redeemed|bn_digits:bn %}Points spent ({{ n }}){% endblocktranslate %}</td><td class="r">− {% money sale.points_discount as v %}{{ v|bn_digits:bn }}</td></tr>{% endif %}
     {% if sale.vat_amount %}<tr><td>{% translate "VAT" %} {{ sale.vat_percent|floatformat:"-2"|bn_digits:bn }}%</td><td class="r">{% money sale.vat_amount as v %}{{ v|bn_digits:bn }}</td></tr>{% endif %}
     {% if sale.rounding %}<tr><td>{% translate "Rounding" %}</td><td class="r">{% money sale.rounding as v %}{{ v|bn_digits:bn }}</td></tr>{% endif %}
     <tr class="grand"><td>{% translate "Total" %}</td><td class="r">{% money sale.total as v %}{{ v|bn_digits:bn }}</td></tr>
@@ -88,6 +89,7 @@
     {% if sale.due > 0 %}<tr><td><strong>{% translate "Due" %}</strong></td><td class="r"><strong>{% money sale.due as v %}{{ v|bn_digits:bn }}</strong></td></tr>{% endif %}
   </table>
   <hr>
+  {% if sale.points_earned or sale.points_redeemed %}<p class="center">{% if sale.points_earned %}{% blocktranslate with n=sale.points_earned|bn_digits:bn %}Points earned: {{ n }}{% endblocktranslate %} · {% endif %}{% blocktranslate with n=points_after|default:0|bn_digits:bn %}Your points: {{ n }}{% endblocktranslate %}</p>{% endif %}
   {% if sale.rx_checked %}<p class="center muted">℞ {% translate "Prescription checked" %}</p>{% endif %}
   {% if shop.invoice_footer %}<p class="center">{{ shop.invoice_footer|linebreaksbr }}</p>{% endif %}
   <p class="center muted">{% translate "Thank you. Get well soon!" %}</p>

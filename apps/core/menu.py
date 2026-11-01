@@ -96,6 +96,16 @@ MENU = (
             MenuItem("customer_receive", _("Collect due"), "customers:receipt_create", perm="customer_receive.create"),
             _item("customer_receive", _("Collections"), "customers:receipts"),
         )),
+        MenuItem("message", _("Messages"), icon="bi-chat-dots", perm=None, children=(
+            _item("message", _("Outbox"), "messaging:outbox"),
+            _item("message", _("Campaigns"), "messaging:campaigns"),
+            MenuItem("message", _("Due reminders"), "messaging:due_reminders", perm="message.create"),
+            MenuItem("message", _("Message settings"), "messaging:settings", perm="message.edit"),
+        )),
+        MenuItem("loyalty", _("Loyalty points"), icon="bi-gift", perm=None, children=(
+            _item("loyalty", _("Points history"), "messaging:points"),
+            MenuItem("loyalty", _("Loyalty settings"), "messaging:loyalty_settings", perm="loyalty.edit"),
+        )),
     )),
     MenuSection(_("Purchases & suppliers"), (
         MenuItem("purchase", _("Purchases"), icon="bi-bag-check", perm=None, children=(

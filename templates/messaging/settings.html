@@ -1,0 +1,143 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+{% block title %}{% translate "Message settings" %}{% endblock %}
+{% block page_title %}{% translate "Message settings" %}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% translate "How SMS, WhatsApp and email go out, and which ones the shop sends by itself." %}</p>{% endblock %}
+{% block page_actions %}<a class="btn btn-outline-secondary" href="{% url 'messaging:outbox' %}"><i class="bi bi-inbox"></i> {% translate "Outbox" %}</a>{% endblock %}
+{% block content %}
+<form method="post" novalidate id="message-settings">
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="alert alert-danger">{% for e in form.non_field_errors %}{{ e }}{% endfor %}</div>{% endif %}
+  <div class="row g-4">
+    <div class="col-xl-8">
+      <div class="card voucher-card tone-sky mb-4">
+        <div class="card-header"><h2 class="card-title"><i class="bi bi-chat-left-text"></i> {% translate "SMS" %}</h2></div>
+        <div class="card-body">
+          <div class="row g-2">
+            <div class="col-md-6">{% include "partials/_field.html" with field=form.sms_source %}</div>
+          </div>
+          <p class="small text-body-secondary" data-source-note="platform">{% translate "SMS go through MediPOS. Each SMS part uses one credit; buy credit from ThingBD. Bangla text fits 70 characters an SMS, English 160." %}</p>
+          <div data-source-note="own">
+            <p class="small text-body-secondary">{% translate "Use your own account with a Bangladeshi SMS provider. Copy their API address and put {to}, {message}, {sender} and {api_key} where those values go." %}</p>
+            <div class="row g-2">
+              <div class="col-12">{% include "partials/_field.html" with field=form.sms_url %}</div>
+              <div class="col-md-3">{% include "partials/_field.html" with field=form.sms_method %}</div>
+              <div class="col-md-5">{% include "partials/_field.html" with field=form.sms_api_key %}</div>
+              <div class="col-md-4">{% include "partials/_field.html" with field=form.sms_sender %}</div>
+              <div class="col-md-6">{% include "partials/_field.html" with field=form.sms_success_text %}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card voucher-card tone-teal mb-4">
+        <div class="card-header"><h2 class="card-title"><i class="bi bi-whatsapp"></i> {% translate "WhatsApp and email" %}</h2></div>
+        <div class="card-body">
+          <p class="small text-body-secondary">{% translate "WhatsApp buttons on bills, customers and due reminders open WhatsApp with the message typed in; staff press send. To send WhatsApp by itself, add a WhatsApp gateway (a provider's API address with {to} and {message})." %}</p>
+          <div class="row g-2">
+            <div class="col-12">{% include "partials/_field.html" with field=form.whatsapp_url %}</div>
+            <div class="col-md-3">{% include "partials/_field.html" with field=form.whatsapp_method %}</div>
+            <div class="col-md-5">{% include "partials/_field.html" with field=form.whatsapp_api_key %}</div>
+            <div class="col-md-4">{% include "partials/_field.html" with field=form.whatsapp_success_text %}</div>
+          </div>
+          <h3 class="form-section-title">{% translate "Email" %}</h3>
+          <div class="row g-2">
+            <div class="col-md-6">{% include "partials/_field.html" with field=form.email_from_name %}</div>
+            <div class="col-md-6">{% include "partials/_field.html" with field=form.email_reply_to %}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card voucher-card tone-violet mb-4">
+        <div class="card-header"><h2 class="card-title"><i class="bi bi-receipt"></i> {% translate "Bill after a sale" %}</h2></div>
+        <div class="card-body">
+          <p class="small text-body-secondary">{% translate "Goes to the customer picked at the POS (walk-in sales get nothing). The link opens their bill without a login." %}</p>
+          <div class="d-flex flex-wrap gap-4">
+            {% include "partials/_field.html" with field=form.invoice_sms %}
+            {% include "partials/_field.html" with field=form.invoice_whatsapp %}
+            {% include "partials/_field.html" with field=form.invoice_email %}
+          </div>
+          {% include "partials/_field.html" with field=form.invoice_text %}
+          <p class="placeholder-help">{% for w in bill_words %}<code>{{ "{" }}{{ w }}{{ "}" }}</code> {% endfor %}</p>
+        </div>
+      </div>
+
+      <div class="card voucher-card tone-amber mb-4">
+        <div class="card-header"><h2 class="card-title"><i class="bi bi-bell"></i> {% translate "Due reminders" %}</h2></div>
+        <div class="card-body">
+          {% include "partials/_field.html" with field=form.due_reminders %}
+          <p class="small text-body-secondary">{% translate "Sent by SMS once a day, from the alert hour below, to customers who owe at least the amount and weren't reminded recently. You can also send them by hand from Due reminders." %}</p>
+          <div class="row g-2">
+            <div class="col-md-6">{% include "partials/_field.html" with field=form.due_every_days %}</div>
+            <div class="col-md-6">{% include "partials/_field.html" with field=form.due_min_amount %}</div>
+          </div>
+          {% include "partials/_field.html" with field=form.due_text %}
+          <p class="placeholder-help">{% for w in customer_words %}<code>{{ "{" }}{{ w }}{{ "}" }}</code> {% endfor %}</p>
+        </div>
+      </div>
+
+      <div class="card voucher-card tone-red mb-4">
+        <div class="card-header"><h2 class="card-title"><i class="bi bi-exclamation-octagon"></i> {% translate "Daily stock alert" %}</h2></div>
+        <div class="card-body">
+          {% include "partials/_field.html" with field=form.daily_alerts %}
+          <p class="small text-body-secondary">{% translate "Every morning: how many medicines are low or out of stock and how many batches expire soon. SMS gets the numbers; email gets the lists." %}</p>
+          <div class="row g-2">
+            <div class="col-md-4">{% include "partials/_field.html" with field=form.alert_hour %}</div>
+            <div class="col-md-8">{% include "partials/_field.html" with field=form.alert_expiry_days %}</div>
+            <div class="col-md-6">{% include "partials/_field.html" with field=form.alert_phones %}</div>
+            <div class="col-md-6">{% include "partials/_field.html" with field=form.alert_emails %}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-4">
+      <div class="card mb-4 settings-save">
+        <div class="card-body">
+          <button class="btn btn-primary w-100" type="submit"><i class="bi bi-check2-circle"></i> {% translate "Save settings" %}</button>
+        </div>
+      </div>
+      {% if ms.sms_source == "platform" %}
+      <div class="card mb-4">
+        <div class="card-header"><h2 class="card-title"><i class="bi bi-coin"></i> {% translate "MediPOS SMS credit" %}</h2></div>
+        <div class="card-body">
+          <div class="credit-figure">{{ credits }}</div>
+          <p class="small text-body-secondary">{% translate "SMS parts left. Ask ThingBD to add more; they show here when added." %}</p>
+          {% if not platform_gateway %}<p class="alert alert-info small py-2 mb-2"><i class="bi bi-info-circle"></i> {% translate "This server has no SMS gateway yet, so SMS are only written to its log (fine for trying things out)." %}</p>{% endif %}
+          {% if history %}
+          <ul class="list-unstyled credit-list mb-0">
+            {% for c in history %}
+            <li><span>{{ c.get_kind_display }}{% if c.note %} · <small class="text-body-secondary">{{ c.note }}</small>{% endif %}<small class="d-block text-body-secondary">{{ c.created_at|date:"d M, h:i A" }}</small></span>
+              <strong class="{% if c.change > 0 %}text-success{% else %}text-body-secondary{% endif %}">{% if c.change > 0 %}+{% endif %}{{ c.change }}</strong></li>
+            {% endfor %}
+          </ul>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+      <div class="card">
+        <div class="card-header"><h2 class="card-title"><i class="bi bi-clock-history"></i> {% translate "Daily run" %}</h2></div>
+        <div class="card-body small">
+          <p>{% translate "The stock alert and due reminders go out once a day from the alert hour, when the server's message worker runs (manage.py send_messages, every minute)." %}</p>
+          <p class="mb-2">{% translate "Last run" %}: <strong>{% if last_run %}{{ last_run|date:"j F Y" }}{% else %}{% translate "never" %}{% endif %}</strong></p>
+          <button class="btn btn-sm btn-soft tone-red" type="submit" form="run-daily"><i class="bi bi-play-circle"></i> {% translate "Run it now" %}</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</form>
+<form method="post" id="run-daily" data-confirm="{% translate 'Send the stock alert and due reminders now (whichever are switched on)?' %}">{% csrf_token %}<input type="hidden" name="action" value="run_daily"></form>
+{% endblock %}
+{% block extra_js %}
+{% include "messaging/_sms_counter.html" %}
+<script>
+  (function () {
+    var source = document.querySelector("[name=sms_source]");
+    function sync() {
+      document.querySelectorAll("[data-source-note]").forEach(function (box) { box.hidden = box.dataset.sourceNote !== source.value; });
+    }
+    $(source).on("change", sync);
+    sync();
+  })();
+</script>
+{% endblock %}

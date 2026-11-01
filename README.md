@@ -62,8 +62,9 @@ apps/purchases/    purchases (draft → received), purchase returns
 apps/customers/    customers, customer ledger, due collection
 apps/sales/        cash registers, POS, sales, held carts, sale returns, promotions, quotations
 apps/inventory/    transfers between outlets, damage/expired write-offs, stock counts
-apps/reports/      report engine + 21 reports (sales, profit, stock, ledgers, staff), dashboard figures
+apps/reports/      report engine + 23 reports (sales, profit, stock, ledgers, staff), dashboard figures
 apps/hr/           attendance (sheet, calendar, shifts, shop networks, self check-in), advances, payroll, payslips
+apps/messaging/    SMS/WhatsApp/email outbox, gateways, SMS credits, bills, due reminders, stock alerts, campaigns, loyalty points
 locale/bn/         Bangla translations (django.po source, django.mo compiled)
 templates/         layouts, partials, pages
 static/            css/app.css (theme tokens, dark mode), js/app.js, js/pos.js, js/stock_lines.js
@@ -128,6 +129,13 @@ Use a list ThingBD has the right to use, such as DGDA's registered-drug list.
 venv/Scripts/python.exe manage.py rebuild_books            # every pharmacy
 venv/Scripts/python.exe manage.py rebuild_books --tenant lazz-pharma-demo
 ```
+
+## Messages and loyalty
+
+- Everything goes through the outbox (`messaging.Message`): `services.queue()` saves it, `deliver()` sends it. With `MESSAGES_SEND_NOW=True` (default) messages go right after the request commits; in production set it to `False` and run `python manage.py send_messages` every minute from cron (it also sends each pharmacy's daily stock alert and due reminders once a day).
+- Platform SMS gateway: `SMS_GATEWAY_URL` in `.env`, e.g. `https://provider.example/api?api_key={api_key}&number={to}&senderid={sender}&message={message}`, plus `SMS_GATEWAY_API_KEY`, `SMS_GATEWAY_SENDER`, `SMS_GATEWAY_SUCCESS_TEXT`. Empty = SMS are only logged. Pharmacies on MediPOS credits use one credit per SMS part; sell credits from the platform console (pharmacy page → Add SMS credits).
+- Links in messages start with the request's address, or `SITE_URL` from the worker. A bill link (`/b/<token>/`) is signed with `SECRET_KEY`.
+- Loyalty: `messaging.loyalty`; points spent are part of `Sale.discount` (so posting is unchanged), `Customer.points` is kept in step with `PointEntry`.
 
 ## Attendance and payroll
 

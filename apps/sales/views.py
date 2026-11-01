@@ -22,6 +22,8 @@ from apps.customers.services import sale_due
 from apps.items.choices import DosageForm
 from apps.items.models import Category, Medicine
 from apps.items.services import search_medicines
+from apps.messaging.loyalty import program as loyalty_program
+from apps.messaging.services import after_sale
 from apps.outlets.models import Counter
 from apps.people.access import has_perm, shop_permission_required
 from apps.setup.services import format_money, format_shop_date, get_business_settings
@@ -81,6 +83,7 @@ def pos(request):
             "canAddCustomer": has_perm(request.user, "customer.create"),
             "canQuote": has_perm(request.user, "quotation.create"),
             "quotation": quotation,
+            "loyalty": _loyalty_config(),
         },
         "shelves": pos_shelves(),
         "texts": pos_texts(),
@@ -143,6 +146,11 @@ def _quotation_cart(quotation, outlet):
     }
 
 
+def _loyalty_config():
+    prog = loyalty_program()
+    return {"enabled": prog.enabled, "pointValue": str(prog.point_value), "minRedeem": prog.min_redeem, "maxPercent": prog.max_redeem_percent}
+
+
 def pos_texts():
     """Words the POS script shows, translated here so the page speaks the user's language."""
     return {
@@ -161,6 +169,8 @@ def pos_texts():
         "emptyCategory": _("No medicines here yet."), "noSalesYet": _("No sales yet. These are the medicines you have most of."),
         "showingFirst": _("Showing the first %(n)s. Search to find the rest."),
         "promo": _("Offer"), "quoteSaved": _("Quotation %(number)s saved."), "fromQuote": _("Loaded from quotation %(number)s"),
+        "points": _("Points"), "pointsNote": _("has %(n)s · up to %(most)s here"), "pointsMin": _("at least %(n)s at a time"),
+        "pointsDone": _("Points earned: %(earned)s · now has %(balance)s"), "sent": _("Sent:"),
     }
 
 
@@ -251,10 +261,14 @@ def pos_checkout(request):
             payments=data.get("payments") or [], customer=customer, price_type=data.get("priceType") or Sale.PriceType.RETAIL,
             cart_discount=data.get("discount") or 0, cash_tendered=data.get("cashTendered"), rx_checked=bool(data.get("rxChecked")),
             note=str(data.get("note") or ""), quotation_id=int(data["quotation"]) if str(data.get("quotation") or "").isdigit() else None,
+            points=data.get("points") or 0,
         )
     except SaleError as error:
         return JsonResponse({"error": str(error)}, status=400)
     settings = get_business_settings(request.tenant)
+    if sale.customer_id:
+        sale.customer.refresh_from_db(fields=["points"])
+    sent = after_sale(sale, base_url=request.build_absolute_uri("/"), user=request.user)
     held_id = data.get("heldId")
     if str(held_id or "").isdigit():
         HeldCart.objects.filter(pk=held_id, outlet=request.outlet).delete()
@@ -262,6 +276,8 @@ def pos_checkout(request):
         "id": sale.pk, "number": sale.number, "total": format_money(sale.total, settings), "paid": format_money(sale.paid, settings),
         "due": format_money(sale.due, settings) if sale.due > 0 else "", "change": format_money(sale.change, settings) if sale.change > 0 else "",
         "receiptUrl": reverse("sales:receipt", args=[sale.pk]),
+        "points": {"earned": sale.points_earned, "balance": sale.customer.points} if sale.customer_id and (sale.points_earned or sale.points_redeemed) else None,
+        "sent": sent["sent"], "whatsappUrl": sent["whatsapp"],
     })
 
 
@@ -421,13 +437,18 @@ def _sale_context(sale):
         "payments": sale.payments.select_related("account"),
         "returns": sale.returns.all(),
         "outstanding": sale_due(sale) if sale.customer_id else Decimal("0"),
+        "cart_discount": sale.discount - sale.points_discount,
+        # The customer's points right after this bill.
+        "points_after": sale.point_entries.order_by("-id").values_list("balance", flat=True).first() if sale.customer_id else None,
     }
 
 
 @shop_permission_required("sale.list")
 def sale_detail(request, pk):
     sale = get_object_or_404(_sales(request).select_related("customer", "outlet", "created_by", "register"), pk=pk)
-    return render(request, "sales/sale_detail.html", _sale_context(sale))
+    from apps.messaging.views import sale_panel
+
+    return render(request, "sales/sale_detail.html", {**_sale_context(sale), "send": sale_panel(request, sale)})
 
 
 @shop_permission_required("sale.list")
@@ -438,7 +459,7 @@ def receipt(request, pk):
     size = request.GET.get("size") if request.GET.get("size") in ("58", "80", "a4") else settings.receipt_size
     context = _sale_context(sale)
     context.update({"size": size, "auto_print": request.GET.get("print") == "1", "shop": settings, "tenant": request.tenant,
-                    "total_discount": sale.discount + sale.line_discount})
+                    "total_discount": sale.discount + sale.line_discount - sale.points_discount})
     return render(request, "sales/receipt.html", context)
 
 

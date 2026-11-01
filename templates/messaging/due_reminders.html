@@ -1,0 +1,66 @@
+{% extends "layouts/app.html" %}
+{% load i18n shop %}
+{% block title %}{% translate "Due reminders" %}{% endblock %}
+{% block page_title %}{% translate "Due reminders" %}{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% blocktranslate with amount=ms.due_min_amount|floatformat:"-2" days=ms.due_every_days %}Customers who owe at least {{ amount }}{% endblocktranslate %}{% if fresh %} · {% blocktranslate with days=ms.due_every_days %}not reminded in the last {{ days }} days{% endblocktranslate %}{% endif %}</p>{% endblock %}
+{% block page_actions %}
+{% if fresh %}<a class="btn btn-outline-secondary" href="?all=1">{% translate "Show everyone who owes" %}</a>{% else %}<a class="btn btn-outline-secondary" href="?">{% translate "Only those not reminded lately" %}</a>{% endif %}
+{% if can.message.edit %}<a class="btn btn-outline-secondary" href="{% url 'messaging:settings' %}"><i class="bi bi-pencil"></i> {% translate "Edit the message" %}</a>{% endif %}
+{% endblock %}
+{% block content %}
+{% if people %}
+<form class="card" method="post">
+  {% csrf_token %}
+  <div class="card-header d-flex flex-wrap gap-2 align-items-center justify-content-between">
+    <h2 class="card-title mb-0">{% blocktranslate count counter=people|length %}{{ counter }} customer{% plural %}{{ counter }} customers{% endblocktranslate %} · {% money total %}</h2>
+    <div class="d-flex flex-wrap gap-2 align-items-center">
+      <label class="visually-hidden" for="remind-channel">{% translate "Send by" %}</label>
+      <select id="remind-channel" name="channel" class="form-select form-select-sm w-auto">{% for value, label in channels %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select>
+      <button class="btn btn-sm btn-primary" type="submit" data-remind-send disabled><i class="bi bi-send"></i> <span data-remind-label>{% translate "Send to the ticked" %}</span></button>
+    </div>
+  </div>
+  <div class="table-responsive">
+    <table class="table align-middle mb-0">
+      <thead><tr>
+        <th style="width:40px"><input class="form-check-input" type="checkbox" data-remind-all aria-label="{% translate 'Tick everyone' %}"></th>
+        <th>{% translate "Customer" %}</th><th class="text-end">{% translate "Owes" %}</th><th>{% translate "Message" %}</th><th><span class="visually-hidden">WhatsApp</span></th>
+      </tr></thead>
+      <tbody>
+        {% for c in people %}
+        <tr>
+          <td><input class="form-check-input" type="checkbox" name="customer" value="{{ c.pk }}" data-remind aria-label="{{ c.name }}"></td>
+          <td><a href="{% url 'customers:detail' c.pk %}" class="fw-semibold">{{ c.name }}</a><small class="d-block text-body-secondary">{{ c.phone|default:"—" }}{% if c.email %} · {{ c.email }}{% endif %}</small></td>
+          <td class="text-end text-nowrap fw-semibold">{% money c.balance %}</td>
+          <td class="small text-body-secondary msg-body">{{ c.reminder }}</td>
+          <td class="text-end">{% if c.whatsapp %}<a class="btn btn-sm btn-soft tone-teal" href="{{ c.whatsapp }}" target="_blank" rel="noopener"><i class="bi bi-whatsapp"></i> WhatsApp</a>{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</form>
+{% else %}
+<div class="card"><div class="card-body text-center py-5">
+  <i class="bi bi-emoji-smile fs-1 text-body-secondary"></i>
+  <p class="mt-2 mb-0">{% if fresh %}{% translate "Nobody needs a reminder right now." %}{% else %}{% translate "Nobody owes that much." %}{% endif %}</p>
+</div></div>
+{% endif %}
+{% endblock %}
+{% block extra_js %}
+<script>
+  (function () {
+    var boxes = document.querySelectorAll("[data-remind]"), all = document.querySelector("[data-remind-all]"), send = document.querySelector("[data-remind-send]");
+    if (!send) return;
+    var label = send.querySelector("[data-remind-label]"), base = label.textContent;
+    function sync() {
+      var n = Array.prototype.filter.call(boxes, function (b) { return b.checked; }).length;
+      send.disabled = n === 0;
+      label.textContent = n ? base + " (" + n + ")" : base;
+      all.checked = n === boxes.length;
+      all.indeterminate = n > 0 && n < boxes.length;
+    }
+    boxes.forEach(function (b) { b.addEventListener("change", sync); });
+    all.addEventListener("change", function () { boxes.forEach(function (b) { b.checked = all.checked; }); sync(); });
+  })();
+</script>
+{% endblock %}
